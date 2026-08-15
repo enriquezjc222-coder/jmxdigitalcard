@@ -11,8 +11,20 @@
 <main class="admin-app">
 <header class="admin-header">
   <div><p class="admin-eyebrow">DIGITAL CARD</p><h1>Profile Editor</h1><p class="admin-subtitle">Edit your card without touching code</p></div>
-  <a href="index.html" class="view-card-button" target="_blank"><i class="fa-solid fa-eye"></i> View Card</a>
+  <a id="viewCardButton" href="index.html" class="view-card-button" target="_blank"><i class="fa-solid fa-eye"></i> View Card</a>
 </header>
+
+<section class="admin-section auth-section" id="authGate">
+ <div class="section-title"><i class="fa-solid fa-lock"></i><div><small>SECURE ADMIN</small><h2>Firebase Sign In</h2></div></div>
+ <p class="section-help">Sign in with the admin user you create in Firebase Authentication. The public card can be viewed by anyone, but only a signed-in admin can publish changes.</p>
+ <div class="auth-login-grid">
+  <label class="form-group"><span>Admin Email</span><input id="adminEmail" type="email" autocomplete="username" placeholder="you@example.com"></label>
+  <label class="form-group"><span>Password</span><input id="adminPassword" type="password" autocomplete="current-password"></label>
+  <button id="adminLogin" class="save-button auth-button" type="button"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+ </div>
+ <div class="auth-signed-in"><span><i class="fa-solid fa-circle-check"></i> <strong id="adminUserEmail"></strong></span><button id="adminLogout" class="mini-button" type="button">Sign Out</button></div>
+ <div id="authStatus" class="auth-status" aria-live="polite"></div>
+</section>
 
 <section class="admin-section">
  <div class="section-title"><i class="fa-solid fa-user"></i><div><small>PROFILE</small><h2>Basic Information</h2></div></div>
@@ -118,8 +130,8 @@
  <button id="resetProfile" class="reset-button"><i class="fa-solid fa-rotate-left"></i> Reset</button>
 </div>
 <div id="saveStatus" class="save-status" aria-live="polite"></div>
-<div class="admin-note"><strong>Important for NFC:</strong> this panel saves in this browser. When the card is ready, publish the project to a public HTTPS URL and program that URL into the NFC tag.</div>
+<div class="admin-note"><strong>Online mode:</strong> Save Changes now publishes this card to Firebase. Any phone that opens the public URL or NFC sees the same saved information.</div>
 </main>
-<script src="admin.js"></script>
+<script type="module" src="admin.js"></script>
 </body>
 </html>

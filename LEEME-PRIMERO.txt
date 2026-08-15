@@ -1,0 +1,21 @@
+JMX DIGITAL CARD - VERSION FIREBASE ONLINE
+===========================================
+
+Esta versión reemplaza localStorage como fuente principal pública.
+El panel ahora publica datos en Firebase Cloud Firestore para que la misma tarjeta se vea igual en computadora, teléfono, incógnito y NFC.
+
+ARCHIVOS PRINCIPALES PARA REEMPLAZAR EN TU PROYECTO/GITHUB:
+- admin.html
+- admin.css
+- admin.js
+- index.html
+- styles.css
+- script.js
+
+ARCHIVOS DE CONFIGURACIÓN/AYUDA:
+- firestore.rules
+- FIREBASE-SETUP.txt
+
+IMPORTANTE:
+Antes de probar, completa los pasos de FIREBASE-SETUP.txt en Firebase Console.
+No necesitas Firebase Storage ni plan Blaze para esta versión; las imágenes comprimidas se guardan en documentos separados de Firestore.
