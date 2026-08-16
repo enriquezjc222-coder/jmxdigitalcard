@@ -43,3 +43,15 @@ Basic keeps the core contact card functions. Premium unlocks the second phone, w
 
 LARGE PDF CATALOGS
 Do not store large catalogs such as a 67 MB PDF inside Firestore. Use Catalog URL for large files. The small PDF upload remains intentionally limited.
+
+UPDATE — PUBLIC HOME + ANALYTICS + PREMIUM LAUNCH CONTROL
+- The root https://jmxdigitalcard.com/ is now the JMX public landing page. It no longer shows a personal profile.
+- The reusable digital-card template is now card.html. Short /c/CODE URLs continue to work through 404.html on GitHub Pages.
+- The admin dashboard now shows total profile opens and current-month opens for each card.
+- Premium owners see their visit totals in Owner Login; Basic owners do not see analytics.
+- The dashboard includes a Show Premium switch. OFF hides Premium promotion on the public home page without removing Premium code or plan support.
+- The dashboard includes a fixed JMX company QR pointing to https://jmxdigitalcard.com/.
+- Publish the UPDATED firestore.rules before testing analytics and the Premium switch.
+
+IMPORTANT
+Analytics in this static/Firebase version count public profile loads. Because the site has no trusted server-side analytics endpoint yet, these counts are useful operational metrics but should not be treated as fraud-proof billing data.

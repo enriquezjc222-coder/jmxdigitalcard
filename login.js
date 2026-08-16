@@ -14,6 +14,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const $ = (id) => document.getElementById(id);
+function monthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
 function msg(value, type = "") { $("status").textContent = value; $("status").className = "status " + type; }
 async function login() {
   try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value); }
@@ -24,10 +25,10 @@ async function load(currentUser) {
   const snap = await getDocs(q);
   const cards = [];
   for (const d of snap.docs) {
-    const card = await getDoc(doc(db, "cards", d.id));
-    cards.push({ id: d.id, ...(card.exists() ? card.data() : {}) });
+    const [card,stats,month]=await Promise.all([getDoc(doc(db,"cards",d.id)),getDoc(doc(db,"cardStats",d.id)),getDoc(doc(db,"monthlyStats",`${d.id}_${monthKey()}`))]);
+    cards.push({ id:d.id,...(card.exists()?card.data():{}),stats:stats.exists()?stats.data():{},monthStats:month.exists()?month.data():{} });
   }
-  $("cardList").innerHTML = cards.length ? cards.map((card) => `<a class="owner-card" href="admin.html?card=${encodeURIComponent(card.id)}"><strong>${card.id}</strong><span>${card.plan || "Basic"} • ${card.status || "activated"}</span><i class="fa-solid fa-chevron-right"></i></a>`).join("") : '<p class="muted">No activated cards are linked to this account.</p>';
+  $("cardList").innerHTML = cards.length ? cards.map((card) => `<a class="owner-card" href="admin.html?card=${encodeURIComponent(card.id)}"><strong>${card.id}</strong><span>${card.plan || "Basic"} • ${card.status || "activated"}${(card.plan||"Basic")==="Premium"?` • ${Number(card.stats?.views||0).toLocaleString()} total views • ${Number(card.monthStats?.views||0).toLocaleString()} this month`:""}</span><i class="fa-solid fa-chevron-right"></i></a>`).join("") : '<p class="muted">No activated cards are linked to this account.</p>';
   $("loginForm").hidden = true;
   $("cards").hidden = false;
 }

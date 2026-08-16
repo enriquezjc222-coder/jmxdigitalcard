@@ -90,7 +90,7 @@ function setAuthStatus(msg,type=""){ const e=$id("authStatus"); if(!e)return; e.
 function setBusy(on){ document.body.classList.toggle("admin-busy",on); [$id("saveProfile"),$id("resetProfile")].forEach(b=>{if(b)b.disabled=on;}); }
 function publicCardURL(){
   if(CARD_ID==="main") return location.origin+"/";
-  if(["localhost","127.0.0.1"].includes(location.hostname)||location.hostname.endsWith("github.io")) return new URL(`index.html?card=${encodeURIComponent(CARD_ID)}`,location.href).href;
+  if(["localhost","127.0.0.1"].includes(location.hostname)||location.hostname.endsWith("github.io")) return new URL(`card.html?card=${encodeURIComponent(CARD_ID)}`,location.href).href;
   return `${location.origin}/c/${CARD_ID}`;
 }
 
@@ -193,14 +193,14 @@ async function loadAdminMeta(){
     const c=cardSnap.exists()?cardSnap.data():{},o=ownerSnap.exists()?ownerSnap.data():{};
     if(currentRole==="owner"){
       setVal("clientEditorEmail",o.ownerEmail||currentUser?.email||"");
-      if($id("clientPlan"))$id("clientPlan").value=c.plan||"Basic";
+      if($id("clientPlan"))$id("clientPlan").value=c.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=c.complimentaryPremium?"complimentary":(c.subscription?.source||"manual");
       if($id("cardStatus"))$id("cardStatus").value=c.status||"activated";
       if($id("nfcStatus"))$id("nfcStatus").value=c.nfcStatus||"programmed";
       return;
     }
     const snap=await getDoc(adminMetaRef),m=snap.exists()?snap.data():{};
     setVal("clientName",m.clientName||currentProfile.fullName||"");setVal("clientEmail",m.clientEmail||o.ownerEmail||"");setVal("clientPhone",m.clientPhone||"");setVal("renewalDate",m.renewalDate||"");setVal("internalNotes",m.notes||"");
-    if($id("clientPlan"))$id("clientPlan").value=c.plan||m.plan||"Basic";
+    if($id("clientPlan"))$id("clientPlan").value=c.plan||m.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=c.complimentaryPremium?"complimentary":(c.subscription?.source||"manual");
     if($id("cardStatus"))$id("cardStatus").value=c.status||"activated";
     if($id("nfcStatus"))$id("nfcStatus").value=c.nfcStatus||m.nfcStatus||"programmed";
     setVal("clientEditorEmail",o.ownerEmail||"");
@@ -213,7 +213,7 @@ async function saveAdminMeta(p){
   const data={clientName:getVal("clientName")||p.fullName||CARD_ID,clientEmail:getVal("clientEmail"),clientPhone:getVal("clientPhone"),company:p.company||"",renewalDate:getVal("renewalDate"),nfcStatus:$id("nfcStatus")?.value||"programmed",notes:getVal("internalNotes"),updatedAt:serverTimestamp()};
   if(!existing.exists())data.createdAt=serverTimestamp();
   await setDoc(adminMetaRef,data,{merge:true});
-  await setDoc(cardRef,{plan:$id("clientPlan")?.value||currentCardPlan,status:$id("cardStatus")?.value||"activated",nfcStatus:$id("nfcStatus")?.value||"programmed",updatedAt:serverTimestamp()},{merge:true});
+  const comp=$id("complimentaryPremium")?.checked===true; await setDoc(cardRef,{plan:$id("clientPlan")?.value||currentCardPlan,complimentaryPremium:comp,subscription:{status:comp?"active":($id("subscriptionStatus")?.value||"none"),source:comp?"complimentary":($id("subscriptionSource")?.value||"manual")},status:$id("cardStatus")?.value||"activated",nfcStatus:$id("nfcStatus")?.value||"programmed",updatedAt:serverTimestamp()},{merge:true});
 }
 
 async function saveCardAccess(){ return; }
@@ -331,6 +331,24 @@ async function loadAfterAuth(){
   finally{setBusy(false);}
 }
 
+
+function statMonthKey(offset=0){const d=new Date();d.setMonth(d.getMonth()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
+function statDayKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function prettyAction(name){return ({whatsapp:"WhatsApp",phone:"Phone",email:"Email",website:"Website",facebook:"Facebook",instagram:"Instagram",linkedin:"LinkedIn",twitter:"X / Twitter",tiktok:"TikTok",youtube:"YouTube",catalog:"Catalog",saveContact:"Save Contact",share:"Share",text:"Text Message",customLink:"Business Link",cta:"Contact Button"})[name]||name||"—"}
+async function loadPremiumOwnerStats(){
+  const section=$id("premiumStatsSection");if(!section)return;
+  const show=currentRole==="owner"&&String(currentCardPlan).toLowerCase()==="premium";section.hidden=!show;if(!show)return;
+  try{
+    const [totalSnap,monthSnap,prevSnap]=await Promise.all([getDoc(doc(db,"cardStats",CARD_ID)),getDoc(doc(db,"monthlyStats",`${CARD_ID}_${statMonthKey(0)}`)),getDoc(doc(db,"monthlyStats",`${CARD_ID}_${statMonthKey(-1)}`))]);
+    const total=totalSnap.exists()?totalSnap.data():{},month=monthSnap.exists()?monthSnap.data():{},prev=prevSnap.exists()?prevSnap.data():{};
+    $id("ownerMonthViews").textContent=Number(month.views||0).toLocaleString();$id("ownerTotalViews").textContent=Number(total.views||0).toLocaleString();$id("ownerPreviousViews").textContent=Number(prev.views||0).toLocaleString();
+    const pv=Number(prev.views||0),mv=Number(month.views||0);$id("ownerMonthCompare").textContent=pv?`${mv>=pv?"+":""}${Math.round((mv-pv)/pv*100)}% vs previous month`:(mv?"New activity this month":"No previous-month data");
+    const actions=month.actions||{};const top=Object.entries(actions).sort((a,b)=>Number(b[1])-Number(a[1]))[0];$id("ownerTopAction").textContent=top?prettyAction(top[0]):"—";$id("ownerTopActionCount").textContent=top?`${Number(top[1]).toLocaleString()} clicks this month`:"No clicks yet";
+    const days=[];for(let i=29;i>=0;i--){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);days.push({d,key:statDayKey(d),v:0})}
+    await Promise.all(days.map(async x=>{const snap=await getDoc(doc(db,"dailyStats",`${CARD_ID}_${x.key}`));x.v=snap.exists()?Number(snap.data().views||0):0}));
+    const max=Math.max(1,...days.map(x=>x.v)),chart=$id("owner30DayChart");chart.innerHTML=days.map(x=>`<span class="mini-bar" style="height:${Math.max(4,Math.round(x.v/max*100))}%" title="${x.key}: ${x.v} opens"></span>`).join("");
+  }catch(e){console.warn("Premium owner stats unavailable",e)}
+}
 const PREMIUM_ONLY_IDS=new Set(["phone2","website","instagram","linkedin","twitter","tiktok","youtube","catalog","catalogUpload","customBusinessLabel","customBusinessSubtitle","customBusinessUrl","videoUrl","service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon","galleryUpload","clearGallery","finalCtaTitle","finalCtaText","finalCtaLabel"]);
 function applyPlanLocks(){
   const basic=currentCardPlan.toLowerCase()==="basic"&&currentRole==="owner";
@@ -358,7 +376,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       currentRole=adminUser?"admin":"owner";currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:null;
       document.body.classList.toggle("client-owner-mode",currentRole==="owner");
       setAuthStatus(`Signed in as ${user.email||currentRole}. ${currentRole==="admin"?"JMX administrator":"Card owner"}.`,"ok");$id("adminUserEmail").textContent=user.email||currentRole;
-      await loadAfterAuth();applyPlanLocks();
+      await loadAfterAuth();applyPlanLocks();await loadPremiumOwnerStats();
     }catch(e){console.error(e);setAuthStatus(firebaseMessage(e),"error");}
   });
 });

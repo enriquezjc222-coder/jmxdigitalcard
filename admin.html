@@ -34,12 +34,24 @@
   <label class="form-group"><span>Client Email (internal)</span><input id="clientEmail" type="email"></label>
   <label class="form-group"><span>Client Phone (internal)</span><input id="clientPhone" type="tel"></label>
   <label class="form-group full-width"><span>Client Editor Login Email (optional)</span><input id="clientEditorEmail" type="email" placeholder="client@example.com"><small>Optional: create this same email in Firebase Authentication if the client should edit only this card.</small></label>
-  <label class="form-group"><span>Plan</span><select id="clientPlan"><option>Basic</option><option>Premium</option></select></label>
+  <label class="form-group"><span>Plan</span><select id="clientPlan"><option>Basic</option><option>Premium</option></select></label><label class="form-group switch-form"><span>Complimentary Premium</span><label class="switch-row"><input id="complimentaryPremium" type="checkbox"><span class="switch-ui"></span><strong>Premium free / courtesy</strong></label></label><label class="form-group"><span>Subscription Status</span><input id="subscriptionStatus" type="text" readonly></label><label class="form-group"><span>Premium Source</span><input id="subscriptionSource" type="text" readonly></label>
   <label class="form-group"><span>Card Status</span><select id="cardStatus"><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select></label>
   <label class="form-group"><span>Renewal Date</span><input id="renewalDate" type="date"></label>
   <label class="form-group"><span>NFC Status</span><select id="nfcStatus"><option value="not-programmed">Not programmed</option><option value="programmed">Programmed</option><option value="delivered">Delivered</option></select></label>
   <label class="form-group full-width"><span>Internal Notes</span><textarea id="internalNotes" rows="3" placeholder="Private notes visible only in the admin dashboard"></textarea></label>
  </div>
+</section>
+
+<section id="premiumStatsSection" class="admin-section premium-stats-section" hidden>
+ <div class="section-title"><i class="fa-solid fa-chart-line"></i><div><small>PREMIUM</small><h2>Your Profile Statistics</h2></div></div>
+ <p class="section-help">A simple view of how your digital card is performing. Detailed platform analytics remain available only to JMX administration.</p>
+ <div class="premium-stats-grid">
+  <article><span>This month</span><strong id="ownerMonthViews">0</strong><small>profile opens</small></article>
+  <article><span>All time</span><strong id="ownerTotalViews">0</strong><small>profile opens</small></article>
+  <article><span>Previous month</span><strong id="ownerPreviousViews">0</strong><small id="ownerMonthCompare">—</small></article>
+  <article><span>Top action</span><strong id="ownerTopAction">—</strong><small id="ownerTopActionCount">No clicks yet</small></article>
+ </div>
+ <div class="mini-chart-wrap"><div class="mini-chart-head"><strong>Last 30 days</strong><span>Profile opens</span></div><div id="owner30DayChart" class="mini-chart" aria-label="Last 30 days profile opens"></div></div>
 </section>
 
 <section class="admin-section">
@@ -136,7 +148,7 @@
   <button class="admin-theme" data-theme="emerald"><span class="color emerald"></span>Emerald</button>
   <button class="admin-theme" data-theme="purple"><span class="color purple"></span>Purple</button>
   <button class="admin-theme" data-theme="red"><span class="color red"></span>Red</button>
-  <button class="admin-theme" data-theme="black"><span class="color black"></span>Black</button>
+  <button class="admin-theme" data-theme="black"><span class="color black"></span>Black</button><button class="admin-theme" data-theme="cyan"><span class="color cyan"></span>Electric Cyan</button>
  </div>
 </section>
 

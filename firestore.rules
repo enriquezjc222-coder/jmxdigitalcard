@@ -45,6 +45,11 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    match /platform/publicSettings {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     match /cards/{cardId} {
       allow get: if true;
       allow list: if isAdmin();
@@ -98,6 +103,24 @@ service cloud.firestore {
     match /ownerActivity/{cardId} {
       allow read: if isAdmin() || isOwner(cardId);
       allow create, update: if isOwner(cardId) && request.resource.data.ownerUid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /cardStats/{cardId} {
+      allow read: if isAdmin() || isOwner(cardId);
+      allow create, update: if request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']) && request.resource.data.cardId == cardId;
+      allow delete: if isAdmin();
+    }
+
+    match /monthlyStats/{statId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.cardId is string && isOwner(resource.data.cardId));
+      allow create, update: if request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /dailyStats/{statId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.cardId is string && isOwner(resource.data.cardId));
+      allow create, update: if request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']);
       allow delete: if isAdmin();
     }
 

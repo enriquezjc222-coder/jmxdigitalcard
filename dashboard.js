@@ -45,11 +45,12 @@ function setDialogStatus(message, type = "") {
 }
 function friendlyUrl(id) {
   if (["localhost", "127.0.0.1"].includes(location.hostname) || location.hostname.endsWith("github.io")) {
-    return new URL(`index.html?card=${encodeURIComponent(id)}`, location.href).href;
+    return new URL(`card.html?card=${encodeURIComponent(id)}`, location.href).href;
   }
   return `${location.origin}/c/${encodeURIComponent(id)}`;
 }
 function editorUrl(id) { return new URL(`admin.html?card=${encodeURIComponent(id)}`, location.href).href; }
+function currentMonthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
 
 async function isAdmin(currentUser) {
   if (!currentUser) return false;
@@ -96,17 +97,21 @@ async function loadCards() {
   const result = [];
   for (const d of snap.docs) {
     if (d.id === "main" && d.data().fullName && !d.data().inventoryVersion) continue;
-    const [adminSnap, ownerSnap, inventorySnap] = await Promise.all([
+    const [adminSnap, ownerSnap, inventorySnap, statsSnap, monthSnap] = await Promise.all([
       getDoc(doc(db, "cardAdmin", d.id)),
       getDoc(doc(db, "cardOwners", d.id)),
-      getDoc(doc(db, "inventory", d.id))
+      getDoc(doc(db, "inventory", d.id)),
+      getDoc(doc(db, "cardStats", d.id)),
+      getDoc(doc(db, "monthlyStats", `${d.id}_${currentMonthKey()}`))
     ]);
     result.push({
       id: d.id,
       ...d.data(),
       admin: adminSnap.exists() ? adminSnap.data() : {},
       owner: ownerSnap.exists() ? ownerSnap.data() : null,
-      inventory: inventorySnap.exists() ? inventorySnap.data() : {}
+      inventory: inventorySnap.exists() ? inventorySnap.data() : {},
+      stats: statsSnap.exists() ? statsSnap.data() : {},
+      monthStats: monthSnap.exists() ? monthSnap.data() : {}
     });
   }
   cards = result.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
@@ -123,33 +128,47 @@ function badgeClass(status) {
 function render() {
   const search = $("searchCards").value.trim().toLowerCase();
   const filter = $("statusFilter").value;
+  const planFilter = $("planFilter")?.value || "all";
   const list = cards.filter((card) => {
     const admin = card.admin || {};
     const owner = card.owner || {};
     const haystack = [card.id, card.plan, card.status, admin.clientName, admin.notes, owner.ownerEmail].join(" ").toLowerCase();
-    return (!search || haystack.includes(search)) && (filter === "all" || card.status === filter);
+    return (!search || haystack.includes(search)) && (filter === "all" || card.status === filter) && (planFilter === "all" || (card.complimentaryPremium===true?"Premium":(card.plan || "Basic")) === planFilter);
   });
 
   $("totalCards").textContent = cards.length;
   $("availableCards").textContent = cards.filter((c) => c.status === "available").length;
   $("activatedCards").textContent = cards.filter((c) => c.status === "activated").length;
   $("suspendedCards").textContent = cards.filter((c) => c.status === "suspended").length;
+  const effectivePlan=c=>c.complimentaryPremium===true?"Premium":(c.plan||"Basic");
+  $("basicCards").textContent = cards.filter(c=>effectivePlan(c)==="Basic").length;
+  $("premiumCards").textContent = cards.filter(c=>effectivePlan(c)==="Premium").length;
+  $("compCards").textContent = cards.filter(c=>c.complimentaryPremium===true).length;
+  $("inactiveCards").textContent = cards.filter(c=>!["activated","suspended"].includes(c.status)).length;
 
-  $("cardsGrid").innerHTML = list.map((card) => {
+  const cardMarkup = (card) => {
     const admin = card.admin || {};
     const owner = card.owner || {};
     const inventory = card.inventory || {};
+    const stats = card.stats || {};
+    const monthStats = card.monthStats || {};
+    const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
+    const sub = card.subscription || {};
     return `<article class="client-card" data-id="${esc(card.id)}">
       <div class="client-head"><div><h3>${esc(card.id)}</h3><div class="client-meta">${esc(admin.clientName || owner.ownerEmail || "Unassigned NFC")}</div></div><span class="badge ${badgeClass(card.status)}">${esc(card.status || "available")}</span></div>
       <div class="card-url">${esc(friendlyUrl(card.id))}</div>
       <div class="card-details">
-        <div><span>Plan</span><br><strong>${esc(card.plan || "Basic")}</strong></div>
+        <div><span>Plan</span><br><strong>${esc(effective)}</strong> ${card.complimentaryPremium===true?'<span class="comp-badge"><i class="fa-solid fa-gift"></i> Free</span>':''}</div>
         <div><span>Physical</span><br>${esc(admin.physicalType || "PVC")}</div>
         <div><span>Owner</span><br>${esc(owner.ownerEmail || "Not activated")}</div>
         <div><span>NFC</span><br>${esc(card.nfcStatus || admin.nfcStatus || "not-programmed")}</div>
         <div><span>Activation</span><br>${card.requiresActivationCode !== false ? `<code>${esc(inventory.activationCode || "—")}</code>` : "No code required"}</div>
         <div><span>Activated</span><br>${card.activatedAt?.toDate ? card.activatedAt.toDate().toLocaleDateString() : "—"}</div>
+        <div><span>Total profile opens</span><br><span class="visit-pill"><i class="fa-solid fa-chart-line"></i>${Number(stats.views || 0).toLocaleString()}</span></div>
+        <div><span>This month</span><br><strong>${Number(monthStats.views || 0).toLocaleString()}</strong></div>
       </div>
+      <div class="subscription-line"><strong>Subscription:</strong> ${esc(sub.status||"none")} · ${esc(sub.source|| (card.complimentaryPremium?"complimentary":"manual"))}</div>
+      <div class="card-switches"><button class="mini ${card.complimentaryPremium?'active':''}" data-action="comp"><i class="fa-solid fa-gift"></i> Premium Free: ${card.complimentaryPremium?'ON':'OFF'}</button></div>
       <div class="card-actions">
         <button class="mini" data-action="open">Open</button><button class="mini" data-action="copy">Copy NFC URL</button><button class="mini" data-action="code">Copy Activation</button><button class="mini" data-action="plan">Change Plan</button>
         ${card.status === "available" ? '<button class="mini" data-action="sold">Mark Sold</button>' : ""}
@@ -159,7 +178,11 @@ function render() {
         ${card.status === "available" ? '<button class="mini" data-action="regenerate">Regenerate</button><button class="mini danger" data-action="delete">Delete</button>' : ""}
       </div>
     </article>`;
-  }).join("");
+  };
+  const basicList=list.filter(c=>effectivePlan(c)==="Basic"), premiumList=list.filter(c=>effectivePlan(c)==="Premium");
+  $("basicCardsGrid").innerHTML=basicList.map(cardMarkup).join("");
+  $("premiumCardsGrid").innerHTML=premiumList.map(cardMarkup).join("");
+  $("basicColumnCount").textContent=basicList.length; $("premiumColumnCount").textContent=premiumList.length;
   $("emptyState").hidden = list.length > 0;
   document.querySelectorAll(".client-card").forEach((card) => card.addEventListener("click", handleAction));
 }
@@ -195,11 +218,18 @@ async function handleAction(event) {
     setTimeout(() => button.textContent = "Copy Activation", 1000);
   }
   if (action === "plan") await changePlan(id, card);
+  if (action === "comp") await toggleComplimentary(id, card);
   if (action === "sold") await updateStatus(id, "sold");
   if (action === "suspend") await updateStatus(id, "suspended");
   if (action === "reactivate") await updateStatus(id, "activated");
   if (action === "regenerate") await regenerate(id);
   if (action === "delete") await removeAvailable(id);
+}
+
+async function toggleComplimentary(id, card){
+  const next=card.complimentaryPremium!==true;
+  await setDoc(doc(db,"cards",id),{complimentaryPremium:next,updatedAt:serverTimestamp(),subscription:{...(card.subscription||{}),source:next?"complimentary":(card.subscription?.source||"manual"),status:next?"active":(card.subscription?.status||"none")}}, {merge:true});
+  await loadCards();
 }
 
 async function changePlan(id, card) {
@@ -289,7 +319,7 @@ async function createCard(event) {
       return setDialogStatus("That card code already exists. Choose another code or press Random.", "error");
     }
     const batch = writeBatch(db);
-    batch.set(doc(db, "cards", id), { inventoryVersion: 2, status: "available", plan, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "cards", id), { inventoryVersion: 2, status: "available", plan, complimentaryPremium:false, subscription:{status:"none",source:"manual"}, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "inventory", id), { activationCode: code, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "cardAdmin", id), { physicalType, nfcStatus, notes, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "profiles", id), blankProfile());
@@ -339,9 +369,32 @@ $("closeCardDialog").addEventListener("click", () => $("cardDialog").close());
 $("cancelCardButton").addEventListener("click", () => $("cardDialog").close());
 $("searchCards").addEventListener("input", render);
 $("statusFilter").addEventListener("change", render);
+$("planFilter")?.addEventListener("change", render);
 $("newCardId").addEventListener("input", updatePreview);
 $("regenerateCode").addEventListener("click", () => { $("newCardId").value = randomCode(); updatePreview(); });
 $("regenerateActivation").addEventListener("click", () => $("newActivationCode").value = activationCode());
+
+
+async function loadPlatformSettings(){
+  const snap=await getDoc(doc(db,"platform","publicSettings")); const d=snap.exists()?snap.data():{};
+  if($("premiumEnabled")) $("premiumEnabled").checked=d.premiumEnabled===true;
+  if($("billingEnabled")) $("billingEnabled").checked=d.billingEnabled===true;
+  if($("privacyRequired")) $("privacyRequired").checked=d.privacyRequired!==false;
+  if($("premiumCheckoutUrl")) $("premiumCheckoutUrl").value=d.premiumCheckoutUrl||"";
+  if($("privacyPolicyUrl")) $("privacyPolicyUrl").value=d.privacyPolicyUrl||"";
+  if($("privacyAgreementText")) $("privacyAgreementText").value=d.privacyAgreementText||"";
+}
+async function savePlatformSettings(){
+  const payload={premiumEnabled:$("premiumEnabled")?.checked===true,billingEnabled:$("billingEnabled")?.checked===true,privacyRequired:$("privacyRequired")?.checked!==false,premiumCheckoutUrl:$("premiumCheckoutUrl")?.value.trim()||"",privacyPolicyUrl:$("privacyPolicyUrl")?.value.trim()||"",privacyAgreementText:$("privacyAgreementText")?.value.trim()||"",updatedAt:serverTimestamp()};
+  const status=$("platformStatus");
+  try{await setDoc(doc(db,"platform","publicSettings"),payload,{merge:true});if(status){status.textContent="Platform settings saved.";status.className="status ok"}}catch(e){console.error(e);if(status){status.textContent="Could not save platform settings.";status.className="status error"}}
+}
+function initMarketing(){
+  const q=$("companyQrAdmin");if(q&&window.QRCode){q.innerHTML="";new QRCode(q,{text:"https://jmxdigitalcard.com/",width:140,height:140,colorDark:"#111111",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H})}
+  $("copyCompanyUrl")?.addEventListener("click",async()=>{await copyText("https://jmxdigitalcard.com/");$("copyCompanyUrl").textContent="Copied JMX URL";setTimeout(()=>$("copyCompanyUrl").innerHTML='<i class="fa-solid fa-copy"></i> Copy JMX URL',1200)});
+  $("savePlatformButton")?.addEventListener("click",savePlatformSettings);
+}
+initMarketing();
 
 onAuthStateChanged(auth, async (currentUser) => {
   user = currentUser || null;
@@ -354,7 +407,7 @@ onAuthStateChanged(auth, async (currentUser) => {
       await signOut(auth);
       return setLoginStatus("This account is not the JMX platform administrator.", "error");
     }
-    await loadCards();
+    await Promise.all([loadCards(),loadPlatformSettings()]);
   } catch (error) {
     console.error(error);
     setLoginStatus("Could not load dashboard: " + error.message, "error");
