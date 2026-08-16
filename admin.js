@@ -75,7 +75,9 @@ let pendingMedia = new Map();
 let pendingDeletes = new Set();
 
 function sanitizeCardId(value){
-  return String(value || "main").toLowerCase().replace(/[^a-z0-9_-]/g, "-").slice(0, 64) || "main";
+  const raw = String(value || "main").trim();
+  if (raw.toLowerCase() === "main") return "main";
+  return raw.toUpperCase().replace(/[^A-Z0-9_-]/g, "-").slice(0, 64) || "main";
 }
 function structuredCloneSafe(v){ return JSON.parse(JSON.stringify(v)); }
 function $id(id){ return document.getElementById(id); }

@@ -164,6 +164,16 @@ function render() {
   document.querySelectorAll(".client-card").forEach((card) => card.addEventListener("click", handleAction));
 }
 
+async function copyText(value) {
+  try {
+    if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(value); return true; }
+  } catch {}
+  const area = document.createElement("textarea");
+  area.value = value; area.setAttribute("readonly", ""); area.style.position = "fixed"; area.style.opacity = "0";
+  document.body.appendChild(area); area.select();
+  const ok = document.execCommand("copy"); area.remove(); return ok;
+}
+
 async function handleAction(event) {
   const button = event.target.closest("[data-action]");
   if (!button) return;
@@ -173,14 +183,14 @@ async function handleAction(event) {
   if (action === "open") window.open(friendlyUrl(id), "_blank");
   if (action === "edit") location.href = editorUrl(id);
   if (action === "copy") {
-    await navigator.clipboard.writeText(friendlyUrl(id));
+    await copyText(friendlyUrl(id));
     button.textContent = "Copied";
     setTimeout(() => button.textContent = "Copy NFC URL", 1000);
   }
   if (action === "code") {
     const code = card.inventory?.activationCode || "";
     if (!code) return alert("This card has no activation code.");
-    await navigator.clipboard.writeText(code);
+    await copyText(code);
     button.textContent = "Copied";
     setTimeout(() => button.textContent = "Copy Activation", 1000);
   }
@@ -256,26 +266,56 @@ function blankProfile() {
 }
 
 async function createCard(event) {
-  event.preventDefault();
+  event?.preventDefault?.();
+  const button = $("createCardButton");
+  setDialogStatus("");
   const id = cleanCode($("newCardId").value);
+  $("newCardId").value = id;
   if (id.length < 4) return setDialogStatus("Use at least 4 letters or numbers.", "error");
-  if ((await getDoc(doc(db, "cards", id))).exists()) return setDialogStatus("That card code already exists. Generate another.", "error");
+
   const plan = $("newPlan").value;
   const physicalType = $("newPhysicalType").value;
   const nfcStatus = $("newNfcStatus").value;
   const requiresActivationCode = $("requireActivationCode").checked;
-  const code = $("newActivationCode").value;
+  const code = $("newActivationCode").value.trim().toUpperCase();
   const notes = $("newNotes").value.trim();
-  const batch = writeBatch(db);
-  batch.set(doc(db, "cards", id), { inventoryVersion: 2, status: "available", plan, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  batch.set(doc(db, "inventory", id), { activationCode: code, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  batch.set(doc(db, "cardAdmin", id), { physicalType, nfcStatus, notes, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  batch.set(doc(db, "profiles", id), blankProfile());
-  await batch.commit();
-  $("cardDialog").close();
-  $("cardForm").reset();
-  prepareDialog();
-  await loadCards();
+  if (requiresActivationCode && !code) return setDialogStatus("Generate an activation code before creating the card.", "error");
+
+  button.disabled = true;
+  button.textContent = "Creating…";
+  setDialogStatus("Creating NFC inventory card…", "working");
+  try {
+    if ((await getDoc(doc(db, "cards", id))).exists()) {
+      return setDialogStatus("That card code already exists. Choose another code or press Random.", "error");
+    }
+    const batch = writeBatch(db);
+    batch.set(doc(db, "cards", id), { inventoryVersion: 2, status: "available", plan, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "inventory", id), { activationCode: code, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "cardAdmin", id), { physicalType, nfcStatus, notes, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "profiles", id), blankProfile());
+    await batch.commit();
+    setDialogStatus(`Card ${id} created successfully.`, "ok");
+    await loadCards();
+    setTimeout(() => {
+      $("cardDialog").close();
+      $("cardForm").reset();
+      prepareDialog();
+      setDialogStatus("");
+    }, 450);
+  } catch (error) {
+    console.error("Create NFC card failed", error);
+    const codeName = String(error?.code || "");
+    if (codeName.includes("permission-denied")) {
+      setDialogStatus("Firebase blocked this action. Publish the firestore.rules included with this ZIP, then try again.", "error");
+    } else if (codeName.includes("unavailable")) {
+      setDialogStatus("Firebase is temporarily unavailable. Check your internet connection and try again.", "error");
+    } else {
+      setDialogStatus("Could not create the NFC card: " + (error?.message || "Unknown error"), "error");
+    }
+  } finally {
+    button.disabled = false;
+    button.textContent = "Create Inventory Card";
+  }
 }
 
 function prepareDialog() {
@@ -294,7 +334,9 @@ $("loginButton").addEventListener("click", signIn);
 $("loginPassword").addEventListener("keydown", (e) => { if (e.key === "Enter") signIn(); });
 $("logoutButton").addEventListener("click", () => signOut(auth));
 $("newCardButton").addEventListener("click", () => { prepareDialog(); $("cardDialog").showModal(); });
-$("createCardButton").addEventListener("click", createCard);
+$("cardForm").addEventListener("submit", createCard);
+$("closeCardDialog").addEventListener("click", () => $("cardDialog").close());
+$("cancelCardButton").addEventListener("click", () => $("cardDialog").close());
 $("searchCards").addEventListener("input", render);
 $("statusFilter").addEventListener("change", render);
 $("newCardId").addEventListener("input", updatePreview);

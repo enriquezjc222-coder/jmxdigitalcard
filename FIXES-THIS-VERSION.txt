@@ -1,0 +1,12 @@
+JMX Digital Card - functional repair build
+
+Fixed without changing the visual design or sections:
+- Create Inventory Card now submits through the form reliably.
+- Create button shows progress, success, and Firebase error messages instead of appearing to do nothing.
+- Cancel and X close the inventory dialog reliably.
+- Card codes now use the same uppercase format everywhere (Dashboard, activation, public card, editor).
+  This fixes codes such as BOSS being created as BOSS but looked up as boss.
+- Copy NFC URL and Copy Activation have a fallback when the browser blocks the Clipboard API.
+- Existing design, colors, sections, Basic/Premium structure, Firebase config, NFC workflow and owner flow are preserved.
+
+IMPORTANT: Publish the firestore.rules from this ZIP in Firebase Console before testing inventory creation.

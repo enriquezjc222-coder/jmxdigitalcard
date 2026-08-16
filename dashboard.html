@@ -50,8 +50,8 @@
 </div>
 </main>
 <dialog id="cardDialog" class="card-dialog">
-  <form method="dialog" id="cardForm">
-    <div class="dialog-header"><div><p class="eyebrow">NEW INVENTORY</p><h2>Create NFC Card</h2></div><button value="cancel" class="icon-button" aria-label="Close">×</button></div>
+  <form id="cardForm">
+    <div class="dialog-header"><div><p class="eyebrow">NEW INVENTORY</p><h2>Create NFC Card</h2></div><button id="closeCardDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
     <div class="form-grid">
       <label><span>Short Card Code *</span><div class="inline-field"><input id="newCardId" required maxlength="8"><button id="regenerateCode" class="mini" type="button">Random</button></div></label>
       <label><span>Plan</span><select id="newPlan"><option>Basic</option><option>Premium</option></select></label>
@@ -63,7 +63,7 @@
     </div>
     <div class="url-preview"><span>Permanent NFC URL</span><strong id="newUrlPreview">—</strong></div>
     <p id="dialogStatus" class="status"></p>
-    <div class="dialog-actions"><button value="cancel" class="secondary-button">Cancel</button><button id="createCardButton" value="default" class="primary-button">Create Inventory Card</button></div>
+    <div class="dialog-actions"><button id="cancelCardButton" type="button" class="secondary-button">Cancel</button><button id="createCardButton" type="submit" class="primary-button">Create Inventory Card</button></div>
   </form>
 </dialog>
 <script type="module" src="dashboard.js"></script>
