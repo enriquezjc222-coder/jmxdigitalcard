@@ -1,18 +1,109 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function platformConfigured() { return exists(/databases/$(database)/documents/platform/config); }
+    function legacyMainAdmin() {
+      return signedIn()
+        && !platformConfigured()
+        && exists(/databases/$(database)/documents/cards/main)
+        && get(/databases/$(database)/documents/cards/main).data.ownerUid == request.auth.uid;
+    }
+    function isAdmin() {
+      return signedIn() && (
+        (platformConfigured() && get(/databases/$(database)/documents/platform/config).data.adminUid == request.auth.uid)
+        || legacyMainAdmin()
+      );
+    }
+    function ownerDoc(cardId) { return get(/databases/$(database)/documents/cardOwners/$(cardId)); }
+    function isOwner(cardId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/cardOwners/$(cardId))
+        && ownerDoc(cardId).data.ownerUid == request.auth.uid;
+    }
+    function cardDoc(cardId) { return get(/databases/$(database)/documents/cards/$(cardId)); }
+    function claimAfter(cardId) { return getAfter(/databases/$(database)/documents/cardClaims/$(cardId)); }
+    function ownerAfter(cardId) { return getAfter(/databases/$(database)/documents/cardOwners/$(cardId)); }
+    function inventoryDoc(cardId) { return get(/databases/$(database)/documents/inventory/$(cardId)); }
+    function canClaim(cardId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/cards/$(cardId))
+        && cardDoc(cardId).data.status in ['available','sold']
+        && !exists(/databases/$(database)/documents/cardOwners/$(cardId))
+        && (
+          cardDoc(cardId).data.requiresActivationCode == false
+          || (
+            exists(/databases/$(database)/documents/inventory/$(cardId))
+            && request.resource.data.activationCode == inventoryDoc(cardId).data.activationCode
+          )
+        );
+    }
+
+    match /platform/config {
+      allow read: if signedIn();
+      allow create: if legacyMainAdmin() && request.resource.data.adminUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     match /cards/{cardId} {
-      allow read: if true;
-      allow create: if request.auth != null
-                    && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if request.auth != null
-                            && resource.data.ownerUid == request.auth.uid;
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.status in ['available','sold']
+        && request.resource.data.status == 'activated'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','activatedAt','updatedAt'])
+        && ownerAfter(cardId).data.ownerUid == request.auth.uid
+      );
 
       match /media/{mediaId} {
-        allow read: if true;
-        allow write: if request.auth != null
-                     && get(/databases/$(database)/documents/cards/$(cardId)).data.ownerUid == request.auth.uid;
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin() || isOwner(cardId);
       }
+    }
+
+    match /profiles/{cardId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() || isOwner(cardId) || (signedIn() && ownerAfter(cardId).data.ownerUid == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /inventory/{cardId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /cardOwners/{cardId} {
+      allow get: if isAdmin() || isOwner(cardId);
+      allow list: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create: if signedIn()
+        && !exists(/databases/$(database)/documents/cardOwners/$(cardId))
+        && claimAfter(cardId).data.ownerUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /cardClaims/{cardId} {
+      allow read: if isAdmin();
+      allow create: if canClaim(cardId)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerEmail == request.auth.token.email;
+      allow update, delete: if isAdmin();
+    }
+
+    match /cardAdmin/{cardId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /ownerActivity/{cardId} {
+      allow read: if isAdmin() || isOwner(cardId);
+      allow create, update: if isOwner(cardId) && request.resource.data.ownerUid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // Legacy collection retained during migration.
+    match /cardAccess/{cardId} {
+      allow read, write: if isAdmin();
     }
   }
 }

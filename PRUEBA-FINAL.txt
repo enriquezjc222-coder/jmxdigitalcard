@@ -1,0 +1,16 @@
+FINAL END-TO-END TEST
+
+1. Publish the included firestore.rules in Firebase.
+2. Upload every web file in this package to GitHub and commit to main.
+3. Open https://jmxdigitalcard.com/dashboard.html and sign in with the JMX administrator.
+4. Click Create NFC Card. The dashboard generates a short code and private activation code.
+5. Copy the generated permanent URL, for example https://jmxdigitalcard.com/c/K7P4.
+6. Open that URL in a private/incognito browser. It must show Activate your JMX Digital Card.
+7. Create a test customer account and enter the private activation code.
+8. Activation must redirect to admin.html?card=K7P4.
+9. Edit the customer profile and Save Changes.
+10. Open /c/K7P4 on another device/incognito browser. It must show the saved profile directly.
+11. Open https://jmxdigitalcard.com/login.html. That customer should see only the card(s) linked to their UID.
+12. From dashboard.html, test Suspend and Reactivate.
+13. Once the full test passes, write the permanent /c/K7P4 URL into the physical NFC chip.
+14. Do not lock the NFC chip until the URL has been tested from more than one phone.

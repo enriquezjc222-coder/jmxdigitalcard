@@ -1,67 +1,27 @@
-JMX DIGITAL CARD - FIREBASE ONLINE SETUP
-========================================
+FIREBASE SETUP — JMX DIGITAL CARD FINAL
 
-The code is already connected to Firebase project: jmx-digital-card.
-Do these Firebase Console steps ONCE before using the new admin panel.
+Ya debes tener:
+- Proyecto Firebase JMX Digital Card
+- Firestore creado
+- Authentication Email/Password habilitado
+- Tu usuario administrador creado
 
-1) CREATE FIRESTORE DATABASE
-   Firebase Console > JMX Digital Card > Build > Firestore Database > Create database.
-   Choose Production mode. Pick a nearby US region and finish creation.
+AHORA:
+1. Firebase Console > Firestore Database > Rules
+2. Copia TODO firestore.rules de esta carpeta
+3. Reemplaza las reglas existentes
+4. Pulsa Publish
 
-2) APPLY SECURITY RULES
-   Firestore Database > Rules.
-   Replace the rules there with the contents of firestore.rules included in this folder.
-   Click Publish.
+ADMINISTRADOR
+La primera vez que tu usuario administrador abre dashboard.html, el sistema intenta crear platform/config usando el ownerUid de tu tarjeta legacy cards/main. Esto conserva tu cuenta actual como administrador de la plataforma.
 
-3) ENABLE ADMIN LOGIN
-   Firebase Console > Build > Authentication > Get started.
-   Sign-in method > Email/Password > Enable > Save.
-   Then Authentication > Users > Add user.
-   Create ONE admin email/password that only you know.
-   In Authentication > Settings > Authorized domains, make sure these are allowed:
-   - jmxdigitalcard.com
-   - localhost
-   - 127.0.0.1
-   This lets you publish your existing local browser profile during the first migration.
+COLECCIONES NUEVAS
+cards = estado/plan/inventario publico minimo
+profiles = contenido publico de cada tarjeta
+inventory = codigo secreto de activacion, solo JMX admin
+cardOwners = relacion privada tarjeta-cliente
+cardClaims = auditoria/reclamo de activacion
+cardAdmin = notas privadas JMX
+platform/config = identidad del administrador JMX
 
-4) UPLOAD THESE FILES TO GITHUB
-   Replace the current GitHub repository files with:
-   admin.html, admin.css, admin.js, index.html, styles.css, script.js
-   Commit the changes. GitHub Pages will redeploy automatically.
-
-5) FIRST ONLINE PUBLISH / MIGRATE YOUR CURRENT PROFILE
-   Best method: after replacing the six files locally, open admin.html with the SAME Live Server address you used before.
-   Your old localStorage data remains on that browser origin, so the new panel can load your existing profile and images.
-   Sign in with the Firebase admin user from step 3 and press Save Changes ONCE.
-   That publishes your existing profile and media to Firestore.
-
-   After the first publish, you can use:
-   https://jmxdigitalcard.com/admin.html
-   from any authorized computer/browser to edit the online card.
-
-6) TEST
-   Open https://jmxdigitalcard.com in an incognito/private tab or on another phone.
-   It should show the same published profile.
-
-HOW THIS VERSION WORKS
-----------------------
-- Public profile text/configuration is stored in Cloud Firestore.
-- Logo/profile/cover/gallery/small PDF are stored as compressed data in separate Firestore media documents.
-- This avoids Firebase Storage, which currently requires the Blaze billing plan for new projects.
-- Images are compressed before upload. If an image cannot be compressed enough, use a smaller photo.
-- Small PDF upload limit is 600 KB in online mode. For large catalogs, use Catalog URL.
-- Public reads are allowed. Writes require Firebase Authentication and ownership of the card document.
-
-MULTI-CLIENT READY
-------------------
-Default card id is "main".
-A future client can use a separate URL such as:
-  https://jmxdigitalcard.com/?card=client-name
-Admin URL:
-  https://jmxdigitalcard.com/admin.html?card=client-name
-Each card gets its own Firestore document and media subcollection.
-
-IMPORTANT
----------
-Do not publish your Firebase admin password anywhere.
-The Firebase web apiKey in JavaScript is normal for Firebase web apps; access is protected by Authentication + Firestore Security Rules.
+No necesitas crear estas colecciones a mano; la aplicacion las crea cuando corresponde.

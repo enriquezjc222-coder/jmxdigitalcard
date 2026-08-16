@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMX Digital Card - Platform Dashboard</title>
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+<main class="dashboard-app">
+<header class="dashboard-header">
+  <div>
+    <p class="eyebrow">JMX DIGITAL CARD</p>
+    <h1>NFC Inventory & Client Dashboard</h1>
+    <p class="subtitle">Prepare NFC inventory, activate customers, manage plans and control every digital card.</p>
+  </div>
+  <div class="header-actions">
+    <a class="secondary-button" href="login.html" target="_blank"><i class="fa-solid fa-user"></i> Owner Login</a>
+    <a class="secondary-button" href="index.html" target="_blank"><i class="fa-solid fa-globe"></i> Main Card</a>
+    <button id="logoutButton" class="secondary-button" type="button"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</button>
+  </div>
+</header>
+<section id="loginGate" class="panel login-panel">
+  <div class="panel-title"><i class="fa-solid fa-shield-halved"></i><div><small>JMX ADMIN ONLY</small><h2>Administrator Sign In</h2></div></div>
+  <p>Only the JMX platform administrator can create NFC inventory or change ownership, plans and status.</p>
+  <div class="login-grid">
+    <label><span>Email</span><input id="loginEmail" type="email" autocomplete="username"></label>
+    <label><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password"></label>
+    <button id="loginButton" class="primary-button" type="button">Sign In</button>
+  </div>
+  <p id="loginStatus" class="status"></p>
+</section>
+<div id="dashboardContent" hidden>
+<section class="stats-grid">
+  <article class="stat-card"><span>Total NFC Cards</span><strong id="totalCards">0</strong></article>
+  <article class="stat-card"><span>Available</span><strong id="availableCards">0</strong></article>
+  <article class="stat-card"><span>Activated</span><strong id="activatedCards">0</strong></article>
+  <article class="stat-card"><span>Suspended</span><strong id="suspendedCards">0</strong></article>
+</section>
+<section class="panel">
+  <div class="toolbar">
+    <div><p class="eyebrow">INVENTORY</p><h2>NFC Cards</h2><p class="subtitle small">Each code becomes a permanent NFC URL. Customers cannot create these codes.</p></div>
+    <button id="newCardButton" class="primary-button" type="button"><i class="fa-solid fa-plus"></i> Create NFC Card</button>
+  </div>
+  <div class="filter-row"><input id="searchCards" type="search" placeholder="Search code, client, email, plan or notes"><select id="statusFilter"><option value="all">All statuses</option><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select></div>
+  <div id="cardsGrid" class="cards-grid"></div>
+  <div id="emptyState" class="empty-state" hidden><i class="fa-solid fa-wifi"></i><h3>No NFC inventory yet</h3><p>Create your first permanent NFC URL.</p></div>
+</section>
+</div>
+</main>
+<dialog id="cardDialog" class="card-dialog">
+  <form method="dialog" id="cardForm">
+    <div class="dialog-header"><div><p class="eyebrow">NEW INVENTORY</p><h2>Create NFC Card</h2></div><button value="cancel" class="icon-button" aria-label="Close">×</button></div>
+    <div class="form-grid">
+      <label><span>Short Card Code *</span><div class="inline-field"><input id="newCardId" required maxlength="8"><button id="regenerateCode" class="mini" type="button">Random</button></div></label>
+      <label><span>Plan</span><select id="newPlan"><option>Basic</option><option>Premium</option></select></label>
+      <label><span>Physical Card</span><select id="newPhysicalType"><option>PVC</option><option>Metal</option><option>Hybrid</option><option>Other</option></select></label>
+      <label><span>NFC Status</span><select id="newNfcStatus"><option value="not-programmed">Not programmed</option><option value="programmed">Programmed</option><option value="delivered">Delivered</option></select></label>
+      <label class="full check-row"><input id="requireActivationCode" type="checkbox" checked><span>Require private activation code when customer claims this NFC</span></label>
+      <label class="full"><span>Activation Code</span><div class="inline-field"><input id="newActivationCode" readonly><button id="regenerateActivation" class="mini" type="button">Random</button></div></label>
+      <label class="full"><span>Internal Notes</span><textarea id="newNotes" rows="3" placeholder="Private JMX inventory notes"></textarea></label>
+    </div>
+    <div class="url-preview"><span>Permanent NFC URL</span><strong id="newUrlPreview">—</strong></div>
+    <p id="dialogStatus" class="status"></p>
+    <div class="dialog-actions"><button value="cancel" class="secondary-button">Cancel</button><button id="createCardButton" value="default" class="primary-button">Create Inventory Card</button></div>
+  </form>
+</dialog>
+<script type="module" src="dashboard.js"></script>
+</body>
+</html>

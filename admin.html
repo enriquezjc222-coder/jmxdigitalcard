@@ -11,7 +11,7 @@
 <main class="admin-app">
 <header class="admin-header">
   <div><p class="admin-eyebrow">DIGITAL CARD</p><h1>Profile Editor</h1><p class="admin-subtitle">Edit your card without touching code</p></div>
-  <a id="viewCardButton" href="index.html" class="view-card-button" target="_blank"><i class="fa-solid fa-eye"></i> View Card</a>
+  <div class="admin-header-actions"><a href="dashboard.html" class="view-card-button secondary-view admin-only-link"><i class="fa-solid fa-table-columns"></i> Dashboard</a><a id="viewCardButton" href="index.html" class="view-card-button" target="_blank"><i class="fa-solid fa-eye"></i> View Card</a></div>
 </header>
 
 <section class="admin-section auth-section" id="authGate">
@@ -24,6 +24,22 @@
  </div>
  <div class="auth-signed-in"><span><i class="fa-solid fa-circle-check"></i> <strong id="adminUserEmail"></strong></span><button id="adminLogout" class="mini-button" type="button">Sign Out</button></div>
  <div id="authStatus" class="auth-status" aria-live="polite"></div>
+</section>
+
+<section class="admin-section card-management-section admin-only-section">
+ <div class="section-title"><i class="fa-solid fa-address-card"></i><div><small>CLIENT MANAGEMENT</small><h2>Card Settings</h2></div></div>
+ <div class="card-id-banner"><div><span>Card ID</span><strong id="currentCardId">main</strong></div><div><span>Public URL</span><a id="publicCardUrl" target="_blank"></a></div></div>
+ <div class="form-grid">
+  <label class="form-group"><span>Client Name (internal)</span><input id="clientName" type="text"></label>
+  <label class="form-group"><span>Client Email (internal)</span><input id="clientEmail" type="email"></label>
+  <label class="form-group"><span>Client Phone (internal)</span><input id="clientPhone" type="tel"></label>
+  <label class="form-group full-width"><span>Client Editor Login Email (optional)</span><input id="clientEditorEmail" type="email" placeholder="client@example.com"><small>Optional: create this same email in Firebase Authentication if the client should edit only this card.</small></label>
+  <label class="form-group"><span>Plan</span><select id="clientPlan"><option>Basic</option><option>Premium</option></select></label>
+  <label class="form-group"><span>Card Status</span><select id="cardStatus"><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select></label>
+  <label class="form-group"><span>Renewal Date</span><input id="renewalDate" type="date"></label>
+  <label class="form-group"><span>NFC Status</span><select id="nfcStatus"><option value="not-programmed">Not programmed</option><option value="programmed">Programmed</option><option value="delivered">Delivered</option></select></label>
+  <label class="form-group full-width"><span>Internal Notes</span><textarea id="internalNotes" rows="3" placeholder="Private notes visible only in the admin dashboard"></textarea></label>
+ </div>
 </section>
 
 <section class="admin-section">
@@ -39,10 +55,9 @@
 </section>
 
 <section class="admin-section">
- <div class="section-title"><i class="fa-solid fa-image"></i><div><small>IMAGES</small><h2>Logo, Profile & Cover</h2></div></div>
+ <div class="section-title"><i class="fa-solid fa-image"></i><div><small>IMAGES</small><h2>Profile & Cover</h2></div></div>
  <p class="section-help">Large photos are compressed automatically so the panel stays fast.</p>
- <div class="image-upload-grid three">
-  <div class="upload-card"><h3>Business Logo</h3><div class="image-preview logo-preview"><img id="logoPreview"><span id="logoPlaceholder"><i class="fa-solid fa-building"></i></span></div><label class="upload-button" for="logoUpload"><i class="fa-solid fa-upload"></i> Choose Logo</label><input hidden id="logoUpload" type="file" accept="image/*"><button class="mini-button danger" type="button" data-clear-image="logoImage">Remove</button></div>
+ <div class="image-upload-grid">
   <div class="upload-card"><h3>Profile Photo</h3><div class="image-preview profile-preview"><img id="profilePreview"><span id="profilePlaceholder"><i class="fa-solid fa-user"></i></span></div><label class="upload-button" for="profileUpload"><i class="fa-solid fa-upload"></i> Choose Photo</label><input hidden id="profileUpload" type="file" accept="image/*"><button class="mini-button danger" type="button" data-clear-image="profileImage">Remove</button></div>
   <div class="upload-card"><h3>Cover Photo</h3><div class="image-preview cover-preview"><img id="coverPreview"><span id="coverPlaceholder"><i class="fa-solid fa-image"></i></span></div><label class="upload-button" for="coverUpload"><i class="fa-solid fa-upload"></i> Choose Cover</label><input hidden id="coverUpload" type="file" accept="image/*"><button class="mini-button danger" type="button" data-clear-image="coverImage">Remove</button></div>
  </div>

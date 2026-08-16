@@ -33,7 +33,11 @@ const LEGACY_STORAGE_KEY = "premiumDigitalCardProfile";
 const THEME_KEY = "digitalCardTheme";
 const CARD_ID = sanitizeCardId(new URLSearchParams(location.search).get("card") || "main");
 const cardRef = doc(db, "cards", CARD_ID);
+const profileRef = doc(db, "profiles", CARD_ID);
+const ownerRef = doc(db, "cardOwners", CARD_ID);
+const platformRef = doc(db, "platform", "config");
 const mediaCol = collection(db, "cards", CARD_ID, "media");
+const adminMetaRef = doc(db, "cardAdmin", CARD_ID);
 
 const VISIBILITY_LABELS = {
   description:"Description", saveContact:"Save Contact button", quickActions:"Quick action buttons",
@@ -41,7 +45,7 @@ const VISIBILITY_LABELS = {
   location:"Location", facebook:"Facebook", instagram:"Instagram", linkedin:"LinkedIn",
   twitter:"X / Twitter", tiktok:"TikTok", youtube:"YouTube", businessLinks:"Business Links",
   catalog:"Catalog", customBusiness:"Extra business link", services:"Services", gallery:"Gallery",
-  video:"Video", qr:"QR code", finalCTA:"Final contact button", logo:"Business logo"
+  video:"Video", qr:"QR code", finalCTA:"Final contact button"
 };
 
 const defaults = {
@@ -64,6 +68,9 @@ const defaults = {
 
 let currentProfile = structuredCloneSafe(defaults);
 let currentUser = null;
+let currentCardOwnerUid = null;
+let currentCardPlan = "Premium";
+let currentRole = "none";
 let pendingMedia = new Map();
 let pendingDeletes = new Set();
 
@@ -79,6 +86,13 @@ function normalizeURL(v){ const s=String(v||"").trim(); if(!s)return ""; return 
 function setStatus(msg,type="ok"){ const e=$id("saveStatus"); if(!e)return; e.textContent=msg; e.className="save-status "+type; }
 function setAuthStatus(msg,type=""){ const e=$id("authStatus"); if(!e)return; e.textContent=msg; e.className="auth-status "+type; }
 function setBusy(on){ document.body.classList.toggle("admin-busy",on); [$id("saveProfile"),$id("resetProfile")].forEach(b=>{if(b)b.disabled=on;}); }
+function publicCardURL(){
+  if(CARD_ID==="main") return location.origin+"/";
+  if(["localhost","127.0.0.1"].includes(location.hostname)||location.hostname.endsWith("github.io")) return new URL(`index.html?card=${encodeURIComponent(CARD_ID)}`,location.href).href;
+  return `${location.origin}/c/${CARD_ID}`;
+}
+
+function setCardIdentity(){ if($id("currentCardId"))$id("currentCardId").textContent=CARD_ID; const a=$id("publicCardUrl"); if(a){a.href=publicCardURL();a.textContent=publicCardURL();} }
 
 function getLegacyProfile(){
   try{
@@ -90,38 +104,31 @@ function getLegacyProfile(){
 }
 
 async function loadRemoteProfile(){
-  const snap=await getDoc(cardRef);
-  if(!snap.exists()) return null;
-  const data=snap.data();
+  const [cardSnap,profileSnap,ownerSnap]=await Promise.all([getDoc(cardRef),getDoc(profileRef),getDoc(ownerRef)]);
+  if(!cardSnap.exists()&&!profileSnap.exists()) return null;
+  const meta=cardSnap.exists()?cardSnap.data():{};
+  currentCardPlan=meta.plan||"Premium";
+  currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:(meta.ownerUid||null);
+  const data=profileSnap.exists()?profileSnap.data():meta;
   const p={...structuredCloneSafe(defaults),...data,visibility:{...defaults.visibility,...(data.visibility||{})},galleryImages:[]};
-  delete p.ownerUid; delete p.updatedAt;
-  const mediaSnap=await getDocs(mediaCol);
-  const gallery=[];
-  mediaSnap.forEach(d=>{
-    const m=d.data(); const dataUrl=m.data||"";
-    if(d.id==="logo")p.logoImage=dataUrl;
-    else if(d.id==="profile")p.profileImage=dataUrl;
-    else if(d.id==="cover")p.coverImage=dataUrl;
-    else if(d.id==="catalog"){p.catalogFile=dataUrl;p.catalogFileName=m.name||p.catalogFileName||"";}
-    else if(d.id.startsWith("gallery-")){ const i=Number(d.id.split("-")[1]); if(Number.isInteger(i))gallery[i]=dataUrl; }
-  });
-  p.galleryImages=gallery.filter(Boolean);
-  return p;
+  ["ownerUid","createdAt","updatedAt","plan","status"].forEach(k=>delete p[k]);
+  const mediaSnap=await getDocs(mediaCol);const gallery=[];
+  mediaSnap.forEach(d=>{const m=d.data(),dataUrl=m.data||"";if(d.id==="logo")p.logoImage=dataUrl;else if(d.id==="profile")p.profileImage=dataUrl;else if(d.id==="cover")p.coverImage=dataUrl;else if(d.id==="catalog"){p.catalogFile=dataUrl;p.catalogFileName=m.name||p.catalogFileName||"";}else if(d.id.startsWith("gallery-")){const i=Number(d.id.split("-")[1]);if(Number.isInteger(i))gallery[i]=dataUrl;}});
+  p.galleryImages=gallery.filter(Boolean);return p;
 }
 
 function profileForFirestore(p){
   const clean={...p};
-  delete clean.profileImage; delete clean.coverImage; delete clean.logoImage; delete clean.galleryImages; delete clean.catalogFile;
-  clean.ownerUid=currentUser.uid;
+  delete clean.profileImage;delete clean.coverImage;delete clean.logoImage;delete clean.galleryImages;delete clean.catalogFile;delete clean.status;
   clean.updatedAt=serverTimestamp();
   return clean;
 }
 
 async function ensureCardDocument(){
-  const snap=await getDoc(cardRef);
-  if(snap.exists()) return;
+  const snap=await getDoc(profileRef);
+  if(snap.exists())return;
   const p=collectFormProfile();
-  await setDoc(cardRef,profileForFirestore(p),{merge:true});
+  await setDoc(profileRef,profileForFirestore(p),{merge:true});
 }
 
 async function saveMediaDoc(id,data,name=""){
@@ -132,7 +139,6 @@ async function saveMediaDoc(id,data,name=""){
 function setInputData(profile){
   const ids=["fullName","position","company","city","state","description","phone","phone2","whatsapp","email","website","facebook","instagram","linkedin","twitter","tiktok","youtube","catalog","customBusinessLabel","customBusinessSubtitle","customBusinessUrl","videoUrl","service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon","finalCtaTitle","finalCtaText","finalCtaLabel"];
   ids.forEach(id=>setVal(id,profile[id]));
-  updatePreview("logoPreview","logoPlaceholder",profile.logoImage);
   updatePreview("profilePreview","profilePlaceholder",profile.profileImage);
   updatePreview("coverPreview","coverPlaceholder",profile.coverImage);
   renderGalleryPreview(profile.galleryImages);
@@ -179,12 +185,45 @@ function collectFormProfile(){
   return p;
 }
 
+async function loadAdminMeta(){
+  try{
+    const [cardSnap,ownerSnap]=await Promise.all([getDoc(cardRef),getDoc(ownerRef)]);
+    const c=cardSnap.exists()?cardSnap.data():{},o=ownerSnap.exists()?ownerSnap.data():{};
+    if(currentRole==="owner"){
+      setVal("clientEditorEmail",o.ownerEmail||currentUser?.email||"");
+      if($id("clientPlan"))$id("clientPlan").value=c.plan||"Basic";
+      if($id("cardStatus"))$id("cardStatus").value=c.status||"activated";
+      if($id("nfcStatus"))$id("nfcStatus").value=c.nfcStatus||"programmed";
+      return;
+    }
+    const snap=await getDoc(adminMetaRef),m=snap.exists()?snap.data():{};
+    setVal("clientName",m.clientName||currentProfile.fullName||"");setVal("clientEmail",m.clientEmail||o.ownerEmail||"");setVal("clientPhone",m.clientPhone||"");setVal("renewalDate",m.renewalDate||"");setVal("internalNotes",m.notes||"");
+    if($id("clientPlan"))$id("clientPlan").value=c.plan||m.plan||"Basic";
+    if($id("cardStatus"))$id("cardStatus").value=c.status||"activated";
+    if($id("nfcStatus"))$id("nfcStatus").value=c.nfcStatus||m.nfcStatus||"programmed";
+    setVal("clientEditorEmail",o.ownerEmail||"");
+  }catch(e){console.warn("Admin metadata could not be loaded",e)}
+}
+
+async function saveAdminMeta(p){
+  if(currentRole!=="admin")return;
+  const existing=await getDoc(adminMetaRef);
+  const data={clientName:getVal("clientName")||p.fullName||CARD_ID,clientEmail:getVal("clientEmail"),clientPhone:getVal("clientPhone"),company:p.company||"",renewalDate:getVal("renewalDate"),nfcStatus:$id("nfcStatus")?.value||"programmed",notes:getVal("internalNotes"),updatedAt:serverTimestamp()};
+  if(!existing.exists())data.createdAt=serverTimestamp();
+  await setDoc(adminMetaRef,data,{merge:true});
+  await setDoc(cardRef,{plan:$id("clientPlan")?.value||currentCardPlan,status:$id("cardStatus")?.value||"activated",nfcStatus:$id("nfcStatus")?.value||"programmed",updatedAt:serverTimestamp()},{merge:true});
+}
+
+async function saveCardAccess(){ return; }
+
 async function saveProfile(){
   if(!currentUser)return setStatus("Sign in first.","error");
   const p=collectFormProfile(); if(!p.fullName)return setStatus("Please enter a name.","error");
   setBusy(true); setStatus("Publishing changes online...","working");
   try{
-    await setDoc(cardRef,profileForFirestore(p),{merge:true});
+    await setDoc(profileRef,profileForFirestore(p),{merge:true});
+    await saveAdminMeta(p);
+    await saveCardAccess();
     for(const [id,m] of pendingMedia.entries()) await saveMediaDoc(id,m.data,m.name||"");
     for(const id of pendingDeletes) await saveMediaDoc(id,"");
     pendingMedia.clear();pendingDeletes.clear();
@@ -201,7 +240,7 @@ async function resetAll(){
   setBusy(true);
   try{
     currentProfile=structuredCloneSafe(defaults); setInputData(currentProfile);
-    await setDoc(cardRef,profileForFirestore(currentProfile));
+    await setDoc(profileRef,profileForFirestore(currentProfile));
     const media=await getDocs(mediaCol); await Promise.all(media.docs.map(d=>deleteDoc(d.ref)));
     pendingMedia.clear();pendingDeletes.clear();
     setStatus("Card reset and published.");
@@ -250,16 +289,15 @@ async function handleCatalog(file){
 }
 
 function configureEditorEvents(){
-  stageImage("logoUpload","logoImage","logoPreview","logoPlaceholder",900,600,"logo");
   stageImage("profileUpload","profileImage","profilePreview","profilePlaceholder",700,700,"profile");
   stageImage("coverUpload","coverImage","coverPreview","coverPlaceholder",1600,900,"cover");
   $id("galleryUpload")?.addEventListener("change",e=>handleGallery(e.target.files));
   $id("clearGallery")?.addEventListener("click",()=>{currentProfile.galleryImages=[];renderGalleryPreview([]);for(let i=0;i<6;i++){pendingDeletes.add(`gallery-${i}`);pendingMedia.delete(`gallery-${i}`)}setStatus("Gallery will be removed when you press Save Changes.")});
   $id("catalogUpload")?.addEventListener("change",e=>handleCatalog(e.target.files?.[0]));
-  document.querySelectorAll("[data-clear-image]").forEach(b=>b.addEventListener("click",()=>{const field=b.dataset.clearImage;const map={logoImage:["logoPreview","logoPlaceholder","logo"],profileImage:["profilePreview","profilePlaceholder","profile"],coverImage:["coverPreview","coverPlaceholder","cover"]};const m=map[field];if(!m)return;currentProfile[field]="";pendingDeletes.add(m[2]);pendingMedia.delete(m[2]);updatePreview(m[0],m[1],"");setStatus("Image will be removed when you press Save Changes.")}));
+  document.querySelectorAll("[data-clear-image]").forEach(b=>b.addEventListener("click",()=>{const field=b.dataset.clearImage;const map={profileImage:["profilePreview","profilePlaceholder","profile"],coverImage:["coverPreview","coverPlaceholder","cover"]};const m=map[field];if(!m)return;currentProfile[field]="";pendingDeletes.add(m[2]);pendingMedia.delete(m[2]);updatePreview(m[0],m[1],"");setStatus("Image will be removed when you press Save Changes.")}));
   document.querySelectorAll(".admin-theme").forEach(b=>b.addEventListener("click",()=>setThemeActive(b.dataset.theme)));
   $id("saveProfile")?.addEventListener("click",saveProfile);$id("resetProfile")?.addEventListener("click",resetAll);
-  const view=$id("viewCardButton");if(view)view.href=`index.html${CARD_ID==="main"?"":`?card=${encodeURIComponent(CARD_ID)}`}`;
+  const view=$id("viewCardButton");if(view)view.href=publicCardURL(); setCardIdentity();
 }
 
 async function signIn(){
@@ -286,19 +324,39 @@ async function loadAfterAuth(){
       pendingMedia.clear(); pendingDeletes.clear();
       setStatus("Online card loaded.");
     }
-    currentProfile=remote;setInputData(currentProfile);
+    currentProfile=remote;setInputData(currentProfile);await loadAdminMeta();
   }catch(e){console.error(e);currentProfile=getLegacyProfile()||structuredCloneSafe(defaults);setInputData(currentProfile);setStatus(firebaseMessage(e),"error");}
   finally{setBusy(false);}
 }
 
+const PREMIUM_ONLY_IDS=new Set(["phone2","website","instagram","linkedin","twitter","tiktok","youtube","catalog","catalogUpload","customBusinessLabel","customBusinessSubtitle","customBusinessUrl","videoUrl","service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon","galleryUpload","clearGallery","finalCtaTitle","finalCtaText","finalCtaLabel"]);
+function applyPlanLocks(){
+  const basic=currentCardPlan.toLowerCase()==="basic"&&currentRole==="owner";
+  document.querySelectorAll("input,textarea,select,button").forEach(el=>{if(PREMIUM_ONLY_IDS.has(el.id))el.disabled=basic});
+  const basicVisibility=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
+  document.querySelectorAll("[data-vis]").forEach(el=>{if(basic&&!basicVisibility.has(el.dataset.vis))el.disabled=true});
+  let note=$id("planAccessNote");if(!note){note=document.createElement("div");note.id="planAccessNote";note.className="admin-note";document.querySelector(".card-management-section")?.after(note)}
+  note.innerHTML=`<strong>Plan:</strong> ${currentCardPlan}. ${basic?"Premium-only fields are locked for this owner account.":"All enabled plan features are available."}`;
+}
+
 document.addEventListener("DOMContentLoaded",()=>{
-  buildVisibility();configureEditorEvents();
+  buildVisibility();configureEditorEvents();setCardIdentity();
   $id("adminLogin")?.addEventListener("click",signIn);
   $id("adminPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")signIn()});
   $id("adminLogout")?.addEventListener("click",()=>signOut(auth));
   onAuthStateChanged(auth,async user=>{
     currentUser=user||null;document.body.classList.toggle("admin-authenticated",Boolean(user));
-    if(user){setAuthStatus(`Signed in as ${user.email||"admin"}.`,`ok`);$id("adminUserEmail").textContent=user.email||"Admin";await loadAfterAuth();}
-    else{setAuthStatus("Sign in with the Firebase admin account to edit and publish this card.");$id("adminUserEmail").textContent="";}
+    if(!user){currentRole="none";setAuthStatus("Sign in to edit your JMX Digital Card.");$id("adminUserEmail").textContent="";return;}
+    try{
+      const [cfg,ownerSnap,cardSnap]=await Promise.all([getDoc(platformRef),getDoc(ownerRef),getDoc(cardRef)]);
+      let adminUser=cfg.exists()&&cfg.data().adminUid===user.uid;
+      if(!cfg.exists()&&cardSnap.exists()&&cardSnap.data().ownerUid===user.uid){await setDoc(platformRef,{adminUid:user.uid,adminEmail:user.email||"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true});adminUser=true;}
+      const ownerUser=ownerSnap.exists()&&ownerSnap.data().ownerUid===user.uid;
+      if(!adminUser&&!ownerUser){await signOut(auth);return setAuthStatus("This account does not own this card.","error");}
+      currentRole=adminUser?"admin":"owner";currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:null;
+      document.body.classList.toggle("client-owner-mode",currentRole==="owner");
+      setAuthStatus(`Signed in as ${user.email||currentRole}. ${currentRole==="admin"?"JMX administrator":"Card owner"}.`,"ok");$id("adminUserEmail").textContent=user.email||currentRole;
+      await loadAfterAuth();applyPlanLocks();
+    }catch(e){console.error(e);setAuthStatus(firebaseMessage(e),"error");}
   });
 });

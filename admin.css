@@ -22,3 +22,7 @@ body:not(.admin-authenticated) .admin-note { display:none; }
 .admin-busy{cursor:progress;}
 .admin-busy button{opacity:.75;}
 @media(max-width:720px){.auth-login-grid{grid-template-columns:1fr;}}
+
+/* MULTI-CLIENT MANAGEMENT */
+.admin-header-actions{display:flex;gap:10px;flex-wrap:wrap}.secondary-view{background:#fff!important;color:#222!important;border:1px solid #ddd!important}.card-id-banner{display:grid;grid-template-columns:180px 1fr;gap:16px;margin:8px 0 18px;padding:15px;background:#f8f6f0;border:1px solid #eadfc4;border-radius:14px}.card-id-banner span{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:#7a6b4a;margin-bottom:5px}.card-id-banner strong,.card-id-banner a{font-weight:800;color:#202020;overflow-wrap:anywhere}.card-management-section select{min-height:46px}@media(max-width:700px){.admin-header-actions{width:100%}.admin-header-actions .view-card-button{flex:1}.card-id-banner{grid-template-columns:1fr}}
+body.client-owner-mode .admin-only-section,body.client-owner-mode .admin-only-link{display:none!important}.admin-busy{cursor:progress}.admin-busy .save-button{opacity:.6}.admin-note#planAccessNote{margin:18px 0}input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.55;cursor:not-allowed}

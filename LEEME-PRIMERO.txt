@@ -1,21 +1,20 @@
-JMX DIGITAL CARD - VERSION FIREBASE ONLINE
-===========================================
+JMX DIGITAL CARD — VERSION FINAL INVENTARIO + ACTIVACION NFC
 
-Esta versión reemplaza localStorage como fuente principal pública.
-El panel ahora publica datos en Firebase Cloud Firestore para que la misma tarjeta se vea igual en computadora, teléfono, incógnito y NFC.
+Esta carpeta reemplaza la version multiusuario anterior.
 
-ARCHIVOS PRINCIPALES PARA REEMPLAZAR EN TU PROYECTO/GITHUB:
-- admin.html
-- admin.css
-- admin.js
-- index.html
-- styles.css
-- script.js
+LO PRINCIPAL
+- Tu (JMX) generas cada URL corta desde dashboard.html.
+- El cliente NO puede generar URLs.
+- La URL corta se graba fisicamente en la NFC.
+- Primera lectura: activa la tarjeta y vincula la cuenta del cliente.
+- Lecturas futuras: muestran directamente el perfil publico.
+- El cliente entra por login.html y solo edita sus propias tarjetas.
+- Tu controlas inventario, Basic/Premium, suspendido/activo y codigos de activacion.
 
-ARCHIVOS DE CONFIGURACIÓN/AYUDA:
-- firestore.rules
-- FIREBASE-SETUP.txt
+ORDEN DE INSTALACION
+1. Publica primero firestore.rules en Firebase.
+2. Luego sube TODOS los archivos de esta carpeta a GitHub y haz Commit a main.
+3. Prueba dashboard.html.
+4. Crea una NFC de prueba y completa PRUEBA-FINAL.txt.
 
-IMPORTANTE:
-Antes de probar, completa los pasos de FIREBASE-SETUP.txt en Firebase Console.
-No necesitas Firebase Storage ni plan Blaze para esta versión; las imágenes comprimidas se guardan en documentos separados de Firestore.
+NO BLOQUEES UNA NFC FISICA HASTA QUE LA URL SE HAYA PROBADO EN MAS DE UN TELEFONO.
