@@ -61,6 +61,32 @@
   </div>
   <div id="emptyState" class="empty-state" hidden><i class="fa-solid fa-wifi"></i><h3>No NFC inventory yet</h3><p>Create your first permanent NFC URL.</p></div>
 </section>
+
+<section class="panel feature-control-panel">
+  <div class="toolbar feature-control-toolbar">
+    <div>
+      <p class="eyebrow">FEATURE CONTROL CENTER</p>
+      <h2>Basic & Premium Module Controls</h2>
+      <p class="subtitle small">Add or remove modules without changing the existing plan structure. Changes apply automatically to matching clients.</p>
+    </div>
+    <div class="feature-master-switches">
+      <label class="switch-row"><input id="featureControlsEnabled" type="checkbox"><span class="switch-ui"></span><strong>Enable advanced feature controls</strong></label>
+      <label class="switch-row"><input id="featurePanelsVisible" type="checkbox" checked><span class="switch-ui"></span><strong>Show switch panels</strong></label>
+    </div>
+  </div>
+  <div id="featurePanels">
+    <div class="feature-control-columns">
+      <section class="feature-plan-box global-box"><div class="feature-box-head"><span>GLOBAL</span><h3>All Plans</h3><small>Global OFF always hides a module.</small></div><div id="globalFeatureGrid" class="feature-switch-grid"></div></section>
+      <section class="feature-plan-box"><div class="feature-box-head"><span>BASIC</span><h3>Basic Version</h3><small>Turn Premium-style modules on for Basic whenever you want.</small></div><div id="basicFeatureGrid" class="feature-switch-grid"></div></section>
+      <section class="feature-plan-box premium-feature-box"><div class="feature-box-head"><span>PREMIUM</span><h3>Premium Version</h3><small>Temporarily hide any Premium module without deleting data.</small></div><div id="premiumFeatureGrid" class="feature-switch-grid"></div></section>
+    </div>
+    <div class="feature-control-actions">
+      <button id="saveFeatureControls" class="primary-button" type="button"><i class="fa-solid fa-sliders"></i> Save Feature Controls</button>
+      <p id="featureControlStatus" class="status"></p>
+    </div>
+  </div>
+</section>
+
 </div>
 </main>
 <dialog id="cardDialog" class="card-dialog">
@@ -80,6 +106,24 @@
     <div class="dialog-actions"><button id="cancelCardButton" type="button" class="secondary-button">Cancel</button><button id="createCardButton" type="submit" class="primary-button">Create Inventory Card</button></div>
   </form>
 </dialog>
+
+<dialog id="clientFeatureDialog" class="card-dialog feature-dialog">
+  <form id="clientFeatureForm">
+    <div class="dialog-header">
+      <div><p class="eyebrow">CLIENT OVERRIDE</p><h2>Feature Controls: <span id="featureClientId">—</span></h2></div>
+      <button id="closeClientFeatureDialog" type="button" class="icon-button" aria-label="Close">×</button>
+    </div>
+    <p class="subtitle small">This optional layer affects only this client. Turn it off to inherit the current plan settings automatically.</p>
+    <label class="switch-row client-custom-master"><input id="clientCustomFeaturesEnabled" type="checkbox"><span class="switch-ui"></span><strong>Use custom feature settings for this client</strong></label>
+    <div id="clientFeatureGrid" class="feature-switch-grid client-feature-grid"></div>
+    <p id="clientFeatureStatus" class="status"></p>
+    <div class="dialog-actions">
+      <button id="cancelClientFeature" type="button" class="secondary-button">Cancel</button>
+      <button id="saveClientFeature" type="submit" class="primary-button">Save Client Features</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="module" src="dashboard.js"></script>
 </body>

@@ -19,6 +19,98 @@ const SAFE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 let user = null;
 let cards = [];
 
+const FEATURE_DEFS = [{"key":"description","label":"Description"},{"key":"saveContact","label":"Save Contact"},{"key":"quickActions","label":"Quick Actions"},{"key":"phone","label":"Phone 1"},{"key":"phone2","label":"Phone 2"},{"key":"whatsapp","label":"WhatsApp"},{"key":"email","label":"Email"},{"key":"website","label":"Website"},{"key":"location","label":"Location"},{"key":"facebook","label":"Facebook"},{"key":"instagram","label":"Instagram"},{"key":"linkedin","label":"LinkedIn"},{"key":"twitter","label":"X / Twitter"},{"key":"tiktok","label":"TikTok"},{"key":"youtube","label":"YouTube"},{"key":"businessLinks","label":"Business Links"},{"key":"catalog","label":"Catalog"},{"key":"customBusiness","label":"Extra Business Link"},{"key":"services","label":"Services"},{"key":"gallery","label":"Photo Gallery"},{"key":"video","label":"Featured Video"},{"key":"qr","label":"QR Code"},{"key":"finalCTA","label":"Final Contact Button"},{"key":"analytics","label":"Premium Statistics"}];
+const LEGACY_BASIC_FEATURES = new Set(["description", "email", "facebook", "location", "phone", "qr", "quickActions", "saveContact", "whatsapp"]);
+let platformFeatureSettings = null;
+let activeFeatureClientId = null;
+
+function defaultFeatureMap(on=true) {
+  return Object.fromEntries(FEATURE_DEFS.map(f => [f.key, on]));
+}
+function defaultPlanFeatureMap(plan) {
+  if (String(plan).toLowerCase() === "basic") return Object.fromEntries(FEATURE_DEFS.map(f => [f.key, LEGACY_BASIC_FEATURES.has(f.key)]));
+  return defaultFeatureMap(true);
+}
+function normalizedFeatureSettings(raw={}) {
+  return {
+    enabled: raw.enabled === true,
+    panelsVisible: raw.panelsVisible !== false,
+    global: {...defaultFeatureMap(true), ...(raw.global||{})},
+    basic: {...defaultPlanFeatureMap("Basic"), ...(raw.basic||{})},
+    premium: {...defaultPlanFeatureMap("Premium"), ...(raw.premium||{})}
+  };
+}
+function buildFeatureGrid(containerId, values, prefix) {
+  const box=$(containerId); if(!box) return;
+  box.innerHTML=FEATURE_DEFS.map(f=>`<label class="feature-switch-item"><span>${esc(f.label)}</span><label class="switch-row"><input type="checkbox" data-feature-scope="${prefix}" data-feature-key="${f.key}" ${values[f.key]!==false?"checked":""}><span class="switch-ui"></span></label></label>`).join("");
+}
+function readFeatureGrid(prefix) {
+  const out={};
+  document.querySelectorAll(`[data-feature-scope="${prefix}"]`).forEach(el=>out[el.dataset.featureKey]=el.checked);
+  return out;
+}
+function renderFeatureControls() {
+  const cfg=platformFeatureSettings||normalizedFeatureSettings();
+  if($("featureControlsEnabled")) $("featureControlsEnabled").checked=cfg.enabled;
+  if($("featurePanelsVisible")) $("featurePanelsVisible").checked=cfg.panelsVisible;
+  buildFeatureGrid("globalFeatureGrid",cfg.global,"global");
+  buildFeatureGrid("basicFeatureGrid",cfg.basic,"basic");
+  buildFeatureGrid("premiumFeatureGrid",cfg.premium,"premium");
+  toggleFeaturePanels();
+}
+function toggleFeaturePanels() {
+  const visible=$("featurePanelsVisible")?.checked!==false;
+  const grids=document.querySelector(".feature-control-columns");
+  if(grids) grids.hidden=!visible;
+}
+function effectivePlanFeatures(plan) {
+  const cfg=platformFeatureSettings||normalizedFeatureSettings();
+  if(!cfg.enabled) return defaultPlanFeatureMap(plan);
+  const planMap=String(plan).toLowerCase()==="basic"?cfg.basic:cfg.premium;
+  return Object.fromEntries(FEATURE_DEFS.map(f=>[f.key,cfg.global[f.key]!==false && planMap[f.key]!==false]));
+}
+async function saveFeatureControlSettings() {
+  const status=$("featureControlStatus");
+  const payload={
+    enabled:$("featureControlsEnabled")?.checked===true,
+    panelsVisible:$("featurePanelsVisible")?.checked!==false,
+    global:readFeatureGrid("global"),
+    basic:readFeatureGrid("basic"),
+    premium:readFeatureGrid("premium")
+  };
+  try{
+    await setDoc(doc(db,"platform","publicSettings"),{featureControls:payload,updatedAt:serverTimestamp()},{merge:true});
+    platformFeatureSettings=normalizedFeatureSettings(payload);
+    if(status){status.textContent="Feature controls saved and active.";status.className="status ok"}
+  }catch(e){console.error(e);if(status){status.textContent="Could not save feature controls.";status.className="status error"}}
+}
+function openClientFeatureDialog(card) {
+  activeFeatureClientId=card.id;
+  $("featureClientId").textContent=card.id;
+  const custom=card.featureControl||{};
+  const inherited=effectivePlanFeatures(card.complimentaryPremium===true?"Premium":(card.plan||"Basic"));
+  const values={...inherited,...(custom.features||{})};
+  $("clientCustomFeaturesEnabled").checked=custom.enabled===true;
+  buildFeatureGrid("clientFeatureGrid",values,"client");
+  syncClientFeatureGridState();
+  $("clientFeatureStatus").textContent="";
+  $("clientFeatureDialog").showModal();
+}
+function syncClientFeatureGridState() {
+  $("clientFeatureGrid")?.classList.toggle("is-disabled",$("clientCustomFeaturesEnabled")?.checked!==true);
+}
+async function saveClientFeatureOverride(event) {
+  event?.preventDefault?.();
+  const id=activeFeatureClientId;if(!id)return;
+  const status=$("clientFeatureStatus");
+  try{
+    await setDoc(doc(db,"cards",id),{featureControl:{enabled:$("clientCustomFeaturesEnabled").checked===true,features:readFeatureGrid("client")},updatedAt:serverTimestamp()},{merge:true});
+    if(status){status.textContent="Client feature settings saved.";status.className="status ok"}
+    await loadCards();
+    setTimeout(()=>$("clientFeatureDialog")?.close(),350);
+  }catch(e){console.error(e);if(status){status.textContent="Could not save client settings.";status.className="status error"}}
+}
+
 function esc(value) {
   return String(value ?? "").replace(/[&<>'"]/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
@@ -170,7 +262,7 @@ function render() {
       <div class="subscription-line"><strong>Subscription:</strong> ${esc(sub.status||"none")} · ${esc(sub.source|| (card.complimentaryPremium?"complimentary":"manual"))}</div>
       <div class="card-switches"><button class="mini ${card.complimentaryPremium?'active':''}" data-action="comp"><i class="fa-solid fa-gift"></i> Premium Free: ${card.complimentaryPremium?'ON':'OFF'}</button></div>
       <div class="card-actions">
-        <button class="mini" data-action="open">Open</button><button class="mini" data-action="copy">Copy NFC URL</button><button class="mini" data-action="code">Copy Activation</button><button class="mini" data-action="plan">Change Plan</button>
+        <button class="mini" data-action="open">Open</button><button class="mini" data-action="copy">Copy NFC URL</button><button class="mini" data-action="code">Copy Activation</button><button class="mini" data-action="plan">Change Plan</button><button class="mini feature-card-button" data-action="features"><i class="fa-solid fa-sliders"></i> Features</button>
         ${card.status === "available" ? '<button class="mini" data-action="sold">Mark Sold</button>' : ""}
         ${card.status === "activated" ? '<button class="mini danger" data-action="suspend">Suspend</button>' : ""}
         ${card.status === "suspended" ? '<button class="mini" data-action="reactivate">Reactivate</button>' : ""}
@@ -218,6 +310,7 @@ async function handleAction(event) {
     setTimeout(() => button.textContent = "Copy Activation", 1000);
   }
   if (action === "plan") await changePlan(id, card);
+  if (action === "features") openClientFeatureDialog(card);
   if (action === "comp") await toggleComplimentary(id, card);
   if (action === "sold") await updateStatus(id, "sold");
   if (action === "suspend") await updateStatus(id, "suspended");
@@ -383,6 +476,8 @@ async function loadPlatformSettings(){
   if($("premiumCheckoutUrl")) $("premiumCheckoutUrl").value=d.premiumCheckoutUrl||"";
   if($("privacyPolicyUrl")) $("privacyPolicyUrl").value=d.privacyPolicyUrl||"";
   if($("privacyAgreementText")) $("privacyAgreementText").value=d.privacyAgreementText||"";
+  platformFeatureSettings=normalizedFeatureSettings(d.featureControls||{});
+  renderFeatureControls();
 }
 async function savePlatformSettings(){
   const payload={premiumEnabled:$("premiumEnabled")?.checked===true,billingEnabled:$("billingEnabled")?.checked===true,privacyRequired:$("privacyRequired")?.checked!==false,premiumCheckoutUrl:$("premiumCheckoutUrl")?.value.trim()||"",privacyPolicyUrl:$("privacyPolicyUrl")?.value.trim()||"",privacyAgreementText:$("privacyAgreementText")?.value.trim()||"",updatedAt:serverTimestamp()};
@@ -393,6 +488,12 @@ function initMarketing(){
   const q=$("companyQrAdmin");if(q&&window.QRCode){q.innerHTML="";new QRCode(q,{text:"https://jmxdigitalcard.com/",width:140,height:140,colorDark:"#111111",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H})}
   $("copyCompanyUrl")?.addEventListener("click",async()=>{await copyText("https://jmxdigitalcard.com/");$("copyCompanyUrl").textContent="Copied JMX URL";setTimeout(()=>$("copyCompanyUrl").innerHTML='<i class="fa-solid fa-copy"></i> Copy JMX URL',1200)});
   $("savePlatformButton")?.addEventListener("click",savePlatformSettings);
+  $("saveFeatureControls")?.addEventListener("click",saveFeatureControlSettings);
+  $("featurePanelsVisible")?.addEventListener("change",toggleFeaturePanels);
+  $("clientCustomFeaturesEnabled")?.addEventListener("change",syncClientFeatureGridState);
+  $("clientFeatureForm")?.addEventListener("submit",saveClientFeatureOverride);
+  $("closeClientFeatureDialog")?.addEventListener("click",()=>$("clientFeatureDialog")?.close());
+  $("cancelClientFeature")?.addEventListener("click",()=>$("clientFeatureDialog")?.close());
 }
 initMarketing();
 
