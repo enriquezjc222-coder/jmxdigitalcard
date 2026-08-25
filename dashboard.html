@@ -38,7 +38,7 @@
   <article class="stat-card"><span>Total NFC Cards</span><strong id="totalCards">0</strong></article>
   <article class="stat-card"><span>Available</span><strong id="availableCards">0</strong></article>
   <article class="stat-card"><span>Activated</span><strong id="activatedCards">0</strong></article>
-  <article class="stat-card"><span>Suspended</span><strong id="suspendedCards">0</strong></article><article class="stat-card"><span>Basic</span><strong id="basicCards">0</strong></article><article class="stat-card"><span>Premium</span><strong id="premiumCards">0</strong></article><article class="stat-card"><span>Complimentary Premium</span><strong id="compCards">0</strong></article><article class="stat-card"><span>Inactive / Unclaimed</span><strong id="inactiveCards">0</strong></article>
+  <article class="stat-card"><span>Suspended</span><strong id="suspendedCards">0</strong></article><article class="stat-card"><span>Basic</span><strong id="basicCards">0</strong></article><article class="stat-card"><span>Premium</span><strong id="premiumCards">0</strong></article><article class="stat-card business-stat-card" id="businessKpiCard"><span>JMX Business</span><strong id="businessCards">0</strong></article><article class="stat-card"><span>Complimentary Premium</span><strong id="compCards">0</strong></article><article class="stat-card"><span>Complimentary Business</span><strong id="compBusinessCards">0</strong></article><article class="stat-card"><span>Inactive / Unclaimed</span><strong id="inactiveCards">0</strong></article>
 </section>
 <section class="panel platform-controls">
   <div class="toolbar"><div><p class="eyebrow">PLATFORM</p><h2>Launch Controls, Billing & Legal</h2><p class="subtitle small">Keep Premium and billing installed but hidden until your policies and payment account are ready.</p></div><label class="switch-row"><input id="premiumEnabled" type="checkbox"><span class="switch-ui"></span><strong>Show Premium on public site</strong></label></div>
@@ -56,8 +56,8 @@
   <div class="toolbar feature-toolbar">
     <div>
       <p class="eyebrow">FEATURE CONTROL CENTER</p>
-      <h2>Basic & Premium Module Controls</h2>
-      <p class="subtitle small">Turn modules on or off by plan. Global OFF always hides a module for both Basic and Premium cards.</p>
+      <h2>Basic, Premium & Business Module Controls</h2>
+      <p class="subtitle small">Turn modules on or off by plan. Global OFF always hides a module for Basic, Premium and Business cards.</p>
     </div>
     <div class="feature-toolbar-actions">
       <label class="switch-row"><input id="featureControlsEnabled" type="checkbox"><span class="switch-ui"></span><strong>Enable advanced feature controls</strong></label>
@@ -68,8 +68,34 @@
     <section class="feature-column global-column"><div class="feature-column-head"><p class="eyebrow">GLOBAL</p><h3>All Plans</h3><p class="subtitle small">Global OFF always hides a module.</p></div><div id="globalFeatureSwitches" class="feature-switch-list"></div></section>
     <section class="feature-column"><div class="feature-column-head"><p class="eyebrow">BASIC</p><h3>Basic Version</h3><p class="subtitle small">Choose which modules Basic cards can use.</p></div><div id="basicFeatureSwitches" class="feature-switch-list"></div></section>
     <section class="feature-column premium-feature-column"><div class="feature-column-head"><p class="eyebrow">PREMIUM</p><h3>Premium Version</h3><p class="subtitle small">Temporarily hide any Premium module without deleting client data.</p></div><div id="premiumFeatureSwitches" class="feature-switch-list"></div></section>
+    <section class="feature-column business-feature-column"><div class="feature-column-head"><p class="eyebrow">BUSINESS</p><h3>JMX Business</h3><p class="subtitle small">Business inherits Premium and adds networking, Leads, QR and advanced tools.</p></div><div id="businessFeatureSwitches" class="feature-switch-list"></div></section>
   </div>
   <div class="feature-save-row"><button id="saveFeatureControls" class="primary-button" type="button"><i class="fa-solid fa-sliders"></i> Save Feature Controls</button><p id="featureControlStatus" class="status"></p></div>
+</section>
+
+<section class="panel business-settings-panel" id="businessSettingsPanel">
+  <div class="toolbar"><div><p class="eyebrow">JMX BUSINESS</p><h2>Business Website Settings & Policies</h2><p class="subtitle small">Business stays hidden publicly until you enable it. Legal text fields are placeholders until approved content is entered.</p></div><label class="switch-row"><input id="businessEnabled" type="checkbox"><span class="switch-ui"></span><strong>Show JMX Business on Website</strong></label></div>
+  <div class="settings-grid">
+    <label><span>Plan name</span><input id="businessPlanName" value="JMX Business"></label>
+    <label><span>Title</span><input id="businessTitle" placeholder="Advanced networking for growing businesses"></label>
+    <label class="full"><span>Subtitle / Description</span><textarea id="businessDescription" rows="3" placeholder="Add public Business plan description"></textarea></label>
+    <label><span>Price display</span><input id="businessPrice" placeholder="$-- / month"></label>
+    <label><span>CTA text</span><input id="businessCtaText" placeholder="Get JMX Business"></label>
+    <label class="full"><span>CTA destination</span><input id="businessCtaUrl" type="url" placeholder="https://..."></label>
+    <label class="full"><span>Feature list (one per line)</span><textarea id="businessFeatureList" rows="7" placeholder="Everything in Premium
+Quick Capture
+Leads
+Advanced Analytics"></textarea></label>
+    <label class="full"><span>JMX Business Privacy Policy</span><textarea id="businessPrivacy" rows="8" placeholder="PLACEHOLDER — add attorney-approved Business Privacy Policy"></textarea></label>
+    <label class="full"><span>JMX Business Terms & Conditions</span><textarea id="businessTerms" rows="8" placeholder="PLACEHOLDER — add attorney-approved Business Terms & Conditions"></textarea></label>
+    <label class="switch-row"><input id="businessPoliciesReady" type="checkbox"><span class="switch-ui"></span><strong>Business Policies Ready / Approved</strong></label>
+  </div>
+  <div class="feature-save-row"><button id="saveBusinessSettings" class="primary-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Business Policies & Settings</button><p id="businessSettingsStatus" class="status"></p></div>
+</section>
+
+<section class="panel business-inventory-summary">
+ <div class="toolbar"><div><p class="eyebrow">BUSINESS INVENTORY</p><h2>JMX Business Available / Sold</h2><p class="subtitle small">These counters are inventory states and are separate from the active Business KPI above.</p></div></div>
+ <div class="stats-grid compact-business-stats"><article class="stat-card"><span>JMX Business Available</span><strong id="businessAvailableCards">0</strong></article><article class="stat-card"><span>JMX Business Sold</span><strong id="businessSoldCards">0</strong></article></div>
 </section>
 
 <section class="panel">
@@ -77,7 +103,7 @@
     <div><p class="eyebrow">INVENTORY</p><h2>NFC Cards</h2><p class="subtitle small">Each code becomes a permanent NFC URL. Customers cannot create these codes.</p></div>
     <button id="newCardButton" class="primary-button" type="button"><i class="fa-solid fa-plus"></i> Create NFC Card</button>
   </div>
-  <div class="filter-row"><input id="searchCards" type="search" placeholder="Search code, client, email, plan or notes"><select id="statusFilter"><option value="all">All statuses</option><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select><select id="planFilter"><option value="all">All plans</option><option value="Basic">Basic</option><option value="Premium">Premium</option></select></div>
+  <div class="filter-row"><input id="searchCards" type="search" placeholder="Search code, client, email, plan or notes"><select id="statusFilter"><option value="all">All statuses</option><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select><select id="planFilter"><option value="all">All plans</option><option value="Basic">Basic</option><option value="Premium">Premium</option><option value="Business">JMX Business</option></select></div>
   <section class="inventory-pool">
     <div class="plan-column-head inventory-pool-head">
       <div><p class="eyebrow">AVAILABLE / UNCLAIMED</p><h3>Ready NFC Inventory</h3><p class="subtitle small">Generated permanent URLs that are not activated yet. Keep available inventory on the left and sold / awaiting activation on the right.</p></div>
@@ -100,6 +126,7 @@
   <div class="plan-board client-plan-board">
     <section class="plan-column"><div class="plan-column-head"><div><p class="eyebrow">BASIC</p><h3>Basic Clients</h3><p class="subtitle small">Activated or suspended client cards.</p></div><strong id="basicColumnCount">0</strong></div><div id="basicCardsGrid" class="cards-grid single-column"></div></section>
     <section class="plan-column premium-column"><div class="plan-column-head"><div><p class="eyebrow">PREMIUM</p><h3>Premium Clients</h3><p class="subtitle small">Activated or suspended client cards.</p></div><strong id="premiumColumnCount">0</strong></div><div id="premiumCardsGrid" class="cards-grid single-column"></div></section>
+    <section class="plan-column business-column"><div class="plan-column-head"><div><p class="eyebrow">BUSINESS</p><h3>JMX Business Clients</h3><p class="subtitle small">Activated or suspended Business client cards.</p></div><strong id="businessColumnCount">0</strong></div><div id="businessCardsGrid" class="cards-grid single-column"></div></section>
   </div>
   <div id="emptyState" class="empty-state" hidden><i class="fa-solid fa-wifi"></i><h3>No NFC cards match these filters</h3><p>Clear the filters or create a new permanent NFC URL.</p></div>
 </section>
@@ -110,7 +137,7 @@
     <div class="dialog-header"><div><p class="eyebrow">NEW INVENTORY</p><h2>Create NFC Card</h2></div><button id="closeCardDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
     <div class="form-grid">
       <label><span>Short Card Code *</span><div class="inline-field"><input id="newCardId" required maxlength="8"><button id="regenerateCode" class="mini" type="button">Random</button></div></label>
-      <label><span>Plan</span><select id="newPlan"><option>Basic</option><option>Premium</option></select></label>
+      <label><span>Plan</span><select id="newPlan"><option>Basic</option><option>Premium</option><option value="Business">JMX Business</option></select></label>
       <label><span>Physical Card</span><select id="newPhysicalType"><option>PVC</option><option>Metal</option><option>Hybrid</option><option>Other</option></select></label>
       <label><span>NFC Status</span><select id="newNfcStatus"><option value="not-programmed">Not programmed</option><option value="programmed">Programmed</option><option value="delivered">Delivered</option></select></label>
       <label class="full check-row"><input id="requireActivationCode" type="checkbox" checked><span>Require private activation code when customer claims this NFC</span></label>

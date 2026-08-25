@@ -20,14 +20,29 @@ let user = null;
 let cards = [];
 const PROTECTED_CARD_IDS = new Set(["BOSS"]);
 const FEATURE_DEFS = [
-  ["description","Description"],["saveContact","Save Contact"],["quickActions","Quick Actions"],["phone","Primary Phone"],["phone2","Second Phone"],["whatsapp","WhatsApp"],["email","Email"],["website","Website"],["location","Location"],["facebook","Facebook"],["instagram","Instagram"],["linkedin","LinkedIn"],["twitter","X / Twitter"],["tiktok","TikTok"],["youtube","YouTube"],["services","Services"],["gallery","Gallery"],["video","Featured Video"],["qr","QR Code"],["finalCTA","Final CTA"],["businessLinks","Business Links"],["catalog","Catalog / PDF"],["customBusiness","Custom Business Link"]
+  ["description","Description"],["saveContact","Save Contact"],["quickActions","Quick Actions"],["phone","Primary Phone"],["phone2","Second Phone"],["whatsapp","WhatsApp"],["email","Email"],["website","Website"],["location","Location"],["facebook","Facebook"],["instagram","Instagram"],["linkedin","LinkedIn"],["twitter","X / Twitter"],["tiktok","TikTok"],["youtube","YouTube"],["services","Services"],["gallery","Gallery"],["video","Featured Video"],["qr","QR Code"],["customQR","Custom QR"],["qrDownload","QR Download"],["finalCTA","Final CTA"],["businessLinks","Business Links"],["catalog","Catalog / PDF"],["customBusiness","Custom Business Link"],["analytics","Analytics"],["advancedAnalytics","Advanced Analytics"],["quickCapture","Quick Capture"],["leads","Leads / My Contacts"],["contactNotes","Contact Notes"],["meetingNotes","Meeting Notes"],["followUp","Follow-Up"],["csvExport","CSV Export"],["vcfDownload","VCF Download"],["contactMap","Contact Map"],["aiScanner","AI Business Card Scanner"],["autoIntroEmail","Auto-Intro Email"],["appleWallet","Apple Wallet"],["googleWallet","Google Wallet"],["brandingRemoval","Branding Removal"],["advancedNetworkingInsights","Advanced Networking Insights"]
 ];
 const BASIC_FEATURE_DEFAULTS = new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
 function defaultFeatureControls(){
-  const global={},Basic={},Premium={};
-  FEATURE_DEFS.forEach(([key])=>{global[key]=true;Basic[key]=BASIC_FEATURE_DEFAULTS.has(key);Premium[key]=true});
-  return {enabled:true,global,Basic,Premium};
+  const global={},Basic={},Premium={},Business={};
+  const businessOnly=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","brandingRemoval","advancedNetworkingInsights"]);
+  FEATURE_DEFS.forEach(([key])=>{global[key]=true;Basic[key]=BASIC_FEATURE_DEFAULTS.has(key);Premium[key]=!businessOnly.has(key);Business[key]=true});
+  return {enabled:true,global,Basic,Premium,Business};
 }
+function basePlan(card){
+  return ["Basic","Premium","Business"].includes(card?.plan) ? card.plan : "Basic";
+}
+function effectivePlan(card){
+  if(card?.complimentaryBusiness===true) return "Business";
+  if(card?.complimentaryPremium===true) return "Premium";
+  return basePlan(card);
+}
+function complimentaryTier(card){
+  if(card?.complimentaryBusiness===true) return "Business";
+  if(card?.complimentaryPremium===true) return "Premium";
+  return null;
+}
+function businessCountsAsActive(card){return effectivePlan(card)==="Business" && ["activated","suspended"].includes(card?.status) && card?.subscription?.status!=="canceled";}
 let featureControls = defaultFeatureControls();
 
 
@@ -216,25 +231,28 @@ function render() {
     const owner = card.owner || {};
     const profile = card.profile || {};
     const haystack = [card.id, card.plan, card.status, admin.clientName, admin.notes, owner.ownerEmail, profile.fullName, profile.company, profile.email, profile.phone].join(" ").toLowerCase();
-    return (!search || haystack.includes(search)) && (filter === "all" || card.status === filter) && (planFilter === "all" || (card.complimentaryPremium===true?"Premium":(card.plan || "Basic")) === planFilter);
+    return (!search || haystack.includes(search)) && (filter === "all" || card.status === filter) && (planFilter === "all" || effectivePlan(card) === planFilter);
   });
 
   $("totalCards").textContent = cards.length;
   $("availableCards").textContent = cards.filter((c) => c.status === "available").length;
   $("activatedCards").textContent = cards.filter((c) => c.status === "activated").length;
   $("suspendedCards").textContent = cards.filter((c) => c.status === "suspended").length;
-  const effectivePlan=c=>c.complimentaryPremium===true?"Premium":(c.plan||"Basic");
   const clientStatuses = new Set(["activated", "suspended"]);
   const unclaimedStatuses = new Set(["available", "sold"]);
   $("basicCards").textContent = cards.filter(c=>clientStatuses.has(c.status) && effectivePlan(c)==="Basic").length;
   $("premiumCards").textContent = cards.filter(c=>clientStatuses.has(c.status) && effectivePlan(c)==="Premium").length;
+  $("businessCards").textContent = cards.filter(businessCountsAsActive).length;
   $("compCards").textContent = cards.filter(c=>c.complimentaryPremium===true).length;
+  $("compBusinessCards").textContent = cards.filter(c=>c.complimentaryBusiness===true).length;
+  $("businessAvailableCards").textContent = cards.filter(c=>effectivePlan(c)==="Business" && c.status==="available").length;
+  $("businessSoldCards").textContent = cards.filter(c=>effectivePlan(c)==="Business" && c.status==="sold").length;
   $("inactiveCards").textContent = cards.filter(c=>unclaimedStatuses.has(c.status) || !c.status).length;
 
   const inventoryRowMarkup = (card) => {
     const admin = card.admin || {};
     const inventory = card.inventory || {};
-    const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
+    const effective = effectivePlan(card);
     const note = admin.notes || inventory.notes || "Add private note";
     const created = card.createdAt?.toDate ? card.createdAt.toDate().toLocaleDateString() : "—";
     return `<div class="inventory-list-row-wrap">
@@ -259,21 +277,26 @@ function render() {
     const profile = card.profile || {};
     const stats = card.stats || {};
     const monthStats = card.monthStats || {};
-    const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
+    const effective = effectivePlan(card);
     const displayName = profile.fullName || admin.clientName || owner.ownerEmail || card.id;
-    return `<button class="client-list-row" type="button" data-client-id="${esc(card.id)}">
-      <span class="client-list-main"><strong>${esc(displayName)}</strong><small>${esc(card.id)} · ${esc(owner.ownerEmail || "No owner email")}</small></span>
-      <span class="client-list-plan">${esc(effective)}</span>
-      <span class="client-list-stat"><strong>${Number(stats.views || 0).toLocaleString()}</strong><small>total views</small></span>
-      <span class="client-list-stat"><strong>${Number(monthStats.views || 0).toLocaleString()}</strong><small>this month</small></span>
-      <span class="badge ${badgeClass(card.status)}">${esc(card.status || "activated")}</span>
-      <i class="fa-solid fa-chevron-right"></i>
-    </button>`;
+    const gift = complimentaryTier(card);
+    return `<div class="client-list-row-wrap">
+      <button class="client-list-row" type="button" data-client-id="${esc(card.id)}">
+        <span class="client-list-main"><strong>${esc(displayName)}</strong><small>${esc(card.id)} · ${esc(owner.ownerEmail || "No owner email")}</small></span>
+        <span class="client-list-plan">${esc(effective)}${gift ? `<small class="gift-inline-label"><i class="fa-solid fa-gift"></i> Gift</small>` : ""}</span>
+        <span class="client-list-stat"><strong>${Number(stats.views || 0).toLocaleString()}</strong><small>total views</small></span>
+        <span class="client-list-stat"><strong>${Number(monthStats.views || 0).toLocaleString()}</strong><small>this month</small></span>
+        <span class="badge ${badgeClass(card.status)}">${esc(card.status || "activated")}</span>
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <button class="client-manage-button" type="button" data-manage-client="${esc(card.id)}"><i class="fa-solid fa-user-gear"></i> Manage</button>
+    </div>`;
   };
 
   const inventoryList = list.filter(c => unclaimedStatuses.has(c.status) || !c.status);
   const basicList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Basic");
   const premiumList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Premium");
+  const businessList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Business");
 
   const availableInventory = inventoryList.filter((c) => (c.status || "available") === "available");
   const soldInventory = inventoryList.filter((c) => c.status === "sold");
@@ -287,8 +310,10 @@ function render() {
   $("inventoryPoolEmpty").hidden = inventoryList.length > 0;
   $("basicCardsGrid").innerHTML=basicList.map(clientRowMarkup).join("");
   $("premiumCardsGrid").innerHTML=premiumList.map(clientRowMarkup).join("");
+  $("businessCardsGrid").innerHTML=businessList.map(clientRowMarkup).join("");
   $("basicColumnCount").textContent=basicList.length;
   $("premiumColumnCount").textContent=premiumList.length;
+  $("businessColumnCount").textContent=businessList.length;
   $("emptyState").hidden = list.length > 0;
   document.querySelectorAll(".inventory-list-row").forEach((row) => row.addEventListener("click", () => openInventoryDialog(row.dataset.inventoryId)));
   document.querySelectorAll(".inventory-note-edit").forEach((button) => button.addEventListener("click", async (event) => {
@@ -296,6 +321,7 @@ function render() {
     await editInventoryNote(button.dataset.editNote);
   }));
   document.querySelectorAll(".client-list-row").forEach((row) => row.addEventListener("click", () => openClientDialog(row.dataset.clientId)));
+  document.querySelectorAll(".client-manage-button").forEach((button) => button.addEventListener("click", () => openClientDialog(button.dataset.manageClient)));
 }
 
 async function editInventoryNote(id) {
@@ -327,7 +353,7 @@ async function openInventoryDialog(id) {
   if (!card) return;
   const admin = card.admin || {};
   const inventory = card.inventory || {};
-  const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
+  const effective = effectivePlan(card);
   const note = admin.notes || inventory.notes || "—";
   const created = card.createdAt?.toDate ? card.createdAt.toDate().toLocaleDateString() : "—";
   const dialog = $("clientDetailDialog");
@@ -343,7 +369,7 @@ async function openInventoryDialog(id) {
           <div><span>Card code</span><strong>${esc(id)}</strong></div>
           <div><span>Status</span><strong>${esc(card.status || "available")}</strong></div>
           <div class="detail-wide"><span>Permanent URL</span><strong class="break-anywhere">${esc(friendlyUrl(id))}</strong></div>
-          <div><span>Plan</span><strong>${esc(effective)}</strong></div>
+          <div><span>Plan</span><strong>${esc(effective)}</strong></div><div><span>Subscription</span><strong>${esc(card.subscription?.status || "none")}</strong></div><div><span>Source</span><strong>${esc(card.complimentaryBusiness?"complimentary business":card.complimentaryPremium?"complimentary premium":(card.subscription?.source||"manual"))}</strong></div>
           <div><span>Physical</span><strong>${esc(admin.physicalType || inventory.physicalType || "PVC")}</strong></div>
           <div><span>NFC state</span><strong>${esc(card.nfcStatus || admin.nfcStatus || inventory.nfcStatus || "not-programmed")}</strong></div>
           <div><span>Created</span><strong>${esc(created)}</strong></div>
@@ -366,11 +392,12 @@ async function openInventoryDialog(id) {
     <button class="secondary-button" data-dialog-action="copy"><i class="fa-solid fa-copy"></i> Copy NFC URL</button>
     <button class="secondary-button" data-dialog-action="code"><i class="fa-solid fa-key"></i> Copy Activation</button>
     <button class="secondary-button" data-dialog-action="plan"><i class="fa-solid fa-layer-group"></i> Change Plan</button>
+    ${effective === "Business" ? `<button class="secondary-button" data-dialog-action="compBusiness"><i class="fa-solid fa-gift"></i> ${card.complimentaryBusiness===true?"Remove Complimentary Business":"Complimentary Business"}</button>` : ""}
     <button class="secondary-button" data-dialog-action="note"><i class="fa-solid fa-pen"></i> Edit Internal Note</button>
     ${card.status === "available" ? '<button class="secondary-button" data-dialog-action="sold"><i class="fa-solid fa-tag"></i> Mark Sold</button>' : ""}
     ${card.status === "available" && !PROTECTED_CARD_IDS.has(id) ? '<button class="secondary-button" data-dialog-action="regenerate"><i class="fa-solid fa-arrows-rotate"></i> Regenerate</button><button class="danger-button" data-dialog-action="delete"><i class="fa-solid fa-trash"></i> Delete</button>' : ""}
   `;
-  dialog.showModal();
+  if (!dialog.open) dialog.showModal();
 }
 
 
@@ -384,7 +411,7 @@ async function openClientDialog(id) {
   const owner = card.owner || {};
   const stats = card.stats || {};
   const monthStats = card.monthStats || {};
-  const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
+  const effective = effectivePlan(card);
   const totalActions = stats.actions || {};
   const monthActions = monthStats.actions || {};
   const dialog = $("clientDetailDialog");
@@ -399,7 +426,7 @@ async function openClientDialog(id) {
         <div class="detail-list">
           <div><span>Card code</span><strong>${esc(id)}</strong></div>
           <div><span>Permanent URL</span><strong class="break-anywhere">${esc(friendlyUrl(id))}</strong></div>
-          <div><span>Plan</span><strong>${esc(effective)}</strong></div>
+          <div><span>Plan</span><strong>${esc(effective)}</strong></div><div><span>Subscription</span><strong>${esc(card.subscription?.status || "none")}</strong></div><div><span>Source</span><strong>${esc(card.complimentaryBusiness?"complimentary business":card.complimentaryPremium?"complimentary premium":(card.subscription?.source||"manual"))}</strong></div>
           <div><span>Status</span><strong>${esc(card.status || "activated")}</strong></div>
           <div><span>Owner email</span><strong>${esc(owner.ownerEmail || claim.ownerEmail || "—")}</strong></div>
           <div><span>Name</span><strong>${esc(profile.fullName || admin.clientName || "—")}</strong></div>
@@ -409,6 +436,27 @@ async function openClientDialog(id) {
           <div><span>NFC state</span><strong>${esc(card.nfcStatus || admin.nfcStatus || "not-programmed")}</strong></div>
           <div><span>Physical</span><strong>${esc(admin.physicalType || "PVC")}</strong></div>
           <div><span>Activated</span><strong>${card.activatedAt?.toDate ? card.activatedAt.toDate().toLocaleDateString() : "—"}</strong></div>
+        </div>
+      </section>
+      <section class="detail-panel access-control-panel">
+        <h3>Plan & Complimentary Access</h3>
+        <p class="subtitle small">Base plan stays intact when you give a complimentary upgrade. Turning the gift off returns the client to the base plan automatically.</p>
+        <div class="access-status-grid">
+          <div><span>Base plan</span><strong>${esc(basePlan(card))}</strong></div>
+          <div><span>Current access</span><strong>${esc(effective)}</strong></div>
+        </div>
+        <div class="plan-choice-row" role="group" aria-label="Change base plan">
+          ${["Basic","Premium","Business"].map(plan=>`<button type="button" class="plan-choice-button ${basePlan(card)===plan?"active":""}" data-dialog-action="setBasePlan" data-plan-value="${plan}">${plan==="Business"?"JMX Business":plan}</button>`).join("")}
+        </div>
+        <div class="gift-switch-stack">
+          <label class="gift-switch-row ${basePlan(card)==="Business"?"disabled":""}">
+            <span><strong><i class="fa-solid fa-gift"></i> Complimentary Premium</strong><small>Free access until you turn it off.</small></span>
+            <input type="checkbox" data-gift-tier="Premium" ${card.complimentaryPremium===true?"checked":""} ${basePlan(card)==="Business"?"disabled":""}><i class="gift-switch-ui"></i>
+          </label>
+          <label class="gift-switch-row ${basePlan(card)==="Business"?"disabled":""}">
+            <span><strong><i class="fa-solid fa-gift"></i> Complimentary JMX Business</strong><small>Free Business access until you turn it off.</small></span>
+            <input type="checkbox" data-gift-tier="Business" ${card.complimentaryBusiness===true?"checked":""} ${basePlan(card)==="Business"?"disabled":""}><i class="gift-switch-ui"></i>
+          </label>
         </div>
       </section>
       <section class="detail-panel analytics-panel">
@@ -429,12 +477,12 @@ async function openClientDialog(id) {
     <button class="secondary-button" data-dialog-action="copy"><i class="fa-solid fa-copy"></i> Copy / Recover URL</button>
     <button class="secondary-button" data-dialog-action="open"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Profile</button>
     <button class="secondary-button" data-dialog-action="edit"><i class="fa-solid fa-pen"></i> Edit Profile</button>
-    <button class="secondary-button" data-dialog-action="plan"><i class="fa-solid fa-layer-group"></i> Change Plan</button>
+    <button class="secondary-button" data-dialog-action="plan"><i class="fa-solid fa-layer-group"></i> Change Base Plan</button>
     ${card.status === "activated" ? '<button class="secondary-button" data-dialog-action="suspend">Suspend</button>' : ''}
     ${card.status === "suspended" ? '<button class="secondary-button" data-dialog-action="reactivate">Reactivate</button>' : ''}
     ${PROTECTED_CARD_IDS.has(id) ? '<span class="protected-note"><i class="fa-solid fa-lock"></i> Protected card: release/delete disabled</span>' : '<button class="danger-button" data-dialog-action="release"><i class="fa-solid fa-rotate-left"></i> Release / Reset for Reuse</button>'}
   `;
-  dialog.showModal();
+  if (!dialog.open) dialog.showModal();
 }
 
 async function copyText(value) {
@@ -471,8 +519,10 @@ async function performCardAction(id, action, button = null) {
     }
   }
   if (action === "plan") await changePlan(id, card);
+  if (action === "setBasePlan") await setBasePlan(id, card, button?.dataset.planValue);
   if (action === "note") await editInventoryNote(id);
   if (action === "comp") await toggleComplimentary(id, card);
+  if (action === "compBusiness") await toggleComplimentaryBusiness(id, card);
   if (action === "sold") await updateStatus(id, "sold");
   if (action === "suspend") await updateStatus(id, "suspended");
   if (action === "reactivate") await updateStatus(id, "activated");
@@ -570,17 +620,71 @@ async function releaseForReuse(id) {
   await loadCards();
 }
 
+async function setComplimentaryTier(id, card, tier, enabled){
+  if(!["Premium","Business"].includes(tier)) return;
+  const currentBase=basePlan(card);
+  if(currentBase==="Business") return alert("This client already has JMX Business as the base plan. No complimentary upgrade is needed.");
+  if(tier==="Premium" && currentBase==="Premium" && enabled) return alert("This client already has Premium as the base plan.");
+
+  const hasExistingGift=card.complimentaryPremium===true || card.complimentaryBusiness===true;
+  const previousStatus=hasExistingGift ? (card.preGiftSubscriptionStatus ?? "none") : (card.subscription?.status || "none");
+  const previousSource=hasExistingGift ? (card.preGiftSubscriptionSource ?? "manual") : (card.subscription?.source || "manual");
+  const payload={updatedAt:serverTimestamp()};
+
+  if(enabled){
+    payload.complimentaryPremium=tier==="Premium";
+    payload.complimentaryBusiness=tier==="Business";
+    payload.complimentaryBasePlan=currentBase;
+    payload.preGiftSubscriptionStatus=previousStatus;
+    payload.preGiftSubscriptionSource=previousSource;
+    payload.subscription={...(card.subscription||{}),source:"complimentary",status:"active",complimentaryTier:tier};
+  }else{
+    payload.complimentaryPremium=false;
+    payload.complimentaryBusiness=false;
+    payload.complimentaryBasePlan=deleteField();
+    payload.subscription={...(card.subscription||{}),source:previousSource,status:previousStatus,complimentaryTier:deleteField()};
+    payload.preGiftSubscriptionStatus=deleteField();
+    payload.preGiftSubscriptionSource=deleteField();
+  }
+  await setDoc(doc(db,"cards",id),payload,{merge:true});
+  await loadCards();
+}
+
 async function toggleComplimentary(id, card){
-  const next=card.complimentaryPremium!==true;
-  await setDoc(doc(db,"cards",id),{complimentaryPremium:next,updatedAt:serverTimestamp(),subscription:{...(card.subscription||{}),source:next?"complimentary":(card.subscription?.source||"manual"),status:next?"active":(card.subscription?.status||"none")}}, {merge:true});
+  await setComplimentaryTier(id, card, "Premium", card.complimentaryPremium!==true);
+}
+
+async function toggleComplimentaryBusiness(id, card){
+  await setComplimentaryTier(id, card, "Business", card.complimentaryBusiness!==true);
+}
+
+async function setBasePlan(id, card, next){
+  if(!["Basic","Premium","Business"].includes(next)) return;
+  const current=basePlan(card);
+  if(next===current && !complimentaryTier(card)) return;
+  const gift=complimentaryTier(card);
+  const message=gift
+    ? `Change ${id} base plan from ${current} to ${next}? The current complimentary ${gift} gift will be removed. Client profile data will be preserved.`
+    : `Change ${id} from ${current} to ${next}? Existing profile data will be preserved.`;
+  if(!confirm(message)) return;
+  const batch=writeBatch(db);
+  batch.set(doc(db,"cards",id),{
+    plan:next,complimentaryPremium:false,complimentaryBusiness:false,complimentaryBasePlan:deleteField(),preGiftSubscriptionStatus:deleteField(),preGiftSubscriptionSource:deleteField(),
+    subscription:{...(card.subscription||{}),source:gift?(card.preGiftSubscriptionSource||"manual"):(card.subscription?.source||"manual"),status:gift?(card.preGiftSubscriptionStatus||"none"):(card.subscription?.status||"none"),complimentaryTier:deleteField()},updatedAt:serverTimestamp()
+  },{merge:true});
+  batch.set(doc(db,"inventory",id),{plan:next,updatedAt:serverTimestamp()},{merge:true});
+  await batch.commit();
   await loadCards();
 }
 
 async function changePlan(id, card) {
-  const next = (card.plan || "Basic") === "Basic" ? "Premium" : "Basic";
-  if (!confirm(`Change ${id} from ${card.plan || "Basic"} to ${next}?`)) return;
-  await setDoc(doc(db, "cards", id), { plan: next, updatedAt: serverTimestamp() }, { merge: true });
-  await loadCards();
+  const current=basePlan(card);
+  const entered=prompt(`Change ${id} base plan. Enter Basic, Premium, or Business:`, current);
+  if(entered===null)return;
+  const map={basic:"Basic",premium:"Premium",business:"Business","jmx business":"Business"};
+  const next=map[entered.trim().toLowerCase()];
+  if(!next)return alert("Invalid plan. Use Basic, Premium, or Business.");
+  await setBasePlan(id, card, next);
 }
 
 async function updateStatus(id, next) {
@@ -665,7 +769,7 @@ async function createCard(event) {
       return setDialogStatus("That card code already exists. Choose another code or press Random.", "error");
     }
     const batch = writeBatch(db);
-    batch.set(doc(db, "cards", id), { inventoryVersion: 2, status: "available", plan, complimentaryPremium:false, subscription:{status:"none",source:"manual"}, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "cards", id), { inventoryVersion: 2, status: "available", plan, complimentaryPremium:false, complimentaryBusiness:false, subscription:{status:"none",source:"manual"}, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "inventory", id), { activationCode: code, inventoryVersion: 2, status: "available", plan, physicalType, nfcStatus, notes, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "cardAdmin", id), { physicalType, nfcStatus, notes, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "profiles", id), blankProfile());
@@ -731,23 +835,39 @@ async function handleDialogAction(event) {
   const id = $("clientDetailDialog").dataset.cardId;
   const action = button.dataset.dialogAction;
   await performCardAction(id, action, button);
+  if (action === "setBasePlan" && $("clientDetailDialog").open) await openClientDialog(id);
   if (["plan", "sold", "suspend", "reactivate", "regenerate", "delete", "release"].includes(action) && $("clientDetailDialog").open) {
     $("clientDetailDialog").close();
   }
 }
 $("clientDetailActions")?.addEventListener("click", handleDialogAction);
 $("clientDetailBody")?.addEventListener("click", handleDialogAction);
+$("clientDetailBody")?.addEventListener("change", async (event) => {
+  const input=event.target.closest("[data-gift-tier]");
+  if(!input)return;
+  const id=$("clientDetailDialog").dataset.cardId;
+  const card=cards.find(c=>c.id===id);
+  if(!card)return;
+  input.disabled=true;
+  try{
+    await setComplimentaryTier(id,card,input.dataset.giftTier,input.checked);
+    if($("clientDetailDialog").open) await openClientDialog(id);
+  }catch(error){
+    console.error("Complimentary access update failed",error);
+    alert("Could not update complimentary access. Please try again.");
+  }finally{input.disabled=false;}
+});
 
 
 
 function mergeFeatureControls(raw={}){
   const d=defaultFeatureControls();
-  return {enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})}};
+  return {enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}};
 }
 function renderFeatureControls(){
   const enabled=$("featureControlsEnabled"); if(enabled) enabled.checked=featureControls.enabled!==false;
   const panels=$("featurePanels"), show=$("showFeaturePanels"); if(panels&&show) panels.hidden=!show.checked;
-  const targets={global:$("globalFeatureSwitches"),Basic:$("basicFeatureSwitches"),Premium:$("premiumFeatureSwitches")};
+  const targets={global:$("globalFeatureSwitches"),Basic:$("basicFeatureSwitches"),Premium:$("premiumFeatureSwitches"),Business:$("businessFeatureSwitches")};
   Object.entries(targets).forEach(([group,root])=>{
     if(!root)return; root.innerHTML=FEATURE_DEFS.map(([key,label])=>`<label class="feature-switch-item" data-group="${group}" data-feature="${key}"><span>${label}</span><span class="mini-switch"><input type="checkbox" ${featureControls[group]?.[key]!==false?"checked":""}><i></i></span></label>`).join("");
   });
@@ -756,11 +876,11 @@ function renderFeatureControls(){
 function updateFeatureDependencyUI(){
   const globalRoot=$("globalFeatureSwitches"); if(!globalRoot)return;
   const globals={}; globalRoot.querySelectorAll("[data-feature]").forEach(row=>globals[row.dataset.feature]=row.querySelector("input").checked);
-  ["basicFeatureSwitches","premiumFeatureSwitches"].forEach(id=>$(id)?.querySelectorAll("[data-feature]").forEach(row=>row.classList.toggle("master-off",globals[row.dataset.feature]===false)));
+  ["basicFeatureSwitches","premiumFeatureSwitches","businessFeatureSwitches"].forEach(id=>$(id)?.querySelectorAll("[data-feature]").forEach(row=>row.classList.toggle("master-off",globals[row.dataset.feature]===false)));
 }
 function collectFeatureControls(){
   const next=defaultFeatureControls(); next.enabled=$("featureControlsEnabled")?.checked!==false;
-  [["global","globalFeatureSwitches"],["Basic","basicFeatureSwitches"],["Premium","premiumFeatureSwitches"]].forEach(([group,id])=>{
+  [["global","globalFeatureSwitches"],["Basic","basicFeatureSwitches"],["Premium","premiumFeatureSwitches"],["Business","businessFeatureSwitches"]].forEach(([group,id])=>{
     $(id)?.querySelectorAll("[data-feature]").forEach(row=>next[group][row.dataset.feature]=row.querySelector("input").checked);
   });
   return next;
@@ -780,7 +900,32 @@ async function loadPlatformSettings(){
   if($("privacyPolicyUrl")) $("privacyPolicyUrl").value=d.privacyPolicyUrl||"";
   if($("privacyAgreementText")) $("privacyAgreementText").value=d.privacyAgreementText||"";
   featureControls=mergeFeatureControls(d.featureControls||{}); renderFeatureControls();
+  if($("businessEnabled")) $("businessEnabled").checked=d.business?.enabled===true;
+  if($("businessPlanName")) $("businessPlanName").value=d.business?.planName||"JMX Business";
+  if($("businessTitle")) $("businessTitle").value=d.business?.title||"Advanced networking for growing businesses";
+  if($("businessDescription")) $("businessDescription").value=d.business?.description||"";
+  if($("businessPrice")) $("businessPrice").value=d.business?.price||"";
+  if($("businessCtaText")) $("businessCtaText").value=d.business?.ctaText||"Get JMX Business";
+  if($("businessCtaUrl")) $("businessCtaUrl").value=d.business?.ctaUrl||"";
+  if($("businessFeatureList")) $("businessFeatureList").value=(d.business?.features||[]).join("\n");
+  if($("businessPrivacy")) $("businessPrivacy").value=d.business?.privacyPolicy||"";
+  if($("businessTerms")) $("businessTerms").value=d.business?.terms||"";
+  if($("businessPoliciesReady")) $("businessPoliciesReady").checked=d.business?.policiesReady===true;
 }
+
+async function saveBusinessSettings(){
+  const status=$("businessSettingsStatus");
+  const enabled=$("businessEnabled")?.checked===true;
+  const business={
+    enabled,planName:$("businessPlanName")?.value.trim()||"JMX Business",title:$("businessTitle")?.value.trim()||"",description:$("businessDescription")?.value.trim()||"",price:$("businessPrice")?.value.trim()||"",ctaText:$("businessCtaText")?.value.trim()||"Get JMX Business",ctaUrl:$("businessCtaUrl")?.value.trim()||"",features:($("businessFeatureList")?.value||"").split(/\n+/).map(x=>x.trim()).filter(Boolean),privacyPolicy:$("businessPrivacy")?.value.trim()||"",terms:$("businessTerms")?.value.trim()||"",policiesReady:$("businessPoliciesReady")?.checked===true,updatedAt:new Date().toISOString()
+  };
+  if(enabled && (!business.policiesReady || !business.privacyPolicy || !business.terms || !business.ctaUrl)){
+    if(status){status.textContent="Business cannot be published yet. Add Privacy, Terms, a valid CTA destination, and mark Policies Ready.";status.className="status error";}
+    $("businessEnabled").checked=false; business.enabled=false;
+  }
+  try{await setDoc(doc(db,"platform","publicSettings"),{business,updatedAt:serverTimestamp()},{merge:true});if(status){status.textContent=business.enabled?"Business settings saved and public visibility enabled.":"Business settings saved. Public Business remains hidden.";status.className="status ok";}}catch(e){console.error(e);if(status){status.textContent="Could not save Business settings.";status.className="status error";}}
+}
+
 async function savePlatformSettings(){
   const payload={premiumEnabled:$("premiumEnabled")?.checked===true,billingEnabled:$("billingEnabled")?.checked===true,privacyRequired:$("privacyRequired")?.checked!==false,premiumCheckoutUrl:$("premiumCheckoutUrl")?.value.trim()||"",privacyPolicyUrl:$("privacyPolicyUrl")?.value.trim()||"",privacyAgreementText:$("privacyAgreementText")?.value.trim()||"",updatedAt:serverTimestamp()};
   const status=$("platformStatus");
@@ -791,6 +936,8 @@ function initMarketing(){
   $("copyCompanyUrl")?.addEventListener("click",async()=>{await copyText("https://jmxdigitalcard.com/");$("copyCompanyUrl").textContent="Copied JMX URL";setTimeout(()=>$("copyCompanyUrl").innerHTML='<i class="fa-solid fa-copy"></i> Copy JMX URL',1200)});
   $("savePlatformButton")?.addEventListener("click",savePlatformSettings);
   $("saveFeatureControls")?.addEventListener("click",saveFeatureControls);
+  $("saveBusinessSettings")?.addEventListener("click",saveBusinessSettings);
+  $("businessKpiCard")?.addEventListener("click",()=>{if($("planFilter")){$("planFilter").value="Business";render();document.querySelector(".client-plan-board")?.scrollIntoView({behavior:"smooth",block:"start"});}});
   $("showFeaturePanels")?.addEventListener("change",e=>{if($("featurePanels"))$("featurePanels").hidden=!e.target.checked});
   $("globalFeatureSwitches")?.addEventListener("change",updateFeatureDependencyUI);
 }

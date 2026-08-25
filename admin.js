@@ -7,7 +7,8 @@ import {
   collection,
   setDoc,
   deleteDoc,
-  serverTimestamp
+  serverTimestamp,
+  deleteField
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import {
   getAuth,
@@ -65,7 +66,7 @@ const defaults = {
   service2Title:"", service2Description:"", service2Icon:"fa-screwdriver-wrench",
   service3Title:"", service3Description:"", service3Icon:"fa-paint-roller",
   finalCtaTitle:"Let's Connect", finalCtaText:"",
-  finalCtaLabel:"Contact Now", theme:"gold",
+  finalCtaLabel:"Contact Now", theme:"gold", qrDarkColor:"#111111", qrLightColor:"#ffffff", removeJmxBranding:false,
   visibility:Object.fromEntries(Object.keys(VISIBILITY_LABELS).map(k=>[k,true]))
 };
 
@@ -78,13 +79,13 @@ let pendingMedia = new Map();
 let pendingDeletes = new Set();
 const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
 const FEATURE_KEYS=Object.keys(VISIBILITY_LABELS);
-function defaultFeatureControls(){const global={},Basic={},Premium={};FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=true});return{enabled:true,global,Basic,Premium}}
-function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})}}}
+function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=true;Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
+function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
 let platformFeatureControls=defaultFeatureControls();
 function featureEnabledForPlan(feature){
-  if(platformFeatureControls.enabled===false){return currentCardPlan.toLowerCase()==="premium"||BASIC_FEATURE_DEFAULTS.has(feature)}
+  if(platformFeatureControls.enabled===false){return ["premium","business"].includes(currentCardPlan.toLowerCase())||BASIC_FEATURE_DEFAULTS.has(feature)}
   if(platformFeatureControls.global?.[feature]===false)return false;
-  const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:platformFeatureControls.Premium;
+  const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:currentCardPlan.toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
   return group?.[feature]!==false;
 }
 const FEATURE_INPUT_IDS={description:["description"],phone:["phone"],phone2:["phone2"],whatsapp:["whatsapp"],email:["email"],website:["website"],facebook:["facebook"],instagram:["instagram"],linkedin:["linkedin"],twitter:["twitter"],tiktok:["tiktok"],youtube:["youtube"],catalog:["catalog","catalogUpload"],customBusiness:["customBusinessLabel","customBusinessSubtitle","customBusinessUrl"],video:["videoUrl"],services:["service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon"],gallery:["galleryUpload","clearGallery"],finalCTA:["finalCtaTitle","finalCtaText","finalCtaLabel"]};
@@ -125,7 +126,7 @@ async function loadRemoteProfile(){
   const [cardSnap,profileSnap,ownerSnap]=await Promise.all([getDoc(cardRef),getDoc(profileRef),getDoc(ownerRef)]);
   if(!cardSnap.exists()&&!profileSnap.exists()) return null;
   const meta=cardSnap.exists()?cardSnap.data():{};
-  currentCardPlan=meta.plan||"Premium";
+  currentCardPlan=meta.complimentaryBusiness===true?"Business":(meta.complimentaryPremium===true?"Premium":(meta.plan||"Premium"));
   currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:(meta.ownerUid||null);
   const data=profileSnap.exists()?profileSnap.data():meta;
   const p={...structuredCloneSafe(defaults),...data,visibility:{...defaults.visibility,...(data.visibility||{})},galleryImages:[]};
@@ -155,13 +156,13 @@ async function saveMediaDoc(id,data,name=""){
 }
 
 function setInputData(profile){
-  const ids=["fullName","position","company","city","state","description","phone","phone2","whatsapp","email","website","facebook","instagram","linkedin","twitter","tiktok","youtube","catalog","customBusinessLabel","customBusinessSubtitle","customBusinessUrl","videoUrl","service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon","finalCtaTitle","finalCtaText","finalCtaLabel"];
+  const ids=["fullName","position","company","city","state","description","phone","phone2","whatsapp","email","website","facebook","instagram","linkedin","twitter","tiktok","youtube","catalog","customBusinessLabel","customBusinessSubtitle","customBusinessUrl","videoUrl","service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon","finalCtaTitle","finalCtaText","finalCtaLabel","qrDarkColor","qrLightColor"];
   ids.forEach(id=>setVal(id,profile[id]));
   updatePreview("profilePreview","profilePlaceholder",profile.profileImage);
   updatePreview("coverPreview","coverPlaceholder",profile.coverImage);
   renderGalleryPreview(profile.galleryImages);
   loadVisibility(profile.visibility);
-  setThemeActive(profile.theme||"gold");
+  setThemeActive(profile.theme||"gold"); if($id("removeJmxBranding"))$id("removeJmxBranding").checked=profile.removeJmxBranding===true;
 }
 
 function buildVisibility(){
@@ -199,7 +200,7 @@ function collectFormProfile(){
   p.website=normalizeURL(getVal("website")); p.catalog=normalizeURL(getVal("catalog")); p.customBusinessUrl=normalizeURL(getVal("customBusinessUrl"));
   ["facebook","instagram","linkedin","twitter","tiktok","youtube"].forEach(k=>p[k]=normalizeURL(p[k]));
   p.phoneRaw=normalizePhone(p.phone); p.phone2Raw=normalizePhone(p.phone2); p.whatsappRaw=normalizePhone(p.whatsapp);
-  p.visibility=readVisibility(); p.theme=document.querySelector(".admin-theme.active")?.dataset.theme||currentProfile.theme||"gold";
+  p.visibility=readVisibility(); p.theme=document.querySelector(".admin-theme.active")?.dataset.theme||currentProfile.theme||"gold"; p.qrDarkColor=getVal("qrDarkColor")||"#111111"; p.qrLightColor=getVal("qrLightColor")||"#ffffff"; p.removeJmxBranding=$id("removeJmxBranding")?.checked===true;
   return p;
 }
 
@@ -209,14 +210,14 @@ async function loadAdminMeta(){
     const c=cardSnap.exists()?cardSnap.data():{},o=ownerSnap.exists()?ownerSnap.data():{};
     if(currentRole==="owner"){
       setVal("clientEditorEmail",o.ownerEmail||currentUser?.email||"");
-      if($id("clientPlan"))$id("clientPlan").value=c.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=c.complimentaryPremium?"complimentary":(c.subscription?.source||"manual");
+      if($id("clientPlan"))$id("clientPlan").value=c.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("complimentaryBusiness"))$id("complimentaryBusiness").checked=c.complimentaryBusiness===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=(c.complimentaryBusiness||c.complimentaryPremium)?"complimentary":(c.subscription?.source||"manual");
       if($id("cardStatus"))$id("cardStatus").value=c.status||"activated";
       if($id("nfcStatus"))$id("nfcStatus").value=c.nfcStatus||"programmed";
       return;
     }
     const snap=await getDoc(adminMetaRef),m=snap.exists()?snap.data():{};
     setVal("clientName",m.clientName||currentProfile.fullName||"");setVal("clientEmail",m.clientEmail||o.ownerEmail||"");setVal("clientPhone",m.clientPhone||"");setVal("renewalDate",m.renewalDate||"");setVal("internalNotes",m.notes||"");
-    if($id("clientPlan"))$id("clientPlan").value=c.plan||m.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=c.complimentaryPremium?"complimentary":(c.subscription?.source||"manual");
+    if($id("clientPlan"))$id("clientPlan").value=c.plan||m.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("complimentaryBusiness"))$id("complimentaryBusiness").checked=c.complimentaryBusiness===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=(c.complimentaryBusiness||c.complimentaryPremium)?"complimentary":(c.subscription?.source||"manual");
     if($id("cardStatus"))$id("cardStatus").value=c.status||"activated";
     if($id("nfcStatus"))$id("nfcStatus").value=c.nfcStatus||m.nfcStatus||"programmed";
     setVal("clientEditorEmail",o.ownerEmail||"");
@@ -229,7 +230,7 @@ async function saveAdminMeta(p){
   const data={clientName:getVal("clientName")||p.fullName||CARD_ID,clientEmail:getVal("clientEmail"),clientPhone:getVal("clientPhone"),company:p.company||"",renewalDate:getVal("renewalDate"),nfcStatus:$id("nfcStatus")?.value||"programmed",notes:getVal("internalNotes"),updatedAt:serverTimestamp()};
   if(!existing.exists())data.createdAt=serverTimestamp();
   await setDoc(adminMetaRef,data,{merge:true});
-  const comp=$id("complimentaryPremium")?.checked===true; await setDoc(cardRef,{plan:$id("clientPlan")?.value||currentCardPlan,complimentaryPremium:comp,subscription:{status:comp?"active":($id("subscriptionStatus")?.value||"none"),source:comp?"complimentary":($id("subscriptionSource")?.value||"manual")},status:$id("cardStatus")?.value||"activated",nfcStatus:$id("nfcStatus")?.value||"programmed",updatedAt:serverTimestamp()},{merge:true});
+  const comp=$id("complimentaryPremium")?.checked===true,compBusiness=$id("complimentaryBusiness")?.checked===true; const selectedPlan=$id("clientPlan")?.value||currentCardPlan||"Basic"; const existingSnap=await getDoc(cardRef); const existingMeta=existingSnap.exists()?existingSnap.data():{}; const hadGift=existingMeta.complimentaryPremium===true||existingMeta.complimentaryBusiness===true; const previousStatus=hadGift?(existingMeta.preGiftSubscriptionStatus||"none"):(existingMeta.subscription?.status||$id("subscriptionStatus")?.value||"none"); const previousSource=hadGift?(existingMeta.preGiftSubscriptionSource||"manual"):(existingMeta.subscription?.source||$id("subscriptionSource")?.value||"manual"); const hasGift=comp||compBusiness; await setDoc(cardRef,{plan:selectedPlan,complimentaryPremium:comp&&!compBusiness,complimentaryBusiness:compBusiness,complimentaryBasePlan:hasGift?selectedPlan:deleteField(),preGiftSubscriptionStatus:hasGift?previousStatus:deleteField(),preGiftSubscriptionSource:hasGift?previousSource:deleteField(),subscription:{status:hasGift?"active":($id("subscriptionStatus")?.value||previousStatus||"none"),source:hasGift?"complimentary":($id("subscriptionSource")?.value||previousSource||"manual"),complimentaryTier:hasGift?(compBusiness?"Business":"Premium"):deleteField()},status:$id("cardStatus")?.value||"activated",nfcStatus:$id("nfcStatus")?.value||"programmed",updatedAt:serverTimestamp()},{merge:true}); await setDoc(doc(db,"inventory",CARD_ID),{plan:selectedPlan,updatedAt:serverTimestamp()},{merge:true});
 }
 
 async function saveCardAccess(){ return; }
@@ -370,7 +371,7 @@ function statDayKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padSt
 function prettyAction(name){return ({whatsapp:"WhatsApp",phone:"Phone",email:"Email",website:"Website",facebook:"Facebook",instagram:"Instagram",linkedin:"LinkedIn",twitter:"X / Twitter",tiktok:"TikTok",youtube:"YouTube",catalog:"Catalog",saveContact:"Save Contact",share:"Share",text:"Text Message",customLink:"Business Link",cta:"Contact Button"})[name]||name||"—"}
 async function loadPremiumOwnerStats(){
   const section=$id("premiumStatsSection");if(!section)return;
-  const show=currentRole==="owner"&&String(currentCardPlan).toLowerCase()==="premium";section.hidden=!show;if(!show)return;
+  const show=currentRole==="owner"&&["premium","business"].includes(String(currentCardPlan).toLowerCase());section.hidden=!show; const net=$id("businessNetworkingSection"); if(net)net.hidden=!show; if(!show)return;
   try{
     const [totalSnap,monthSnap,prevSnap]=await Promise.all([getDoc(doc(db,"cardStats",CARD_ID)),getDoc(doc(db,"monthlyStats",`${CARD_ID}_${statMonthKey(0)}`)),getDoc(doc(db,"monthlyStats",`${CARD_ID}_${statMonthKey(-1)}`))]);
     const total=totalSnap.exists()?totalSnap.data():{},month=monthSnap.exists()?monthSnap.data():{},prev=prevSnap.exists()?prevSnap.data():{};
@@ -398,12 +399,38 @@ function applyPlanLocks(){
   note.innerHTML=`<strong>Plan:</strong> ${currentCardPlan}. ${owner?(disabled.length?`The platform administrator has disabled: ${disabled.join(", ")}.`:`All ${currentCardPlan} modules are enabled by the platform administrator.`):"Administrator view: all profile fields remain editable; public visibility follows the Feature Control Center."}`;
 }
 
+
+function formatLeadDate(ts){try{return ts?.toDate?ts.toDate().toLocaleDateString():"—"}catch{return"—"}}
+function daysRemaining(ts){if(!ts?.toMillis)return 0;return Math.max(0,Math.ceil((ts.toMillis()-Date.now())/86400000))}
+function escapeLead(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+let currentLeads=[];
+async function loadBusinessLeads(){
+  const section=$id("businessLeadsSection");if(!section)return;
+  const show=currentRole!=="none"&&String(currentCardPlan).toLowerCase()==="business"&&platformFeatureControls.Business?.leads!==false&&platformFeatureControls.global?.leads!==false;
+  section.hidden=!show;if(!show)return;
+  try{
+    const snap=await getDocs(collection(db,"leads",CARD_ID,"items"));
+    currentLeads=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.expiresAt?.toMillis||x.expiresAt.toMillis()>Date.now()).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    renderBusinessLeads();
+  }catch(e){console.warn("Leads unavailable",e);const st=$id("leadsStatus");if(st)st.textContent="Could not load Leads."}
+}
+function leadVcf(lead){const escv=v=>String(v||"").replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");return ["BEGIN:VCARD","VERSION:3.0",`FN:${escv(lead.name)}`,lead.company?`ORG:${escv(lead.company)}`:"",lead.phone?`TEL;TYPE=CELL:${escv(lead.phone)}`:"",lead.email?`EMAIL;TYPE=INTERNET:${escv(lead.email)}`:"","END:VCARD"].filter(Boolean).join("\r\n")}
+function downloadText(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function renderBusinessLeads(){
+  const list=$id("businessLeadsList"),empty=$id("businessLeadsEmpty");if(!list)return;empty.hidden=currentLeads.length>0;
+  list.innerHTML=currentLeads.map(l=>{const days=daysRemaining(l.expiresAt),remaining=days===0?"Expires today":`${days} day${days===1?"":"s"} remaining`;return `<article class="lead-card" data-lead-id="${escapeLead(l.id)}"><div class="lead-card-head"><div><strong>${escapeLead(l.name||"Unnamed")}</strong><small>${escapeLead(l.company||"")}</small></div><span>${remaining}</span></div><div class="lead-meta"><span>${escapeLead(l.phone||"—")}</span><span>${escapeLead(l.email||"—")}</span><span>Received ${formatLeadDate(l.createdAt)}</span></div><label>Status <select data-lead-field="status"><option ${l.status==="New"?"selected":""}>New</option><option ${l.status==="Contacted"?"selected":""}>Contacted</option><option ${l.status==="Follow Up"?"selected":""}>Follow Up</option><option ${l.status==="Qualified"?"selected":""}>Qualified</option><option ${l.status==="Customer"?"selected":""}>Customer</option><option ${l.status==="Archived"?"selected":""}>Archived</option></select></label><label>Contact Notes<textarea data-lead-field="notes" rows="2">${escapeLead(l.notes||"")}</textarea></label><label>Meeting Notes<textarea data-lead-field="meetingNotes" rows="2">${escapeLead(l.meetingNotes||"")}</textarea></label><label>Follow-Up Date<input data-lead-field="followUpDate" type="date" value="${escapeLead(l.followUpDate||"")}"></label><div class="lead-actions"><button type="button" class="mini-button" data-lead-action="save">Save</button><button type="button" class="mini-button" data-lead-action="vcf">Save Contact</button><button type="button" class="mini-button danger" data-lead-action="delete">Delete</button></div></article>`}).join("");
+}
+async function handleLeadAction(event){const btn=event.target.closest("[data-lead-action]");if(!btn)return;const card=btn.closest("[data-lead-id]"),id=card?.dataset.leadId,lead=currentLeads.find(x=>x.id===id);if(!lead)return;const action=btn.dataset.leadAction;if(action==="vcf")return downloadText((lead.name||"contact").replace(/[^a-z0-9]+/gi,"-")+".vcf",leadVcf(lead),"text/vcard;charset=utf-8");if(action==="delete"){if(!confirm(`Delete lead ${lead.name||id}?`))return;await deleteDoc(doc(db,"leads",CARD_ID,"items",id));return loadBusinessLeads()}if(action==="save"){const payload={status:card.querySelector('[data-lead-field="status"]').value,notes:card.querySelector('[data-lead-field="notes"]').value.trim(),meetingNotes:card.querySelector('[data-lead-field="meetingNotes"]').value.trim(),followUpDate:card.querySelector('[data-lead-field="followUpDate"]').value||null,updatedAt:serverTimestamp()};await setDoc(doc(db,"leads",CARD_ID,"items",id),payload,{merge:true});const st=$id("leadsStatus");if(st)st.textContent="Lead updated.";return loadBusinessLeads()}}
+function exportLeadsCsv(){const rows=[["Name","Phone","Email","Company","Message","Date Received","Expiration Date","Days Remaining","Status","Notes","Meeting Notes","Follow-Up Date"],...currentLeads.map(l=>[l.name,l.phone,l.email,l.company,l.message,formatLeadDate(l.createdAt),formatLeadDate(l.expiresAt),daysRemaining(l.expiresAt),l.status,l.notes,l.meetingNotes,l.followUpDate])];const csv=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");downloadText(`JMX-${CARD_ID}-Leads.csv`,csv,"text/csv;charset=utf-8")}
+
 document.addEventListener("DOMContentLoaded",()=>{
   buildVisibility();configureEditorEvents();setCardIdentity();
   $id("adminGoogleLogin")?.addEventListener("click",signInWithGoogle);
   $id("adminLogin")?.addEventListener("click",signIn);
   $id("adminPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")signIn()});
   $id("adminLogout")?.addEventListener("click",()=>signOut(auth));
+  $id("businessLeadsList")?.addEventListener("click",handleLeadAction);
+  $id("exportLeadsCsv")?.addEventListener("click",exportLeadsCsv);
   onAuthStateChanged(auth,async user=>{
     currentUser=user||null;document.body.classList.toggle("admin-authenticated",Boolean(user));
     if(!user){currentRole="none";setAuthStatus("Sign in to edit your JMX Digital Card.");$id("adminUserEmail").textContent="";return;}
@@ -419,7 +446,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       currentRole=adminUser?"admin":"owner";currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:null;
       document.body.classList.toggle("client-owner-mode",currentRole==="owner");
       setAuthStatus(`Signed in as ${user.email||currentRole}. ${currentRole==="admin"?"JMX administrator":"Card owner"}.`,"ok");$id("adminUserEmail").textContent=user.email||currentRole;
-      await loadAfterAuth();applyPlanLocks();await loadPremiumOwnerStats();
+      await loadAfterAuth();applyPlanLocks();await loadPremiumOwnerStats();await loadBusinessLeads();
     }catch(e){console.error(e);setAuthStatus(firebaseMessage(e),"error");}
   });
 });

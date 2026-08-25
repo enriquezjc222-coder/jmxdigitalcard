@@ -1,0 +1,169 @@
+JMX DIGITAL CARD — JMX BUSINESS IMPLEMENTATION REPORT
+Version: August 25, 2026
+Base: JMX-Digital-Card-Platform-NFC-Activation-Fix-Aug2026.zip
+Stable base SHA-256: 6de7f964c4fea89d18b31e55c2ad57e373eb0ae440a265c304f1798ae90a060b
+
+SAFETY / EXISTING CARDS
+- No existing project file was deleted.
+- No migration loop rewrites existing cards.
+- No existing Card ID or activationCode is regenerated during startup/deployment.
+- No existing owner, profile, URL or analytics record is overwritten by this Business implementation.
+- The ZIP does not contain a production Firestore database export, so the live five-card set cannot be enumerated offline. The implementation is intentionally additive and leaves existing records untouched unless the administrator explicitly invokes an existing destructive action.
+
+TOP ADMIN KPI
+- Added JMX Business KPI in the existing top stats grid.
+- It is calculated from loaded Firestore card data, not hardcoded.
+- Definition: effective plan Business + activated/suspended card + subscription status not canceled.
+- KPI is separate from Business Available and Business Sold.
+- Clicking it applies the Business plan filter and scrolls to the client lists.
+
+CREATE CARDS
+- Basic
+- Premium
+- JMX Business
+- New Business cards use the existing safe new-card workflow and receive a new Card ID and activation code only for that new record.
+
+BUSINESS INVENTORY
+- JMX Business Available counter.
+- JMX Business Sold counter.
+- Inventory plan remains synchronized when the admin explicitly changes a plan.
+
+BUSINESS CUSTOMERS
+- Third client column: JMX Business Clients.
+- Business plan filtering/search.
+- Detail panel includes plan, subscription state/source, owner and analytics.
+- Change Plan supports Basic / Premium / Business without deleting profile data.
+- Complimentary Business support added separately from Complimentary Premium.
+
+BUSINESS WEBSITE
+- Third plan card added to jmxdigitalcard.com.
+- Hidden by default.
+- Public rendering requires: enabled=true, Policies Ready, nonempty Privacy, nonempty Terms, and CTA URL.
+- OFF removes it from layout because the element is hidden; no public gap is intentionally reserved.
+- Business title, description, price, CTA and feature list are persisted in platform/publicSettings.
+
+BUSINESS POLICIES
+- Editable Privacy Policy field.
+- Editable Terms & Conditions field.
+- Policies Ready / Approved switch.
+- Save Business Policies & Settings persists to Firestore.
+- Legal text remains empty/placeholder until real approved text is supplied.
+- Public Business checkout dialog has unchecked consent and separate Terms/Privacy readers.
+
+BUSINESS CONTROLS
+Feature Control Center now has Global / Basic / Premium / Business columns.
+Business controls include existing profile modules plus:
+Custom QR, QR Download, Analytics, Advanced Analytics, Quick Capture, Leads,
+Contact Notes, Meeting Notes, Follow-Up, CSV Export, VCF Download, Contact Map,
+AI Business Card Scanner, Auto-Intro Email, Apple Wallet, Google Wallet,
+Branding Removal and Advanced Networking Insights.
+OFF hides access; it does not delete the underlying profile/lead data.
+
+QUICK CAPTURE / LEADS
+- Public Business profile includes Share Your Contact.
+- Fields: Name, Phone, Email, Company, Optional Message.
+- Consent starts unchecked.
+- Privacy notice includes the 30-day retention statement.
+- New lead documents use server createdAt/acceptedAt plus a 30-day expiresAt timestamp.
+- Firestore security allows tightly constrained public CREATE only for activated Business cards.
+- Reads/updates/deletes require JMX admin or the card owner.
+- Owner dashboard shows active Leads only.
+- Lead fields include status, notes, meeting notes, follow-up and days remaining.
+- Manual deletion with confirmation.
+- VCF download.
+- CSV export.
+- Expiring leads are hidden client-side after expiration.
+- functions/cleanupExpiredBusinessLeads is included for backend deletion every 60 minutes.
+
+QR / ANALYTICS
+- Business Custom QR colors supported with a contrast guard; unsafe combinations fall back to black/white.
+- Business QR PNG download added.
+- Generated QR URLs include src=qr, enabling real qrVisit tracking.
+- Existing NFC links are NOT falsely labeled NFC because legacy NFC URLs do not contain a reliable source marker.
+- Existing view/action analytics remain intact.
+- Quick Capture and QR download/visit events are tracked when available.
+
+BRANDING
+- Business owner setting Remove JMX Branding added.
+- Applied only when Business brandingRemoval entitlement is enabled.
+
+SECURITY CHANGES
+- Added /leads/{cardId}/items/{leadId} Firestore rules.
+- Public users can only create constrained Business leads.
+- Private Lead reads/writes are owner/admin only.
+- Existing cards/profiles/inventory/analytics rules retained.
+
+BACKEND CHANGES
+Created:
+- functions/index.js
+- functions/package.json
+Changed firebase.json to declare functions source.
+
+EXTERNAL / DEPLOYMENT REQUIREMENTS
+1. Firebase security rules must be published for Quick Capture to work safely.
+2. Firebase Functions must be deployed for guaranteed automatic lead deletion. Scheduled Functions/Cloud Scheduler may require a billing-enabled Firebase/Google Cloud project.
+3. AI Business Card Scanner is control/architecture-ready but requires a server-side AI/OCR provider and credentials. No API key is embedded in frontend.
+4. Auto-Intro Email is control/architecture-ready but requires an email provider and backend anti-abuse logic. No fake sending is implemented.
+5. Contact Map requires a chosen maps provider or privacy-safe map strategy before implementation; no geolocation is invented.
+6. Apple Wallet requires Apple Developer certificates/pass type setup and server signing.
+7. Google Wallet requires issuer/service-account configuration and verified integration.
+8. Stripe production products, prices, charges, cancellation and production webhooks were NOT created or changed.
+9. Public Business checkout consent UI is implemented, but durable purchase-consent records should be written by the authenticated checkout/backend once a real billing flow is selected.
+
+FILES MODIFIED
+admin.css
+admin.html
+admin.js
+card.html
+dashboard.css
+dashboard.html
+dashboard.js
+firebase.json
+firestore.rules
+index.html
+landing.css
+landing.js
+script.js
+styles.css
+
+FILES CREATED
+functions/index.js
+functions/package.json
+JMX-BUSINESS-IMPLEMENTATION-REPORT.txt
+
+FILES DELETED
+None.
+
+TESTS PERFORMED
+- node --check: dashboard.js PASS
+- node --check: admin.js PASS
+- node --check: script.js PASS
+- node --check: landing.js PASS
+- node --check: activate.js PASS
+- node --check: login.js PASS
+- node --check: functions/index.js PASS
+- Static HTML/JS ID reference check: dashboard PASS; public card PASS; admin has only planAccessNote as a dynamic runtime-created element.
+- Simulated Business KPI transition: Premium -> Business +1 PASS; Business -> Premium -1 PASS; Complimentary Business counted PASS; canceled Business excluded PASS.
+- Original/updated file-set comparison: 35 original files, zero deleted; 2 backend files added before this report.
+
+NOT RUN OFFLINE
+- Live Firebase read of production cards (no authenticated production Firestore session/export in ZIP).
+- Browser console against deployed jmxdigitalcard.com.
+- Real NFC tap against physical cards.
+- Production Stripe / email / AI / Maps / Wallet integrations.
+- Deployed scheduled-function execution.
+
+KNOWN ISSUES / LIMITATIONS
+- Existing NFC traffic cannot be distinguished from direct URL traffic unless future NFC URLs include a source marker; current NFC URLs are preserved exactly as required.
+- Automatic 30-day deletion requires deployment of the included scheduled Firebase Function (or Firestore TTL configured on expiresAt).
+- External integrations listed above remain intentionally non-fake and require real provider credentials/accounts.
+
+DEPLOYMENT ORDER
+1. Keep the stable ZIP backup.
+2. Upload/publish the updated web files.
+3. Publish firestore.rules.
+4. Test Basic, Premium, existing NFC/QR/activation flows before exposing Business.
+5. Deploy functions only after Firebase billing/project prerequisites are confirmed.
+6. Configure Business content, Privacy, Terms and CTA in Admin.
+7. Leave Show JMX Business on Website OFF until ready.
+8. When ready, mark Policies Ready and enable Show JMX Business on Website.

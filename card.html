@@ -1012,12 +1012,31 @@
                         Scan this QR code to open
                         this digital business card.
                     </p>
+                    <button id="downloadQrButton" type="button" class="final-cta-button" hidden><i class="fa-solid fa-download"></i> Download QR PNG</button>
 
                 </div>
 
             </section>
 
 
+
+
+            <section class="quick-capture-section" id="quickCaptureSection" hidden>
+              <div class="section-title"><i class="fa-solid fa-user-plus"></i><h3>Share Your Contact</h3></div>
+              <p class="quick-capture-intro">Send your contact details directly to this card owner.</p>
+              <form id="quickCaptureForm" class="quick-capture-form">
+                <label><span>Name *</span><input id="leadName" name="name" maxlength="100" required autocomplete="name"></label>
+                <label><span>Phone</span><input id="leadPhone" name="phone" maxlength="40" autocomplete="tel"></label>
+                <label><span>Email</span><input id="leadEmail" name="email" type="email" maxlength="160" autocomplete="email"></label>
+                <label><span>Company</span><input id="leadCompany" name="company" maxlength="120" autocomplete="organization"></label>
+                <label class="full"><span>Optional Message</span><textarea id="leadMessage" name="message" rows="3" maxlength="600"></textarea></label>
+                <label class="full lead-consent"><input id="leadConsent" type="checkbox" required><span>I agree to the JMX Business Terms & Conditions and Privacy Policy.</span></label>
+                <p class="quick-capture-privacy full">By submitting this form, you are sharing this information with the owner of this JMX Digital Card. JMX may retain this information for up to 30 days.</p>
+                <div class="full business-policy-links"><button id="openBusinessTerms" type="button" class="text-link">Terms & Conditions</button><button id="openBusinessPrivacy" type="button" class="text-link">Privacy Policy</button></div>
+                <button class="final-cta-button full" id="submitLeadButton" type="submit"><i class="fa-solid fa-paper-plane"></i> Share My Contact</button>
+                <p id="quickCaptureStatus" class="quick-capture-status full" aria-live="polite"></p>
+              </form>
+            </section>
 
             <!-- ========================================
                  FINAL CTA
@@ -1079,6 +1098,8 @@
     </main>
 
 
+
+    <dialog id="businessPolicyDialog" class="business-policy-dialog"><div class="business-policy-shell"><button id="closeBusinessPolicyDialog" type="button" class="dialog-close">×</button><h2 id="businessPolicyTitle">JMX Business Policy</h2><div id="businessPolicyBody" class="business-policy-body"></div></div></dialog>
 
     <!-- ========================================
          IMAGE LIGHTBOX

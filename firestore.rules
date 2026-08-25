@@ -128,6 +128,30 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+
+    // JMX Business Quick Capture / Leads. Public visitors may create a tightly
+    // constrained lead only for an existing Business card. Lead contents are
+    // private to the card owner and JMX administrator.
+    match /leads/{cardId}/items/{leadId} {
+      allow create: if exists(/databases/$(database)/documents/cards/$(cardId))
+        && (cardDoc(cardId).data.plan == 'Business' || cardDoc(cardId).data.complimentaryBusiness == true)
+        && cardDoc(cardId).data.status == 'activated'
+        && request.resource.data.cardId == cardId
+        && request.resource.data.plan == 'Business'
+        && request.resource.data.keys().hasOnly(['cardId','name','phone','email','company','message','status','notes','meetingNotes','followUpDate','createdAt','expiresAt','policyVersion','acceptedAt','plan'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.phone is string && request.resource.data.phone.size() <= 40
+        && request.resource.data.email is string && request.resource.data.email.size() <= 160
+        && request.resource.data.company is string && request.resource.data.company.size() <= 120
+        && request.resource.data.message is string && request.resource.data.message.size() <= 600
+        && request.resource.data.status == 'New'
+        && request.resource.data.notes == ''
+        && request.resource.data.meetingNotes == ''
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt < request.time + duration.value(31, 'd');
+      allow read, update, delete: if isAdmin() || isOwner(cardId);
+    }
+
     // Legacy collection retained during migration.
     match /cardAccess/{cardId} {
       allow read, write: if isAdmin();

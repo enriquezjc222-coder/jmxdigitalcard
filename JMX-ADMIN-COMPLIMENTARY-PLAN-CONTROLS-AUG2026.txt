@@ -1,0 +1,30 @@
+JMX DIGITAL CARD — ADMIN COMPLIMENTARY PLAN CONTROLS
+August 2026
+
+Added without rebuilding the platform:
+- Manage button beside every activated/suspended client in Basic, Premium, and JMX Business lists.
+- Large client dialog now includes Plan & Complimentary Access.
+- Base plan buttons: Basic, Premium, JMX Business.
+- Complimentary Premium switch.
+- Complimentary JMX Business switch.
+- Complimentary access is an overlay and does not erase the base plan.
+- Turning a gift OFF returns access to the client base plan.
+- Changing the base plan preserves profile/card data and removes any active gift after confirmation.
+- No activation-code regeneration is performed by these controls.
+- No Card ID, owner, public URL, profile, analytics, NFC or QR data is deleted by these controls.
+
+Compatibility:
+Existing complimentaryPremium / complimentaryBusiness flags remain supported.
+New fields only store restoration metadata for complimentary access:
+- complimentaryBasePlan
+- preGiftSubscriptionStatus
+- preGiftSubscriptionSource
+- subscription.complimentaryTier
+
+Files modified:
+- dashboard.js
+- dashboard.css
+- admin.js
+
+File created:
+- JMX-ADMIN-COMPLIMENTARY-PLAN-CONTROLS-AUG2026.txt
