@@ -16,6 +16,14 @@
 
     <title>Premium Digital Card</title>
 
+    <!-- Prevent placeholder/profile flash while Firebase loads the correct card -->
+    <style>
+        body.firebase-loading .digital-card-app {
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+    </style>
+
     <!-- CSS -->
     <link rel="stylesheet" href="styles.css">
 
@@ -27,7 +35,7 @@
 </head>
 
 
-<body>
+<body class="firebase-loading">
 
     <!-- ========================================
          MAIN APP
@@ -108,21 +116,21 @@
             <div class="profile-info">
 
                 <h1 id="profileName">
-                    John Smith
+
                 </h1>
 
                 <p
                     class="profile-position"
                     id="profilePosition"
                 >
-                    Owner / Founder
+
                 </p>
 
                 <h2
                     class="company-name"
                     id="companyName"
                 >
-                    Premium Business LLC
+
                 </h2>
 
                 <p
@@ -130,15 +138,14 @@
                     id="profileLocation"
                 >
                     <i class="fa-solid fa-location-dot"></i>
-                    Chicago, Illinois
+
                 </p>
 
                 <p
                     class="profile-description"
                     id="profileDescription"
                 >
-                    Professional services with quality,
-                    reliability and attention to detail.
+
                 </p>
 
             </div>
@@ -176,7 +183,7 @@
                 <!-- PHONE -->
 
                 <a
-                    href="tel:+17085551234"
+                    href="#"
                     class="quick-action"
                     id="phoneButton"
                 >
@@ -196,7 +203,7 @@
                 <!-- TEXT -->
 
                 <a
-                    href="sms:+17085551234"
+                    href="#"
                     class="quick-action"
                     id="textButton"
                 >
@@ -216,7 +223,7 @@
                 <!-- EMAIL -->
 
                 <a
-                    href="mailto:hello@example.com"
+                    href="#"
                     class="quick-action"
                     id="emailButton"
                 >
@@ -236,7 +243,7 @@
                 <!-- WEBSITE -->
 
                 <a
-                    href="https://example.com"
+                    href="#"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="quick-action"
@@ -288,7 +295,7 @@
                     <!-- PHONE -->
 
                     <a
-                        href="tel:+17085551234"
+                        href="#"
                         class="contact-row"
                         id="phone1Row"
                     >
@@ -354,7 +361,7 @@
                     <!-- EMAIL -->
 
                     <a
-                        href="mailto:hello@example.com"
+                        href="#"
                         class="contact-row"
                         id="emailRow"
                     >
@@ -370,7 +377,7 @@
                             </small>
 
                             <strong id="displayEmail">
-                                hello@example.com
+
                             </strong>
 
                         </span>
@@ -386,7 +393,7 @@
                     <!-- WEBSITE -->
 
                     <a
-                        href="https://example.com"
+                        href="#"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="contact-row"
@@ -404,7 +411,7 @@
                             </small>
 
                             <strong id="displayWebsite">
-                                www.example.com
+
                             </strong>
 
                         </span>
@@ -432,7 +439,7 @@
                             </small>
 
                             <strong id="displayLocation">
-                                Chicago, Illinois
+            
                             </strong>
 
                         </span>

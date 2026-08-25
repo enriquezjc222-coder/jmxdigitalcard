@@ -2246,3 +2246,15 @@ button:focus-visible {
 .activation-link{display:inline-flex;padding:12px 18px;border-radius:12px;background:var(--accent,#b88a2b);color:#fff!important;text-decoration:none;font-weight:800}.owner-login-link{position:fixed;right:12px;bottom:10px;font-size:11px;color:#777;text-decoration:none;opacity:.65;z-index:20}.owner-login-link:hover{opacity:1}.public-status-card a{color:var(--accent,#b88a2b)}
 
 .theme-cyan{background:linear-gradient(135deg,#06b6d4,#a5f3fc)}
+
+
+/* Public profile boot guard: never show template data before the real card loads. */
+body.firebase-loading .digital-card-app {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+body:not(.firebase-loading) .digital-card-app {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.12s ease-out;
+}

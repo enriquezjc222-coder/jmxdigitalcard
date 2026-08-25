@@ -49,19 +49,19 @@ const VISIBILITY_LABELS = {
 };
 
 const defaults = {
-  fullName:"John Smith", position:"Owner / Founder", company:"Premium Business LLC",
-  city:"Chicago", state:"Illinois",
-  description:"Professional services with quality, reliability and attention to detail.",
-  phone:"(708) 555-1234", phoneRaw:"+17085551234", phone2:"", phone2Raw:"",
-  whatsapp:"", whatsappRaw:"", email:"hello@example.com", website:"https://example.com",
+  fullName:"", position:"", company:"",
+  city:"", state:"",
+  description:"",
+  phone:"", phoneRaw:"", phone2:"", phone2Raw:"",
+  whatsapp:"", whatsappRaw:"", email:"", website:"",
   facebook:"", instagram:"", linkedin:"", twitter:"", tiktok:"", youtube:"",
-  catalog:"", catalogFileName:"", customBusinessLabel:"More Information",
-  customBusinessSubtitle:"Open business link", customBusinessUrl:"",
+  catalog:"", catalogFileName:"", customBusinessLabel:"",
+  customBusinessSubtitle:"", customBusinessUrl:"",
   profileImage:"", coverImage:"", logoImage:"", galleryImages:[], videoUrl:"",
-  service1Title:"Service One", service1Description:"Add a short description of your service here.", service1Icon:"fa-house",
-  service2Title:"Service Two", service2Description:"Add another service description here.", service2Icon:"fa-screwdriver-wrench",
-  service3Title:"Service Three", service3Description:"Customize this section for any type of business.", service3Icon:"fa-paint-roller",
-  finalCtaTitle:"Let's Connect", finalCtaText:"Have a question or want to work together? Contact us today.",
+  service1Title:"", service1Description:"", service1Icon:"fa-house",
+  service2Title:"", service2Description:"", service2Icon:"fa-screwdriver-wrench",
+  service3Title:"", service3Description:"", service3Icon:"fa-paint-roller",
+  finalCtaTitle:"Let's Connect", finalCtaText:"",
   finalCtaLabel:"Contact Now", theme:"gold",
   visibility:Object.fromEntries(Object.keys(VISIBILITY_LABELS).map(k=>[k,true]))
 };
