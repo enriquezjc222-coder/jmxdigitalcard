@@ -1,0 +1,32 @@
+JMX DIGITAL CARD - NFC ACTIVATION CLAIM FIX
+August 2026
+
+Problem fixed:
+A first-time customer could authenticate with Google or email/password, but activation
+failed with "Activation code is incorrect or this NFC card is not available." even when
+the activation code was correct.
+
+Root cause:
+activate.js tried to read cardOwners/{cardId} before the claim batch. Firestore rules
+correctly restrict that document to the admin or current owner. A new customer is not
+the owner yet, so the preflight read was rejected with permission-denied.
+
+Fix:
+The unauthorized preflight cardOwners read was removed. The activation now relies on
+the existing atomic Firestore security rules, which already verify that the card is
+available/sold, has no owner, and has the correct private activation code before the
+claim, owner assignment, card activation, and profile creation are committed together.
+
+Preserved:
+- Google authentication for customers
+- Google authentication for the JMX administrator
+- UID-based administrator authorization
+- Ready NFC inventory / Available / Sold lists
+- Existing cards, URLs, sold/unclaimed inventory and activation codes
+- Basic / Premium / Global feature-control switches
+- Client analytics and profile-loading fix
+- BOSS protections and existing Firestore structure
+
+Firebase note:
+This fix is in activate.js. The current firestore.rules in this package already enforce
+the required claim security and do not need to be loosened for this fix.

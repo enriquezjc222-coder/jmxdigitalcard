@@ -61,11 +61,13 @@ async function boot() {
 }
 async function claimCard(currentUser, code) {
   const email = (currentUser.email || "").trim().toLowerCase();
-  const [ownerSnap, profileSnap] = await Promise.all([
-    getDoc(doc(db, "cardOwners", CARD_ID)),
-    getDoc(doc(db, "profiles", CARD_ID))
-  ]);
-  if (ownerSnap.exists()) throw new Error("This card is already owned by another account.");
+
+  // Do not read cardOwners here. Firestore intentionally allows that document
+  // to be read only by the administrator or the existing owner. A brand-new
+  // customer is neither yet, so that preflight read caused permission-denied
+  // before the atomic claim could even run. Ownership/availability is already
+  // enforced safely by the Firestore rules during the batch commit.
+  const profileSnap = await getDoc(doc(db, "profiles", CARD_ID));
   const batch = writeBatch(db);
   batch.set(doc(db, "cardClaims", CARD_ID), {
     ownerUid: currentUser.uid,
