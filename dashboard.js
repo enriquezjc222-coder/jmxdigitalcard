@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch, query, where, deleteField } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -19,6 +19,17 @@ const SAFE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 let user = null;
 let cards = [];
 const PROTECTED_CARD_IDS = new Set(["BOSS"]);
+const FEATURE_DEFS = [
+  ["description","Description"],["saveContact","Save Contact"],["quickActions","Quick Actions"],["phone","Primary Phone"],["phone2","Second Phone"],["whatsapp","WhatsApp"],["email","Email"],["website","Website"],["location","Location"],["facebook","Facebook"],["instagram","Instagram"],["linkedin","LinkedIn"],["twitter","X / Twitter"],["tiktok","TikTok"],["youtube","YouTube"],["services","Services"],["gallery","Gallery"],["video","Featured Video"],["qr","QR Code"],["finalCTA","Final CTA"],["businessLinks","Business Links"],["catalog","Catalog / PDF"],["customBusiness","Custom Business Link"]
+];
+const BASIC_FEATURE_DEFAULTS = new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
+function defaultFeatureControls(){
+  const global={},Basic={},Premium={};
+  FEATURE_DEFS.forEach(([key])=>{global[key]=true;Basic[key]=BASIC_FEATURE_DEFAULTS.has(key);Premium[key]=true});
+  return {enabled:true,global,Basic,Premium};
+}
+let featureControls = defaultFeatureControls();
+
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>'"]/g, (c) => ({
@@ -77,6 +88,11 @@ async function signIn() {
     console.error(error);
     setLoginStatus("Sign in failed. Check email and password.", "error");
   }
+}
+async function signInWithGoogle(){
+  setLoginStatus("Opening Google sign-in...");
+  const provider=new GoogleAuthProvider(); provider.setCustomParameters({prompt:"select_account"});
+  try{await signInWithPopup(auth,provider)}catch(error){console.error(error);const code=String(error?.code||"");setLoginStatus(code.includes("popup-closed")?"Google sign-in was canceled.":code.includes("unauthorized-domain")?"This domain is not authorized for Google sign-in.":"Google sign-in failed. Try again.","error")}
 }
 
 async function migrateLegacyMain() {
@@ -691,6 +707,7 @@ function updatePreview() {
 }
 
 $("loginButton").addEventListener("click", signIn);
+$("dashboardGoogleLogin")?.addEventListener("click", signInWithGoogle);
 $("loginPassword").addEventListener("keydown", (e) => { if (e.key === "Enter") signIn(); });
 $("logoutButton").addEventListener("click", () => signOut(auth));
 $("newCardButton").addEventListener("click", () => { prepareDialog(); $("cardDialog").showModal(); });
@@ -722,6 +739,38 @@ $("clientDetailActions")?.addEventListener("click", handleDialogAction);
 $("clientDetailBody")?.addEventListener("click", handleDialogAction);
 
 
+
+function mergeFeatureControls(raw={}){
+  const d=defaultFeatureControls();
+  return {enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})}};
+}
+function renderFeatureControls(){
+  const enabled=$("featureControlsEnabled"); if(enabled) enabled.checked=featureControls.enabled!==false;
+  const panels=$("featurePanels"), show=$("showFeaturePanels"); if(panels&&show) panels.hidden=!show.checked;
+  const targets={global:$("globalFeatureSwitches"),Basic:$("basicFeatureSwitches"),Premium:$("premiumFeatureSwitches")};
+  Object.entries(targets).forEach(([group,root])=>{
+    if(!root)return; root.innerHTML=FEATURE_DEFS.map(([key,label])=>`<label class="feature-switch-item" data-group="${group}" data-feature="${key}"><span>${label}</span><span class="mini-switch"><input type="checkbox" ${featureControls[group]?.[key]!==false?"checked":""}><i></i></span></label>`).join("");
+  });
+  updateFeatureDependencyUI();
+}
+function updateFeatureDependencyUI(){
+  const globalRoot=$("globalFeatureSwitches"); if(!globalRoot)return;
+  const globals={}; globalRoot.querySelectorAll("[data-feature]").forEach(row=>globals[row.dataset.feature]=row.querySelector("input").checked);
+  ["basicFeatureSwitches","premiumFeatureSwitches"].forEach(id=>$(id)?.querySelectorAll("[data-feature]").forEach(row=>row.classList.toggle("master-off",globals[row.dataset.feature]===false)));
+}
+function collectFeatureControls(){
+  const next=defaultFeatureControls(); next.enabled=$("featureControlsEnabled")?.checked!==false;
+  [["global","globalFeatureSwitches"],["Basic","basicFeatureSwitches"],["Premium","premiumFeatureSwitches"]].forEach(([group,id])=>{
+    $(id)?.querySelectorAll("[data-feature]").forEach(row=>next[group][row.dataset.feature]=row.querySelector("input").checked);
+  });
+  return next;
+}
+async function saveFeatureControls(){
+  const status=$("featureControlStatus"); featureControls=collectFeatureControls();
+  try{await setDoc(doc(db,"platform","publicSettings"),{featureControls,updatedAt:serverTimestamp()},{merge:true}); if(status){status.textContent="Feature controls saved and applied to public cards.";status.className="status ok"}}
+  catch(e){console.error(e);if(status){status.textContent="Could not save feature controls.";status.className="status error"}}
+}
+
 async function loadPlatformSettings(){
   const snap=await getDoc(doc(db,"platform","publicSettings")); const d=snap.exists()?snap.data():{};
   if($("premiumEnabled")) $("premiumEnabled").checked=d.premiumEnabled===true;
@@ -730,6 +779,7 @@ async function loadPlatformSettings(){
   if($("premiumCheckoutUrl")) $("premiumCheckoutUrl").value=d.premiumCheckoutUrl||"";
   if($("privacyPolicyUrl")) $("privacyPolicyUrl").value=d.privacyPolicyUrl||"";
   if($("privacyAgreementText")) $("privacyAgreementText").value=d.privacyAgreementText||"";
+  featureControls=mergeFeatureControls(d.featureControls||{}); renderFeatureControls();
 }
 async function savePlatformSettings(){
   const payload={premiumEnabled:$("premiumEnabled")?.checked===true,billingEnabled:$("billingEnabled")?.checked===true,privacyRequired:$("privacyRequired")?.checked!==false,premiumCheckoutUrl:$("premiumCheckoutUrl")?.value.trim()||"",privacyPolicyUrl:$("privacyPolicyUrl")?.value.trim()||"",privacyAgreementText:$("privacyAgreementText")?.value.trim()||"",updatedAt:serverTimestamp()};
@@ -740,6 +790,9 @@ function initMarketing(){
   const q=$("companyQrAdmin");if(q&&window.QRCode){q.innerHTML="";new QRCode(q,{text:"https://jmxdigitalcard.com/",width:140,height:140,colorDark:"#111111",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H})}
   $("copyCompanyUrl")?.addEventListener("click",async()=>{await copyText("https://jmxdigitalcard.com/");$("copyCompanyUrl").textContent="Copied JMX URL";setTimeout(()=>$("copyCompanyUrl").innerHTML='<i class="fa-solid fa-copy"></i> Copy JMX URL',1200)});
   $("savePlatformButton")?.addEventListener("click",savePlatformSettings);
+  $("saveFeatureControls")?.addEventListener("click",saveFeatureControls);
+  $("showFeaturePanels")?.addEventListener("change",e=>{if($("featurePanels"))$("featurePanels").hidden=!e.target.checked});
+  $("globalFeatureSwitches")?.addEventListener("change",updateFeatureDependencyUI);
 }
 initMarketing();
 

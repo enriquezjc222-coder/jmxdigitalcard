@@ -40,6 +40,7 @@ const ownerRef = doc(db, "cardOwners", CARD_ID);
 const platformRef = doc(db, "platform", "config");
 const mediaCol = collection(db, "cards", CARD_ID, "media");
 const adminMetaRef = doc(db, "cardAdmin", CARD_ID);
+const publicSettingsRef = doc(db, "platform", "publicSettings");
 
 const VISIBILITY_LABELS = {
   description:"Description", saveContact:"Save Contact button", quickActions:"Quick action buttons",
@@ -75,6 +76,19 @@ let currentCardPlan = "Premium";
 let currentRole = "none";
 let pendingMedia = new Map();
 let pendingDeletes = new Set();
+const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
+const FEATURE_KEYS=Object.keys(VISIBILITY_LABELS);
+function defaultFeatureControls(){const global={},Basic={},Premium={};FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=true});return{enabled:true,global,Basic,Premium}}
+function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})}}}
+let platformFeatureControls=defaultFeatureControls();
+function featureEnabledForPlan(feature){
+  if(platformFeatureControls.enabled===false){return currentCardPlan.toLowerCase()==="premium"||BASIC_FEATURE_DEFAULTS.has(feature)}
+  if(platformFeatureControls.global?.[feature]===false)return false;
+  const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:platformFeatureControls.Premium;
+  return group?.[feature]!==false;
+}
+const FEATURE_INPUT_IDS={description:["description"],phone:["phone"],phone2:["phone2"],whatsapp:["whatsapp"],email:["email"],website:["website"],facebook:["facebook"],instagram:["instagram"],linkedin:["linkedin"],twitter:["twitter"],tiktok:["tiktok"],youtube:["youtube"],catalog:["catalog","catalogUpload"],customBusiness:["customBusinessLabel","customBusinessSubtitle","customBusinessUrl"],video:["videoUrl"],services:["service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon"],gallery:["galleryUpload","clearGallery"],finalCTA:["finalCtaTitle","finalCtaText","finalCtaLabel"]};
+
 
 function sanitizeCardId(value){
   const raw = String(value || "main").trim();
@@ -345,6 +359,7 @@ async function loadAfterAuth(){
       setStatus("Online card loaded.");
     }
     currentProfile=remote;setInputData(currentProfile);await loadAdminMeta();
+    try{const settingsSnap=await getDoc(publicSettingsRef);platformFeatureControls=mergeFeatureControls(settingsSnap.exists()?(settingsSnap.data().featureControls||{}):{});}catch(e){console.warn("Feature controls unavailable",e);platformFeatureControls=defaultFeatureControls();}
   }catch(e){console.error(e);currentProfile=getLegacyProfile()||structuredCloneSafe(defaults);setInputData(currentProfile);setStatus(firebaseMessage(e),"error");}
   finally{setBusy(false);}
 }
@@ -369,12 +384,18 @@ async function loadPremiumOwnerStats(){
 }
 const PREMIUM_ONLY_IDS=new Set(["phone2","website","instagram","linkedin","twitter","tiktok","youtube","catalog","catalogUpload","customBusinessLabel","customBusinessSubtitle","customBusinessUrl","videoUrl","service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon","galleryUpload","clearGallery","finalCtaTitle","finalCtaText","finalCtaLabel"]);
 function applyPlanLocks(){
-  const basic=currentCardPlan.toLowerCase()==="basic"&&currentRole==="owner";
-  document.querySelectorAll("input,textarea,select,button").forEach(el=>{if(PREMIUM_ONLY_IDS.has(el.id))el.disabled=basic});
-  const basicVisibility=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
-  document.querySelectorAll("[data-vis]").forEach(el=>{if(basic&&!basicVisibility.has(el.dataset.vis))el.disabled=true});
+  const owner=currentRole==="owner";
+  const basic=currentCardPlan.toLowerCase()==="basic"&&owner;
+  // Reset legacy plan locks first, then apply live platform controls.
+  document.querySelectorAll("input,textarea,select,button").forEach(el=>{if(PREMIUM_ONLY_IDS.has(el.id))el.disabled=false});
+  document.querySelectorAll("[data-vis]").forEach(el=>el.disabled=false);
+  if(owner){
+    Object.entries(FEATURE_INPUT_IDS).forEach(([feature,ids])=>ids.forEach(id=>{const el=$id(id);if(el)el.disabled=!featureEnabledForPlan(feature)}));
+    document.querySelectorAll("[data-vis]").forEach(el=>{el.disabled=!featureEnabledForPlan(el.dataset.vis)});
+  }
   let note=$id("planAccessNote");if(!note){note=document.createElement("div");note.id="planAccessNote";note.className="admin-note";document.querySelector(".card-management-section")?.after(note)}
-  note.innerHTML=`<strong>Plan:</strong> ${currentCardPlan}. ${basic?"Premium-only fields are locked for this owner account.":"All enabled plan features are available."}`;
+  const disabled=FEATURE_KEYS.filter(k=>!featureEnabledForPlan(k)).map(k=>VISIBILITY_LABELS[k]);
+  note.innerHTML=`<strong>Plan:</strong> ${currentCardPlan}. ${owner?(disabled.length?`The platform administrator has disabled: ${disabled.join(", ")}.`:`All ${currentCardPlan} modules are enabled by the platform administrator.`):"Administrator view: all profile fields remain editable; public visibility follows the Feature Control Center."}`;
 }
 
 document.addEventListener("DOMContentLoaded",()=>{

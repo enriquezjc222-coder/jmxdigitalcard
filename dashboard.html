@@ -24,6 +24,8 @@
 <section id="loginGate" class="panel login-panel">
   <div class="panel-title"><i class="fa-solid fa-shield-halved"></i><div><small>JMX ADMIN ONLY</small><h2>Administrator Sign In</h2></div></div>
   <p>Only the JMX platform administrator can create NFC inventory or change ownership, plans and status.</p>
+  <button id="dashboardGoogleLogin" class="google-dashboard-button" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
+  <div class="auth-divider"><span>or use email and password</span></div>
   <div class="login-grid">
     <label><span>Email</span><input id="loginEmail" type="email" autocomplete="username"></label>
     <label><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password"></label>
@@ -49,6 +51,27 @@
   </div>
   <div class="marketing-row"><div><span class="field-label">JMX Company QR</span><div id="companyQrAdmin" class="company-qr-admin"></div><small>Always points to https://jmxdigitalcard.com/</small></div><div><button id="savePlatformButton" class="primary-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Platform Settings</button> <button id="copyCompanyUrl" class="secondary-button" type="button"><i class="fa-solid fa-copy"></i> Copy JMX URL</button><p id="platformStatus" class="status"></p></div></div>
 </section>
+
+<section class="panel feature-control-center" id="featureControlCenter">
+  <div class="toolbar feature-toolbar">
+    <div>
+      <p class="eyebrow">FEATURE CONTROL CENTER</p>
+      <h2>Basic & Premium Module Controls</h2>
+      <p class="subtitle small">Turn modules on or off by plan. Global OFF always hides a module for both Basic and Premium cards.</p>
+    </div>
+    <div class="feature-toolbar-actions">
+      <label class="switch-row"><input id="featureControlsEnabled" type="checkbox"><span class="switch-ui"></span><strong>Enable advanced feature controls</strong></label>
+      <label class="switch-row"><input id="showFeaturePanels" type="checkbox" checked><span class="switch-ui"></span><strong>Show switch panels</strong></label>
+    </div>
+  </div>
+  <div id="featurePanels" class="feature-panels">
+    <section class="feature-column global-column"><div class="feature-column-head"><p class="eyebrow">GLOBAL</p><h3>All Plans</h3><p class="subtitle small">Global OFF always hides a module.</p></div><div id="globalFeatureSwitches" class="feature-switch-list"></div></section>
+    <section class="feature-column"><div class="feature-column-head"><p class="eyebrow">BASIC</p><h3>Basic Version</h3><p class="subtitle small">Choose which modules Basic cards can use.</p></div><div id="basicFeatureSwitches" class="feature-switch-list"></div></section>
+    <section class="feature-column premium-feature-column"><div class="feature-column-head"><p class="eyebrow">PREMIUM</p><h3>Premium Version</h3><p class="subtitle small">Temporarily hide any Premium module without deleting client data.</p></div><div id="premiumFeatureSwitches" class="feature-switch-list"></div></section>
+  </div>
+  <div class="feature-save-row"><button id="saveFeatureControls" class="primary-button" type="button"><i class="fa-solid fa-sliders"></i> Save Feature Controls</button><p id="featureControlStatus" class="status"></p></div>
+</section>
+
 <section class="panel">
   <div class="toolbar">
     <div><p class="eyebrow">INVENTORY</p><h2>NFC Cards</h2><p class="subtitle small">Each code becomes a permanent NFC URL. Customers cannot create these codes.</p></div>

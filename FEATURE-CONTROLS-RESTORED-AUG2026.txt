@@ -1,0 +1,17 @@
+JMX Digital Card - Feature Control Center restored
+
+Restored administrator module switches in dashboard.html/dashboard.js.
+
+Controls:
+- GLOBAL / All Plans: OFF hides a module for both Basic and Premium public cards.
+- BASIC: controls which modules Basic public cards can display.
+- PREMIUM: controls which modules Premium public cards can display.
+
+Modules include description, save contact, quick actions, phone, second phone, WhatsApp, email, website, location, Facebook, Instagram, LinkedIn, X/Twitter, TikTok, YouTube, services, gallery, video, QR, final CTA, business links, catalog/PDF, and custom business link.
+
+Existing behavior is preserved by default:
+- Premium modules default ON.
+- Basic defaults remain the same as the previous plan restrictions until changed by the administrator.
+- No existing card, inventory, owner, claim, profile, or analytics records are deleted by this update.
+
+Google administrator sign-in is also available on the platform dashboard and remains protected by platform/config adminUid.
