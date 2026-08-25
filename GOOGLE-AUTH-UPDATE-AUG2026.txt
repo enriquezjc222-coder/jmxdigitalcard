@@ -1,0 +1,24 @@
+JMX DIGITAL CARD - GOOGLE AUTH UPDATE - AUG 2026
+
+Added Google authentication as the primary activation and owner-login option.
+
+Files changed:
+- activate.html
+- activate.js
+- login.html
+- login.js
+- portal.css
+
+Activation flow:
+1. Customer opens an available/sold NFC card URL.
+2. Customer enters the private activation code when required.
+3. Customer clicks Continue with Google and chooses a Google account.
+4. The selected Firebase-authenticated Google account becomes the card owner.
+5. The card status changes to activated and the profile editor opens.
+
+Email/password activation remains available as a fallback.
+Owner Login also supports Continue with Google, which is required so customers who activated with Google can return later without needing an email/password account.
+
+IMPORTANT FIREBASE CONSOLE SETUP:
+Authentication > Sign-in method > Google must be enabled for the jmx-digital-card Firebase project.
+The production domain jmxdigitalcard.com must be listed under Authentication > Settings > Authorized domains.

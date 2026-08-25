@@ -21,3 +21,48 @@
 .client-detail-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px;padding-top:15px;border-top:1px solid var(--border)}.danger-button{border:1px solid #fecaca;background:#fff1f2;color:#b42318;border-radius:11px;padding:11px 15px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px}.protected-note{display:inline-flex;align-items:center;gap:7px;color:#6b7280;font-size:.82rem;padding:9px 3px}.inventory-details{grid-template-columns:repeat(3,1fr)}
 @media(max-width:900px){.client-list-row{grid-template-columns:minmax(0,1fr) auto 18px}.client-list-plan,.client-list-stat{display:none}.client-detail-grid{grid-template-columns:1fr}.analytics-summary{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.detail-list,.analytics-columns{grid-template-columns:1fr}.analytics-summary{grid-template-columns:1fr 1fr}.client-detail-shell{padding:16px}.client-detail-header{top:-16px}}
+
+
+/* Compact Ready NFC Inventory lists */
+.inventory-list-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.inventory-list-column{min-width:0;background:#fff;border:1px solid #dbe7f3;border-radius:14px;padding:12px}
+.inventory-list-column.sold-column{background:#fffdfb;border-color:#eadfd8}
+.inventory-list-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 2px 10px;border-bottom:1px solid #edf1f5;margin-bottom:8px}
+.inventory-list-head>div{display:flex;align-items:center;gap:8px}
+.inventory-list-head>span{font-weight:800;color:var(--muted)}
+.inventory-status-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.inventory-status-dot.available{background:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.10)}
+.inventory-status-dot.sold{background:#9f3a32;box-shadow:0 0 0 4px rgba(159,58,50,.09)}
+.inventory-list{display:flex;flex-direction:column;gap:7px}
+.inventory-list-row-wrap{position:relative;display:flex;align-items:stretch;gap:7px}
+.inventory-list-row{min-width:0;flex:1;display:grid;grid-template-columns:minmax(120px,1.5fr) minmax(110px,1.2fr) 72px 78px auto 14px;gap:9px;align-items:center;text-align:left;border:1px solid #e4e9ef;background:#fff;border-radius:11px;padding:10px 11px;cursor:pointer;color:var(--text);transition:.18s ease}
+.inventory-list-row:hover{transform:translateY(-1px);border-color:#9ab8d7;box-shadow:0 7px 18px rgba(30,64,175,.08)}
+.inventory-list-main{display:flex;flex-direction:column;min-width:0}
+.inventory-list-main strong{font-size:.9rem}
+.inventory-list-main small,.inventory-list-note{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inventory-list-main small{font-size:.68rem;color:var(--muted)}
+.inventory-list-note{font-size:.79rem;color:#374151}
+.inventory-list-plan{font-size:.75rem;font-weight:800}
+.inventory-list-date{display:flex;flex-direction:column;font-size:.72rem}.inventory-list-date small{color:var(--muted)}
+.inventory-list-row>i{font-size:.72rem;color:var(--muted)}
+.inventory-note-edit{width:36px;flex:0 0 36px;border:1px solid #dbe3eb;background:#fff;border-radius:10px;cursor:pointer;color:#516173;transition:.18s ease}
+.inventory-note-edit:hover{border-color:#9ab8d7;color:#1e3a5f;background:#f5f9fd}
+.inventory-pool-empty.compact{padding:14px;font-size:.8rem}
+.inventory-note-detail{position:relative;padding-right:120px!important}
+.inline-edit-note{position:absolute;right:9px;top:50%;transform:translateY(-50%);border:1px solid var(--border);background:#fafafa;border-radius:8px;padding:7px 9px;font-weight:700;cursor:pointer}
+.inventory-control-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.inventory-control-summary>div{background:#fff;border:1px solid #edf0f3;border-radius:10px;padding:12px}
+.inventory-control-summary span{display:block;color:var(--muted);font-size:.72rem;margin-bottom:4px}
+.inventory-detail-grid{grid-template-columns:1.15fr .85fr}
+@media(max-width:1000px){
+  .inventory-list-board{grid-template-columns:1fr}
+  .inventory-list-row{grid-template-columns:minmax(110px,1.5fr) minmax(90px,1.1fr) 68px auto 14px}
+  .inventory-list-date{display:none}
+}
+@media(max-width:700px){
+  .inventory-list-row{grid-template-columns:minmax(0,1fr) auto 14px}
+  .inventory-list-note,.inventory-list-plan{display:none}
+  .inventory-detail-grid{grid-template-columns:1fr}
+  .inventory-note-detail{padding-right:10px!important}
+  .inline-edit-note{position:static;transform:none;margin-top:8px}
+}

@@ -215,30 +215,26 @@ function render() {
   $("compCards").textContent = cards.filter(c=>c.complimentaryPremium===true).length;
   $("inactiveCards").textContent = cards.filter(c=>unclaimedStatuses.has(c.status) || !c.status).length;
 
-  const inventoryCardMarkup = (card) => {
+  const inventoryRowMarkup = (card) => {
     const admin = card.admin || {};
     const inventory = card.inventory || {};
     const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
-    return `<article class="client-card inventory-card" data-id="${esc(card.id)}">
-      <div class="client-head"><div><h3>${esc(card.id)}</h3><div class="client-meta">${esc(admin.notes || "Unassigned NFC inventory")}${card.recoveredInventory ? ' · <strong>Recovered inventory record</strong>' : ''}</div></div><span class="badge ${badgeClass(card.status)}">${esc(card.status || "available")}</span></div>
-      <div class="card-url">${esc(friendlyUrl(card.id))}</div>
-      <div class="card-details inventory-details">
-        <div><span>Plan</span><br><strong>${esc(effective)}</strong></div>
-        <div><span>Physical</span><br>${esc(admin.physicalType || inventory.physicalType || "PVC")}</div>
-        <div><span>NFC</span><br>${esc(card.nfcStatus || admin.nfcStatus || inventory.nfcStatus || "not-programmed")}</div>
-        <div><span>Activation code</span><br>${card.requiresActivationCode !== false ? `<code>${esc(inventory.activationCode || "—")}</code>` : "No code required"}</div>
-        <div><span>Created</span><br>${card.createdAt?.toDate ? card.createdAt.toDate().toLocaleDateString() : "—"}</div>
-        <div><span>Owner</span><br>Not activated</div>
-      </div>
-      <div class="card-actions">
-        <button class="mini" data-action="open">Open URL</button>
-        <button class="mini" data-action="copy">Copy NFC URL</button>
-        <button class="mini" data-action="code">Copy Activation</button>
-        <button class="mini" data-action="plan">Change Plan</button>
-        ${card.status === "available" ? '<button class="mini" data-action="sold">Mark Sold</button>' : ""}
-        ${card.status === "available" && !PROTECTED_CARD_IDS.has(card.id) ? '<button class="mini" data-action="regenerate">Regenerate</button><button class="mini danger" data-action="delete">Delete</button>' : ""}
-      </div>
-    </article>`;
+    const note = admin.notes || inventory.notes || "Add private note";
+    const created = card.createdAt?.toDate ? card.createdAt.toDate().toLocaleDateString() : "—";
+    return `<div class="inventory-list-row-wrap">
+      <button class="inventory-list-row" type="button" data-inventory-id="${esc(card.id)}">
+        <span class="inventory-list-main">
+          <strong>${esc(card.id)}</strong>
+          <small>${esc(friendlyUrl(card.id))}</small>
+        </span>
+        <span class="inventory-list-note" title="${esc(note)}">${esc(note)}</span>
+        <span class="inventory-list-plan">${esc(effective)}</span>
+        <span class="inventory-list-date"><small>Created</small><strong>${esc(created)}</strong></span>
+        <span class="badge ${badgeClass(card.status)}">${esc(card.status || "available")}</span>
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <button class="inventory-note-edit" type="button" data-edit-note="${esc(card.id)}" title="Edit internal note" aria-label="Edit internal note for ${esc(card.id)}"><i class="fa-solid fa-pen"></i></button>
+    </div>`;
   };
 
   const clientRowMarkup = (card) => {
@@ -263,17 +259,104 @@ function render() {
   const basicList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Basic");
   const premiumList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Premium");
 
-  $("inventoryCardsGrid").innerHTML = inventoryList.map(inventoryCardMarkup).join("");
+  const availableInventory = inventoryList.filter((c) => (c.status || "available") === "available");
+  const soldInventory = inventoryList.filter((c) => c.status === "sold");
+  $("inventoryAvailableList").innerHTML = availableInventory.map(inventoryRowMarkup).join("");
+  $("inventorySoldList").innerHTML = soldInventory.map(inventoryRowMarkup).join("");
+  $("inventoryAvailableCount").textContent = availableInventory.length;
+  $("inventorySoldCount").textContent = soldInventory.length;
   $("inventoryPoolCount").textContent = inventoryList.length;
+  $("inventoryAvailableEmpty").hidden = availableInventory.length > 0;
+  $("inventorySoldEmpty").hidden = soldInventory.length > 0;
   $("inventoryPoolEmpty").hidden = inventoryList.length > 0;
   $("basicCardsGrid").innerHTML=basicList.map(clientRowMarkup).join("");
   $("premiumCardsGrid").innerHTML=premiumList.map(clientRowMarkup).join("");
   $("basicColumnCount").textContent=basicList.length;
   $("premiumColumnCount").textContent=premiumList.length;
   $("emptyState").hidden = list.length > 0;
-  document.querySelectorAll(".inventory-card").forEach((card) => card.addEventListener("click", handleAction));
+  document.querySelectorAll(".inventory-list-row").forEach((row) => row.addEventListener("click", () => openInventoryDialog(row.dataset.inventoryId)));
+  document.querySelectorAll(".inventory-note-edit").forEach((button) => button.addEventListener("click", async (event) => {
+    event.stopPropagation();
+    await editInventoryNote(button.dataset.editNote);
+  }));
   document.querySelectorAll(".client-list-row").forEach((row) => row.addEventListener("click", () => openClientDialog(row.dataset.clientId)));
 }
+
+async function editInventoryNote(id) {
+  const card = cards.find((c) => c.id === id);
+  if (!card) return;
+  const admin = card.admin || {};
+  const inventory = card.inventory || {};
+  const current = admin.notes || inventory.notes || "";
+  const next = prompt("Edit private internal note for " + id + ":", current);
+  if (next === null) return;
+  const note = next.trim();
+  try {
+    const batch = writeBatch(db);
+    batch.set(doc(db, "cardAdmin", id), { notes: note, updatedAt: serverTimestamp() }, { merge: true });
+    batch.set(doc(db, "inventory", id), { notes: note, updatedAt: serverTimestamp() }, { merge: true });
+    await batch.commit();
+    const wasOpen = $("clientDetailDialog")?.open && $("clientDetailDialog").dataset.cardId === id;
+    if (wasOpen) $("clientDetailDialog").close();
+    await loadCards();
+    if (wasOpen) await openInventoryDialog(id);
+  } catch (error) {
+    console.error("Update inventory note failed", error);
+    alert("Could not update the internal note. Please try again.");
+  }
+}
+
+async function openInventoryDialog(id) {
+  const card = cards.find((c) => c.id === id);
+  if (!card) return;
+  const admin = card.admin || {};
+  const inventory = card.inventory || {};
+  const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
+  const note = admin.notes || inventory.notes || "—";
+  const created = card.createdAt?.toDate ? card.createdAt.toDate().toLocaleDateString() : "—";
+  const dialog = $("clientDetailDialog");
+  dialog.dataset.cardId = id;
+  dialog.dataset.detailType = "inventory";
+  $("clientDetailTitle").textContent = id;
+  $("clientDetailSubtitle").textContent = `${effective} · ${card.status || "available"} · unclaimed inventory`;
+  $("clientDetailBody").innerHTML = `
+    <div class="client-detail-grid inventory-detail-grid">
+      <section class="detail-panel">
+        <h3>NFC Inventory</h3>
+        <div class="detail-list">
+          <div><span>Card code</span><strong>${esc(id)}</strong></div>
+          <div><span>Status</span><strong>${esc(card.status || "available")}</strong></div>
+          <div class="detail-wide"><span>Permanent URL</span><strong class="break-anywhere">${esc(friendlyUrl(id))}</strong></div>
+          <div><span>Plan</span><strong>${esc(effective)}</strong></div>
+          <div><span>Physical</span><strong>${esc(admin.physicalType || inventory.physicalType || "PVC")}</strong></div>
+          <div><span>NFC state</span><strong>${esc(card.nfcStatus || admin.nfcStatus || inventory.nfcStatus || "not-programmed")}</strong></div>
+          <div><span>Created</span><strong>${esc(created)}</strong></div>
+          <div><span>Owner</span><strong>Not activated</strong></div>
+          <div><span>Activation code</span><strong>${card.requiresActivationCode !== false ? esc(inventory.activationCode || "—") : "No code required"}</strong></div>
+          <div class="detail-wide inventory-note-detail"><span>Internal note</span><strong>${esc(note)}</strong><button class="inline-edit-note" type="button" data-dialog-action="note"><i class="fa-solid fa-pen"></i> Edit note</button></div>
+        </div>
+      </section>
+      <section class="detail-panel">
+        <h3>Inventory Controls</h3>
+        <p class="subtitle small">Use these controls to program, sell, or maintain this permanent NFC URL. The URL stays the same unless you regenerate the card code.</p>
+        <div class="inventory-control-summary">
+          <div><span>Availability</span><strong>${esc(card.status || "available")}</strong></div>
+          <div><span>Private activation</span><strong>${card.requiresActivationCode !== false ? "Required" : "Not required"}</strong></div>
+        </div>
+      </section>
+    </div>`;
+  $("clientDetailActions").innerHTML = `
+    <button class="secondary-button" data-dialog-action="open"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open URL</button>
+    <button class="secondary-button" data-dialog-action="copy"><i class="fa-solid fa-copy"></i> Copy NFC URL</button>
+    <button class="secondary-button" data-dialog-action="code"><i class="fa-solid fa-key"></i> Copy Activation</button>
+    <button class="secondary-button" data-dialog-action="plan"><i class="fa-solid fa-layer-group"></i> Change Plan</button>
+    <button class="secondary-button" data-dialog-action="note"><i class="fa-solid fa-pen"></i> Edit Internal Note</button>
+    ${card.status === "available" ? '<button class="secondary-button" data-dialog-action="sold"><i class="fa-solid fa-tag"></i> Mark Sold</button>' : ""}
+    ${card.status === "available" && !PROTECTED_CARD_IDS.has(id) ? '<button class="secondary-button" data-dialog-action="regenerate"><i class="fa-solid fa-arrows-rotate"></i> Regenerate</button><button class="danger-button" data-dialog-action="delete"><i class="fa-solid fa-trash"></i> Delete</button>' : ""}
+  `;
+  dialog.showModal();
+}
+
 
 async function openClientDialog(id) {
   const card = cards.find((c) => c.id === id);
@@ -290,6 +373,7 @@ async function openClientDialog(id) {
   const monthActions = monthStats.actions || {};
   const dialog = $("clientDetailDialog");
   dialog.dataset.cardId = id;
+  dialog.dataset.detailType = "client";
   $("clientDetailTitle").textContent = profile.fullName || admin.clientName || owner.ownerEmail || id;
   $("clientDetailSubtitle").textContent = `${id} · ${effective} · ${card.status || "activated"}`;
   $("clientDetailBody").innerHTML = `
@@ -371,6 +455,7 @@ async function performCardAction(id, action, button = null) {
     }
   }
   if (action === "plan") await changePlan(id, card);
+  if (action === "note") await editInventoryNote(id);
   if (action === "comp") await toggleComplimentary(id, card);
   if (action === "sold") await updateStatus(id, "sold");
   if (action === "suspend") await updateStatus(id, "suspended");
@@ -623,16 +708,18 @@ $("closeClientDetailDialog")?.addEventListener("click", () => $("clientDetailDia
 $("clientDetailDialog")?.addEventListener("click", (event) => {
   if (event.target === $("clientDetailDialog")) $("clientDetailDialog").close();
 });
-$("clientDetailActions")?.addEventListener("click", async (event) => {
+async function handleDialogAction(event) {
   const button = event.target.closest("[data-dialog-action]");
   if (!button) return;
   const id = $("clientDetailDialog").dataset.cardId;
   const action = button.dataset.dialogAction;
   await performCardAction(id, action, button);
-  if (["plan", "suspend", "reactivate"].includes(action)) {
+  if (["plan", "sold", "suspend", "reactivate", "regenerate", "delete", "release"].includes(action) && $("clientDetailDialog").open) {
     $("clientDetailDialog").close();
   }
-});
+}
+$("clientDetailActions")?.addEventListener("click", handleDialogAction);
+$("clientDetailBody")?.addEventListener("click", handleDialogAction);
 
 
 async function loadPlatformSettings(){

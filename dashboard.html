@@ -57,10 +57,21 @@
   <div class="filter-row"><input id="searchCards" type="search" placeholder="Search code, client, email, plan or notes"><select id="statusFilter"><option value="all">All statuses</option><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select><select id="planFilter"><option value="all">All plans</option><option value="Basic">Basic</option><option value="Premium">Premium</option></select></div>
   <section class="inventory-pool">
     <div class="plan-column-head inventory-pool-head">
-      <div><p class="eyebrow">AVAILABLE / UNCLAIMED</p><h3>Ready NFC Inventory</h3><p class="subtitle small">Generated permanent URLs that are not activated yet. Available and Sold cards stay here until a customer activates them.</p></div>
+      <div><p class="eyebrow">AVAILABLE / UNCLAIMED</p><h3>Ready NFC Inventory</h3><p class="subtitle small">Generated permanent URLs that are not activated yet. Keep available inventory on the left and sold / awaiting activation on the right.</p></div>
       <strong id="inventoryPoolCount">0</strong>
     </div>
-    <div id="inventoryCardsGrid" class="cards-grid inventory-grid"></div>
+    <div class="inventory-list-board">
+      <section class="inventory-list-column">
+        <div class="inventory-list-head"><div><span class="inventory-status-dot available"></span><strong>Available</strong></div><span id="inventoryAvailableCount">0</span></div>
+        <div id="inventoryAvailableList" class="inventory-list"></div>
+        <div id="inventoryAvailableEmpty" class="inventory-pool-empty compact" hidden>No available cards match the current filters.</div>
+      </section>
+      <section class="inventory-list-column sold-column">
+        <div class="inventory-list-head"><div><span class="inventory-status-dot sold"></span><strong>Sold / Awaiting Activation</strong></div><span id="inventorySoldCount">0</span></div>
+        <div id="inventorySoldList" class="inventory-list"></div>
+        <div id="inventorySoldEmpty" class="inventory-pool-empty compact" hidden>No sold cards match the current filters.</div>
+      </section>
+    </div>
     <div id="inventoryPoolEmpty" class="inventory-pool-empty" hidden>No available or unclaimed NFC cards match the current filters.</div>
   </section>
   <div class="plan-board client-plan-board">
@@ -81,7 +92,7 @@
       <label><span>NFC Status</span><select id="newNfcStatus"><option value="not-programmed">Not programmed</option><option value="programmed">Programmed</option><option value="delivered">Delivered</option></select></label>
       <label class="full check-row"><input id="requireActivationCode" type="checkbox" checked><span>Require private activation code when customer claims this NFC</span></label>
       <label class="full"><span>Activation Code</span><div class="inline-field"><input id="newActivationCode" readonly><button id="regenerateActivation" class="mini" type="button">Random</button></div></label>
-      <label class="full"><span>Internal Notes</span><textarea id="newNotes" rows="3" placeholder="Private JMX inventory notes"></textarea></label>
+      <label class="full"><span>Internal Notes</span><textarea id="newNotes" rows="3" placeholder="Customer name, order label, or private JMX inventory note"></textarea></label>
     </div>
     <div class="url-preview"><span>Permanent NFC URL</span><strong id="newUrlPreview">—</strong></div>
     <p id="dialogStatus" class="status"></p>
