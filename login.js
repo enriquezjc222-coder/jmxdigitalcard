@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -13,30 +13,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: "select_account" });
 const $ = (id) => document.getElementById(id);
 function monthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
 function msg(value, type = "") { $("status").textContent = value; $("status").className = "status " + type; }
-function setBusy(busy) {
-  $("googleLoginButton").disabled = busy;
-  $("loginButton").disabled = busy;
-}
-async function googleLogin() {
-  setBusy(true); msg("Opening Google sign-in…", "working");
-  try { await signInWithPopup(auth, googleProvider); msg(""); }
-  catch (error) {
-    console.error(error);
-    if (error.code === "auth/popup-closed-by-user") msg("Google sign-in was canceled.", "error");
-    else if (error.code === "auth/popup-blocked") msg("Your browser blocked the Google sign-in window. Allow pop-ups and try again.", "error");
-    else if (error.code === "auth/operation-not-allowed") msg("Google sign-in is not enabled yet in Firebase Authentication.", "error");
-    else msg("Google sign-in could not be completed. Please try again.", "error");
-  } finally { setBusy(false); }
-}
-async function legacyLogin() {
-  try { setBusy(true); await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value); }
+async function login() {
+  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value); }
   catch (error) { console.error(error); msg("Email or password is incorrect.", "error"); }
-  finally { setBusy(false); }
 }
 async function load(currentUser) {
   const q = query(collection(db, "cardOwners"), where("ownerUid", "==", currentUser.uid));
@@ -54,7 +36,6 @@ onAuthStateChanged(auth, (currentUser) => {
   if (currentUser) load(currentUser);
   else { $("loginForm").hidden = false; $("cards").hidden = true; }
 });
-$("googleLoginButton").onclick = googleLogin;
-$("loginButton").onclick = legacyLogin;
-$("password").onkeydown = (e) => { if (e.key === "Enter") legacyLogin(); };
+$("loginButton").onclick = login;
+$("password").onkeydown = (e) => { if (e.key === "Enter") login(); };
 $("logout").onclick = () => signOut(auth);

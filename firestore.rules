@@ -100,6 +100,10 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
+    match /cardHistory/{cardId}/releases/{releaseId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
     match /ownerActivity/{cardId} {
       allow read: if isAdmin() || isOwner(cardId);
       allow create, update: if isOwner(cardId) && request.resource.data.ownerUid == request.auth.uid;

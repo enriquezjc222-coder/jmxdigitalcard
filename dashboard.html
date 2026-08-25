@@ -55,38 +55,20 @@
     <button id="newCardButton" class="primary-button" type="button"><i class="fa-solid fa-plus"></i> Create NFC Card</button>
   </div>
   <div class="filter-row"><input id="searchCards" type="search" placeholder="Search code, client, email, plan or notes"><select id="statusFilter"><option value="all">All statuses</option><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select><select id="planFilter"><option value="all">All plans</option><option value="Basic">Basic</option><option value="Premium">Premium</option></select></div>
-  <div class="plan-board">
-    <section class="plan-column"><div class="plan-column-head"><div><p class="eyebrow">BASIC</p><h3>Basic Clients</h3></div><strong id="basicColumnCount">0</strong></div><div id="basicCardsGrid" class="cards-grid single-column"></div></section>
-    <section class="plan-column premium-column"><div class="plan-column-head"><div><p class="eyebrow">PREMIUM</p><h3>Premium Clients</h3></div><strong id="premiumColumnCount">0</strong></div><div id="premiumCardsGrid" class="cards-grid single-column"></div></section>
+  <section class="inventory-pool">
+    <div class="plan-column-head inventory-pool-head">
+      <div><p class="eyebrow">AVAILABLE / UNCLAIMED</p><h3>Ready NFC Inventory</h3><p class="subtitle small">Generated permanent URLs that are not activated yet. Available and Sold cards stay here until a customer activates them.</p></div>
+      <strong id="inventoryPoolCount">0</strong>
+    </div>
+    <div id="inventoryCardsGrid" class="cards-grid inventory-grid"></div>
+    <div id="inventoryPoolEmpty" class="inventory-pool-empty" hidden>No available or unclaimed NFC cards match the current filters.</div>
+  </section>
+  <div class="plan-board client-plan-board">
+    <section class="plan-column"><div class="plan-column-head"><div><p class="eyebrow">BASIC</p><h3>Basic Clients</h3><p class="subtitle small">Activated or suspended client cards.</p></div><strong id="basicColumnCount">0</strong></div><div id="basicCardsGrid" class="cards-grid single-column"></div></section>
+    <section class="plan-column premium-column"><div class="plan-column-head"><div><p class="eyebrow">PREMIUM</p><h3>Premium Clients</h3><p class="subtitle small">Activated or suspended client cards.</p></div><strong id="premiumColumnCount">0</strong></div><div id="premiumCardsGrid" class="cards-grid single-column"></div></section>
   </div>
-  <div id="emptyState" class="empty-state" hidden><i class="fa-solid fa-wifi"></i><h3>No NFC inventory yet</h3><p>Create your first permanent NFC URL.</p></div>
+  <div id="emptyState" class="empty-state" hidden><i class="fa-solid fa-wifi"></i><h3>No NFC cards match these filters</h3><p>Clear the filters or create a new permanent NFC URL.</p></div>
 </section>
-
-<section class="panel feature-control-panel">
-  <div class="toolbar feature-control-toolbar">
-    <div>
-      <p class="eyebrow">FEATURE CONTROL CENTER</p>
-      <h2>Basic & Premium Module Controls</h2>
-      <p class="subtitle small">Add or remove modules without changing the existing plan structure. Changes apply automatically to matching clients.</p>
-    </div>
-    <div class="feature-master-switches">
-      <label class="switch-row"><input id="featureControlsEnabled" type="checkbox"><span class="switch-ui"></span><strong>Enable advanced feature controls</strong></label>
-      <label class="switch-row"><input id="featurePanelsVisible" type="checkbox" checked><span class="switch-ui"></span><strong>Show switch panels</strong></label>
-    </div>
-  </div>
-  <div id="featurePanels">
-    <div class="feature-control-columns">
-      <section class="feature-plan-box global-box"><div class="feature-box-head"><span>GLOBAL</span><h3>All Plans</h3><small>Global OFF always hides a module.</small></div><div id="globalFeatureGrid" class="feature-switch-grid"></div></section>
-      <section class="feature-plan-box"><div class="feature-box-head"><span>BASIC</span><h3>Basic Version</h3><small>Turn Premium-style modules on for Basic whenever you want.</small></div><div id="basicFeatureGrid" class="feature-switch-grid"></div></section>
-      <section class="feature-plan-box premium-feature-box"><div class="feature-box-head"><span>PREMIUM</span><h3>Premium Version</h3><small>Temporarily hide any Premium module without deleting data.</small></div><div id="premiumFeatureGrid" class="feature-switch-grid"></div></section>
-    </div>
-    <div class="feature-control-actions">
-      <button id="saveFeatureControls" class="primary-button" type="button"><i class="fa-solid fa-sliders"></i> Save Feature Controls</button>
-      <p id="featureControlStatus" class="status"></p>
-    </div>
-  </div>
-</section>
-
 </div>
 </main>
 <dialog id="cardDialog" class="card-dialog">
@@ -107,21 +89,15 @@
   </form>
 </dialog>
 
-<dialog id="clientFeatureDialog" class="card-dialog feature-dialog">
-  <form id="clientFeatureForm">
-    <div class="dialog-header">
-      <div><p class="eyebrow">CLIENT OVERRIDE</p><h2>Feature Controls: <span id="featureClientId">—</span></h2></div>
-      <button id="closeClientFeatureDialog" type="button" class="icon-button" aria-label="Close">×</button>
+<dialog id="clientDetailDialog" class="client-detail-dialog">
+  <div class="client-detail-shell">
+    <div class="dialog-header client-detail-header">
+      <div><p class="eyebrow">CLIENT DETAILS</p><h2 id="clientDetailTitle">Client</h2><p id="clientDetailSubtitle" class="subtitle small"></p></div>
+      <button id="closeClientDetailDialog" type="button" class="icon-button" aria-label="Close">×</button>
     </div>
-    <p class="subtitle small">This optional layer affects only this client. Turn it off to inherit the current plan settings automatically.</p>
-    <label class="switch-row client-custom-master"><input id="clientCustomFeaturesEnabled" type="checkbox"><span class="switch-ui"></span><strong>Use custom feature settings for this client</strong></label>
-    <div id="clientFeatureGrid" class="feature-switch-grid client-feature-grid"></div>
-    <p id="clientFeatureStatus" class="status"></p>
-    <div class="dialog-actions">
-      <button id="cancelClientFeature" type="button" class="secondary-button">Cancel</button>
-      <button id="saveClientFeature" type="submit" class="primary-button">Save Client Features</button>
-    </div>
-  </form>
+    <div id="clientDetailBody"></div>
+    <div id="clientDetailActions" class="client-detail-actions"></div>
+  </div>
 </dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>

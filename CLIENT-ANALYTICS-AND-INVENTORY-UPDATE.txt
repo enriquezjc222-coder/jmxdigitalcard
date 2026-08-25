@@ -1,0 +1,24 @@
+JMX DIGITAL CARD - CLIENT ANALYTICS & INVENTORY UPDATE
+
+Added to the platform administrator dashboard:
+- Compact Basic and Premium client lists instead of oversized client cards.
+- Click any client row to open a large modal with full client/card details.
+- Modal closes with X or by clicking outside it.
+- Per-client analytics: total profile opens, current-month opens, total clicks, current-month clicks, and click breakdown by Phone, WhatsApp, Email, Website, social networks, Save Contact, Share, etc.
+- Copy / Recover URL button for replacement NFC cards. The permanent URL is not changed.
+- Edit Profile, Change Plan, Suspend/Reactivate from the client modal.
+- Release / Reset for Reuse for non-protected cards only. This archives the prior client/profile/analytics, unlinks ownership, clears old profile/media, resets analytics, creates a new activation code, and returns the same permanent URL to Available inventory.
+- BOSS is explicitly protected from delete, regenerate, or release/reset operations.
+- Available/Unclaimed inventory remains separate and shows permanent URL, plan, physical type, NFC state, activation code, created date and controls.
+
+IMPORTANT FIREBASE STEP:
+Publish the updated firestore.rules so the administrator can write the new cardHistory release archive collection.
+
+Analytics notes:
+- Profile views are opens, not guaranteed unique people.
+- Click analytics are already collected by the public card for supported actions and are now surfaced in the administrator modal.
+
+Analytics reliability fix:
+- Action click counters are now written as a nested Firestore actions map, matching the security rules and the administrator analytics view.
+- Client list names use the saved profile name when available, with owner email as fallback.
+- Release cleanup removes historical monthly/daily analytics in safe chunks to avoid Firestore batch-size failures.

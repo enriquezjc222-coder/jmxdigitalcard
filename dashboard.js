@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch, query, where, deleteField } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDf12K0m93K4cWSotDcSg2fIS-s3uaLW_Y",
@@ -18,98 +18,7 @@ const $ = (id) => document.getElementById(id);
 const SAFE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 let user = null;
 let cards = [];
-
-const FEATURE_DEFS = [{"key":"description","label":"Description"},{"key":"saveContact","label":"Save Contact"},{"key":"quickActions","label":"Quick Actions"},{"key":"phone","label":"Phone 1"},{"key":"phone2","label":"Phone 2"},{"key":"whatsapp","label":"WhatsApp"},{"key":"email","label":"Email"},{"key":"website","label":"Website"},{"key":"location","label":"Location"},{"key":"facebook","label":"Facebook"},{"key":"instagram","label":"Instagram"},{"key":"linkedin","label":"LinkedIn"},{"key":"twitter","label":"X / Twitter"},{"key":"tiktok","label":"TikTok"},{"key":"youtube","label":"YouTube"},{"key":"businessLinks","label":"Business Links"},{"key":"catalog","label":"Catalog"},{"key":"customBusiness","label":"Extra Business Link"},{"key":"services","label":"Services"},{"key":"gallery","label":"Photo Gallery"},{"key":"video","label":"Featured Video"},{"key":"qr","label":"QR Code"},{"key":"finalCTA","label":"Final Contact Button"},{"key":"analytics","label":"Premium Statistics"}];
-const LEGACY_BASIC_FEATURES = new Set(["description", "email", "facebook", "location", "phone", "qr", "quickActions", "saveContact", "whatsapp"]);
-let platformFeatureSettings = null;
-let activeFeatureClientId = null;
-
-function defaultFeatureMap(on=true) {
-  return Object.fromEntries(FEATURE_DEFS.map(f => [f.key, on]));
-}
-function defaultPlanFeatureMap(plan) {
-  if (String(plan).toLowerCase() === "basic") return Object.fromEntries(FEATURE_DEFS.map(f => [f.key, LEGACY_BASIC_FEATURES.has(f.key)]));
-  return defaultFeatureMap(true);
-}
-function normalizedFeatureSettings(raw={}) {
-  return {
-    enabled: raw.enabled === true,
-    panelsVisible: raw.panelsVisible !== false,
-    global: {...defaultFeatureMap(true), ...(raw.global||{})},
-    basic: {...defaultPlanFeatureMap("Basic"), ...(raw.basic||{})},
-    premium: {...defaultPlanFeatureMap("Premium"), ...(raw.premium||{})}
-  };
-}
-function buildFeatureGrid(containerId, values, prefix) {
-  const box=$(containerId); if(!box) return;
-  box.innerHTML=FEATURE_DEFS.map(f=>`<label class="feature-switch-item"><span>${esc(f.label)}</span><label class="switch-row"><input type="checkbox" data-feature-scope="${prefix}" data-feature-key="${f.key}" ${values[f.key]!==false?"checked":""}><span class="switch-ui"></span></label></label>`).join("");
-}
-function readFeatureGrid(prefix) {
-  const out={};
-  document.querySelectorAll(`[data-feature-scope="${prefix}"]`).forEach(el=>out[el.dataset.featureKey]=el.checked);
-  return out;
-}
-function renderFeatureControls() {
-  const cfg=platformFeatureSettings||normalizedFeatureSettings();
-  if($("featureControlsEnabled")) $("featureControlsEnabled").checked=cfg.enabled;
-  if($("featurePanelsVisible")) $("featurePanelsVisible").checked=cfg.panelsVisible;
-  buildFeatureGrid("globalFeatureGrid",cfg.global,"global");
-  buildFeatureGrid("basicFeatureGrid",cfg.basic,"basic");
-  buildFeatureGrid("premiumFeatureGrid",cfg.premium,"premium");
-  toggleFeaturePanels();
-}
-function toggleFeaturePanels() {
-  const visible=$("featurePanelsVisible")?.checked!==false;
-  const grids=document.querySelector(".feature-control-columns");
-  if(grids) grids.hidden=!visible;
-}
-function effectivePlanFeatures(plan) {
-  const cfg=platformFeatureSettings||normalizedFeatureSettings();
-  if(!cfg.enabled) return defaultPlanFeatureMap(plan);
-  const planMap=String(plan).toLowerCase()==="basic"?cfg.basic:cfg.premium;
-  return Object.fromEntries(FEATURE_DEFS.map(f=>[f.key,cfg.global[f.key]!==false && planMap[f.key]!==false]));
-}
-async function saveFeatureControlSettings() {
-  const status=$("featureControlStatus");
-  const payload={
-    enabled:$("featureControlsEnabled")?.checked===true,
-    panelsVisible:$("featurePanelsVisible")?.checked!==false,
-    global:readFeatureGrid("global"),
-    basic:readFeatureGrid("basic"),
-    premium:readFeatureGrid("premium")
-  };
-  try{
-    await setDoc(doc(db,"platform","publicSettings"),{featureControls:payload,updatedAt:serverTimestamp()},{merge:true});
-    platformFeatureSettings=normalizedFeatureSettings(payload);
-    if(status){status.textContent="Feature controls saved and active.";status.className="status ok"}
-  }catch(e){console.error(e);if(status){status.textContent="Could not save feature controls.";status.className="status error"}}
-}
-function openClientFeatureDialog(card) {
-  activeFeatureClientId=card.id;
-  $("featureClientId").textContent=card.id;
-  const custom=card.featureControl||{};
-  const inherited=effectivePlanFeatures(card.complimentaryPremium===true?"Premium":(card.plan||"Basic"));
-  const values={...inherited,...(custom.features||{})};
-  $("clientCustomFeaturesEnabled").checked=custom.enabled===true;
-  buildFeatureGrid("clientFeatureGrid",values,"client");
-  syncClientFeatureGridState();
-  $("clientFeatureStatus").textContent="";
-  $("clientFeatureDialog").showModal();
-}
-function syncClientFeatureGridState() {
-  $("clientFeatureGrid")?.classList.toggle("is-disabled",$("clientCustomFeaturesEnabled")?.checked!==true);
-}
-async function saveClientFeatureOverride(event) {
-  event?.preventDefault?.();
-  const id=activeFeatureClientId;if(!id)return;
-  const status=$("clientFeatureStatus");
-  try{
-    await setDoc(doc(db,"cards",id),{featureControl:{enabled:$("clientCustomFeaturesEnabled").checked===true,features:readFeatureGrid("client")},updatedAt:serverTimestamp()},{merge:true});
-    if(status){status.textContent="Client feature settings saved.";status.className="status ok"}
-    await loadCards();
-    setTimeout(()=>$("clientFeatureDialog")?.close(),350);
-  }catch(e){console.error(e);if(status){status.textContent="Could not save client settings.";status.className="status error"}}
-}
+const PROTECTED_CARD_IDS = new Set(["BOSS"]);
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>'"]/g, (c) => ({
@@ -185,27 +94,60 @@ async function migrateLegacyMain() {
 
 async function loadCards() {
   await migrateLegacyMain();
-  const snap = await getDocs(collection(db, "cards"));
-  const result = [];
-  for (const d of snap.docs) {
+  const [cardCollectionSnap, inventoryCollectionSnap] = await Promise.all([
+    getDocs(collection(db, "cards")),
+    getDocs(collection(db, "inventory"))
+  ]);
+
+  const cardDocs = new Map();
+  for (const d of cardCollectionSnap.docs) {
     if (d.id === "main" && d.data().fullName && !d.data().inventoryVersion) continue;
-    const [adminSnap, ownerSnap, inventorySnap, statsSnap, monthSnap] = await Promise.all([
-      getDoc(doc(db, "cardAdmin", d.id)),
-      getDoc(doc(db, "cardOwners", d.id)),
-      getDoc(doc(db, "inventory", d.id)),
-      getDoc(doc(db, "cardStats", d.id)),
-      getDoc(doc(db, "monthlyStats", `${d.id}_${currentMonthKey()}`))
+    cardDocs.set(d.id, d.data());
+  }
+
+  const inventoryDocs = new Map(inventoryCollectionSnap.docs.map((d) => [d.id, d.data()]));
+  const allIds = new Set([...cardDocs.keys(), ...inventoryDocs.keys()]);
+  const result = [];
+
+  for (const id of allIds) {
+    const cardData = cardDocs.get(id);
+    const inventoryData = inventoryDocs.get(id) || {};
+    const [adminSnap, ownerSnap, profileSnap, statsSnap, monthSnap] = await Promise.all([
+      getDoc(doc(db, "cardAdmin", id)),
+      getDoc(doc(db, "cardOwners", id)),
+      getDoc(doc(db, "profiles", id)),
+      getDoc(doc(db, "cardStats", id)),
+      getDoc(doc(db, "monthlyStats", `${id}_${currentMonthKey()}`))
     ]);
+    const admin = adminSnap.exists() ? adminSnap.data() : {};
+
+    // If an inventory document exists without a matching cards document, keep it visible
+    // as recoverable unclaimed inventory instead of silently hiding its permanent URL.
+    const base = cardData || {
+      inventoryVersion: inventoryData.inventoryVersion || 2,
+      status: inventoryData.status || "available",
+      plan: inventoryData.plan || "Basic",
+      nfcStatus: inventoryData.nfcStatus || admin.nfcStatus || "not-programmed",
+      requiresActivationCode: inventoryData.requiresActivationCode !== false,
+      complimentaryPremium: false,
+      subscription: { status: "none", source: "manual" },
+      createdAt: inventoryData.createdAt || admin.createdAt || null,
+      updatedAt: inventoryData.updatedAt || admin.updatedAt || null,
+      recoveredInventory: true
+    };
+
     result.push({
-      id: d.id,
-      ...d.data(),
-      admin: adminSnap.exists() ? adminSnap.data() : {},
+      id,
+      ...base,
+      admin,
       owner: ownerSnap.exists() ? ownerSnap.data() : null,
-      inventory: inventorySnap.exists() ? inventorySnap.data() : {},
+      profile: profileSnap.exists() ? profileSnap.data() : null,
+      inventory: inventoryData,
       stats: statsSnap.exists() ? statsSnap.data() : {},
       monthStats: monthSnap.exists() ? monthSnap.data() : {}
     });
   }
+
   cards = result.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   render();
 }
@@ -217,6 +159,38 @@ function badgeClass(status) {
   return "available";
 }
 
+function sumActions(actions = {}) {
+  return Object.values(actions || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+}
+
+function prettyActionName(name = "") {
+  const labels = {
+    phone: "Phone",
+    text: "Text",
+    email: "Email",
+    website: "Website",
+    whatsapp: "WhatsApp",
+    facebook: "Facebook",
+    instagram: "Instagram",
+    linkedin: "LinkedIn",
+    twitter: "X / Twitter",
+    tiktok: "TikTok",
+    youtube: "YouTube",
+    catalog: "Catalog",
+    customLink: "Custom link",
+    saveContact: "Save Contact",
+    share: "Share",
+    cta: "CTA"
+  };
+  return labels[name] || name.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase());
+}
+
+function actionBreakdown(actions = {}) {
+  const entries = Object.entries(actions || {}).filter(([, value]) => Number(value || 0) > 0).sort((a,b)=>Number(b[1])-Number(a[1]));
+  if (!entries.length) return '<div class="analytics-empty">No clicks recorded yet.</div>';
+  return entries.map(([name, value]) => `<div class="analytics-action-row"><span>${esc(prettyActionName(name))}</span><strong>${Number(value || 0).toLocaleString()}</strong></div>`).join("");
+}
+
 function render() {
   const search = $("searchCards").value.trim().toLowerCase();
   const filter = $("statusFilter").value;
@@ -224,7 +198,8 @@ function render() {
   const list = cards.filter((card) => {
     const admin = card.admin || {};
     const owner = card.owner || {};
-    const haystack = [card.id, card.plan, card.status, admin.clientName, admin.notes, owner.ownerEmail].join(" ").toLowerCase();
+    const profile = card.profile || {};
+    const haystack = [card.id, card.plan, card.status, admin.clientName, admin.notes, owner.ownerEmail, profile.fullName, profile.company, profile.email, profile.phone].join(" ").toLowerCase();
     return (!search || haystack.includes(search)) && (filter === "all" || card.status === filter) && (planFilter === "all" || (card.complimentaryPremium===true?"Premium":(card.plan || "Basic")) === planFilter);
   });
 
@@ -233,50 +208,133 @@ function render() {
   $("activatedCards").textContent = cards.filter((c) => c.status === "activated").length;
   $("suspendedCards").textContent = cards.filter((c) => c.status === "suspended").length;
   const effectivePlan=c=>c.complimentaryPremium===true?"Premium":(c.plan||"Basic");
-  $("basicCards").textContent = cards.filter(c=>effectivePlan(c)==="Basic").length;
-  $("premiumCards").textContent = cards.filter(c=>effectivePlan(c)==="Premium").length;
+  const clientStatuses = new Set(["activated", "suspended"]);
+  const unclaimedStatuses = new Set(["available", "sold"]);
+  $("basicCards").textContent = cards.filter(c=>clientStatuses.has(c.status) && effectivePlan(c)==="Basic").length;
+  $("premiumCards").textContent = cards.filter(c=>clientStatuses.has(c.status) && effectivePlan(c)==="Premium").length;
   $("compCards").textContent = cards.filter(c=>c.complimentaryPremium===true).length;
-  $("inactiveCards").textContent = cards.filter(c=>!["activated","suspended"].includes(c.status)).length;
+  $("inactiveCards").textContent = cards.filter(c=>unclaimedStatuses.has(c.status) || !c.status).length;
 
-  const cardMarkup = (card) => {
+  const inventoryCardMarkup = (card) => {
     const admin = card.admin || {};
-    const owner = card.owner || {};
     const inventory = card.inventory || {};
-    const stats = card.stats || {};
-    const monthStats = card.monthStats || {};
     const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
-    const sub = card.subscription || {};
-    return `<article class="client-card" data-id="${esc(card.id)}">
-      <div class="client-head"><div><h3>${esc(card.id)}</h3><div class="client-meta">${esc(admin.clientName || owner.ownerEmail || "Unassigned NFC")}</div></div><span class="badge ${badgeClass(card.status)}">${esc(card.status || "available")}</span></div>
+    return `<article class="client-card inventory-card" data-id="${esc(card.id)}">
+      <div class="client-head"><div><h3>${esc(card.id)}</h3><div class="client-meta">${esc(admin.notes || "Unassigned NFC inventory")}${card.recoveredInventory ? ' · <strong>Recovered inventory record</strong>' : ''}</div></div><span class="badge ${badgeClass(card.status)}">${esc(card.status || "available")}</span></div>
       <div class="card-url">${esc(friendlyUrl(card.id))}</div>
-      <div class="card-details">
-        <div><span>Plan</span><br><strong>${esc(effective)}</strong> ${card.complimentaryPremium===true?'<span class="comp-badge"><i class="fa-solid fa-gift"></i> Free</span>':''}</div>
-        <div><span>Physical</span><br>${esc(admin.physicalType || "PVC")}</div>
-        <div><span>Owner</span><br>${esc(owner.ownerEmail || "Not activated")}</div>
-        <div><span>NFC</span><br>${esc(card.nfcStatus || admin.nfcStatus || "not-programmed")}</div>
-        <div><span>Activation</span><br>${card.requiresActivationCode !== false ? `<code>${esc(inventory.activationCode || "—")}</code>` : "No code required"}</div>
-        <div><span>Activated</span><br>${card.activatedAt?.toDate ? card.activatedAt.toDate().toLocaleDateString() : "—"}</div>
-        <div><span>Total profile opens</span><br><span class="visit-pill"><i class="fa-solid fa-chart-line"></i>${Number(stats.views || 0).toLocaleString()}</span></div>
-        <div><span>This month</span><br><strong>${Number(monthStats.views || 0).toLocaleString()}</strong></div>
+      <div class="card-details inventory-details">
+        <div><span>Plan</span><br><strong>${esc(effective)}</strong></div>
+        <div><span>Physical</span><br>${esc(admin.physicalType || inventory.physicalType || "PVC")}</div>
+        <div><span>NFC</span><br>${esc(card.nfcStatus || admin.nfcStatus || inventory.nfcStatus || "not-programmed")}</div>
+        <div><span>Activation code</span><br>${card.requiresActivationCode !== false ? `<code>${esc(inventory.activationCode || "—")}</code>` : "No code required"}</div>
+        <div><span>Created</span><br>${card.createdAt?.toDate ? card.createdAt.toDate().toLocaleDateString() : "—"}</div>
+        <div><span>Owner</span><br>Not activated</div>
       </div>
-      <div class="subscription-line"><strong>Subscription:</strong> ${esc(sub.status||"none")} · ${esc(sub.source|| (card.complimentaryPremium?"complimentary":"manual"))}</div>
-      <div class="card-switches"><button class="mini ${card.complimentaryPremium?'active':''}" data-action="comp"><i class="fa-solid fa-gift"></i> Premium Free: ${card.complimentaryPremium?'ON':'OFF'}</button></div>
       <div class="card-actions">
-        <button class="mini" data-action="open">Open</button><button class="mini" data-action="copy">Copy NFC URL</button><button class="mini" data-action="code">Copy Activation</button><button class="mini" data-action="plan">Change Plan</button><button class="mini feature-card-button" data-action="features"><i class="fa-solid fa-sliders"></i> Features</button>
+        <button class="mini" data-action="open">Open URL</button>
+        <button class="mini" data-action="copy">Copy NFC URL</button>
+        <button class="mini" data-action="code">Copy Activation</button>
+        <button class="mini" data-action="plan">Change Plan</button>
         ${card.status === "available" ? '<button class="mini" data-action="sold">Mark Sold</button>' : ""}
-        ${card.status === "activated" ? '<button class="mini danger" data-action="suspend">Suspend</button>' : ""}
-        ${card.status === "suspended" ? '<button class="mini" data-action="reactivate">Reactivate</button>' : ""}
-        ${["activated", "suspended"].includes(card.status) ? '<button class="mini" data-action="edit">Edit Profile</button>' : ""}
-        ${card.status === "available" ? '<button class="mini" data-action="regenerate">Regenerate</button><button class="mini danger" data-action="delete">Delete</button>' : ""}
+        ${card.status === "available" && !PROTECTED_CARD_IDS.has(card.id) ? '<button class="mini" data-action="regenerate">Regenerate</button><button class="mini danger" data-action="delete">Delete</button>' : ""}
       </div>
     </article>`;
   };
-  const basicList=list.filter(c=>effectivePlan(c)==="Basic"), premiumList=list.filter(c=>effectivePlan(c)==="Premium");
-  $("basicCardsGrid").innerHTML=basicList.map(cardMarkup).join("");
-  $("premiumCardsGrid").innerHTML=premiumList.map(cardMarkup).join("");
-  $("basicColumnCount").textContent=basicList.length; $("premiumColumnCount").textContent=premiumList.length;
+
+  const clientRowMarkup = (card) => {
+    const admin = card.admin || {};
+    const owner = card.owner || {};
+    const profile = card.profile || {};
+    const stats = card.stats || {};
+    const monthStats = card.monthStats || {};
+    const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
+    const displayName = profile.fullName || admin.clientName || owner.ownerEmail || card.id;
+    return `<button class="client-list-row" type="button" data-client-id="${esc(card.id)}">
+      <span class="client-list-main"><strong>${esc(displayName)}</strong><small>${esc(card.id)} · ${esc(owner.ownerEmail || "No owner email")}</small></span>
+      <span class="client-list-plan">${esc(effective)}</span>
+      <span class="client-list-stat"><strong>${Number(stats.views || 0).toLocaleString()}</strong><small>total views</small></span>
+      <span class="client-list-stat"><strong>${Number(monthStats.views || 0).toLocaleString()}</strong><small>this month</small></span>
+      <span class="badge ${badgeClass(card.status)}">${esc(card.status || "activated")}</span>
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>`;
+  };
+
+  const inventoryList = list.filter(c => unclaimedStatuses.has(c.status) || !c.status);
+  const basicList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Basic");
+  const premiumList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Premium");
+
+  $("inventoryCardsGrid").innerHTML = inventoryList.map(inventoryCardMarkup).join("");
+  $("inventoryPoolCount").textContent = inventoryList.length;
+  $("inventoryPoolEmpty").hidden = inventoryList.length > 0;
+  $("basicCardsGrid").innerHTML=basicList.map(clientRowMarkup).join("");
+  $("premiumCardsGrid").innerHTML=premiumList.map(clientRowMarkup).join("");
+  $("basicColumnCount").textContent=basicList.length;
+  $("premiumColumnCount").textContent=premiumList.length;
   $("emptyState").hidden = list.length > 0;
-  document.querySelectorAll(".client-card").forEach((card) => card.addEventListener("click", handleAction));
+  document.querySelectorAll(".inventory-card").forEach((card) => card.addEventListener("click", handleAction));
+  document.querySelectorAll(".client-list-row").forEach((row) => row.addEventListener("click", () => openClientDialog(row.dataset.clientId)));
+}
+
+async function openClientDialog(id) {
+  const card = cards.find((c) => c.id === id);
+  if (!card) return;
+  const claimSnap = await getDoc(doc(db, "cardClaims", id));
+  const profile = card.profile || {};
+  const claim = claimSnap.exists() ? claimSnap.data() : {};
+  const admin = card.admin || {};
+  const owner = card.owner || {};
+  const stats = card.stats || {};
+  const monthStats = card.monthStats || {};
+  const effective = card.complimentaryPremium===true ? "Premium" : (card.plan || "Basic");
+  const totalActions = stats.actions || {};
+  const monthActions = monthStats.actions || {};
+  const dialog = $("clientDetailDialog");
+  dialog.dataset.cardId = id;
+  $("clientDetailTitle").textContent = profile.fullName || admin.clientName || owner.ownerEmail || id;
+  $("clientDetailSubtitle").textContent = `${id} · ${effective} · ${card.status || "activated"}`;
+  $("clientDetailBody").innerHTML = `
+    <div class="client-detail-grid">
+      <section class="detail-panel">
+        <h3>Client & Card</h3>
+        <div class="detail-list">
+          <div><span>Card code</span><strong>${esc(id)}</strong></div>
+          <div><span>Permanent URL</span><strong class="break-anywhere">${esc(friendlyUrl(id))}</strong></div>
+          <div><span>Plan</span><strong>${esc(effective)}</strong></div>
+          <div><span>Status</span><strong>${esc(card.status || "activated")}</strong></div>
+          <div><span>Owner email</span><strong>${esc(owner.ownerEmail || claim.ownerEmail || "—")}</strong></div>
+          <div><span>Name</span><strong>${esc(profile.fullName || admin.clientName || "—")}</strong></div>
+          <div><span>Company</span><strong>${esc(profile.company || "—")}</strong></div>
+          <div><span>Phone</span><strong>${esc(profile.phone || "—")}</strong></div>
+          <div><span>Email</span><strong>${esc(profile.email || "—")}</strong></div>
+          <div><span>NFC state</span><strong>${esc(card.nfcStatus || admin.nfcStatus || "not-programmed")}</strong></div>
+          <div><span>Physical</span><strong>${esc(admin.physicalType || "PVC")}</strong></div>
+          <div><span>Activated</span><strong>${card.activatedAt?.toDate ? card.activatedAt.toDate().toLocaleDateString() : "—"}</strong></div>
+        </div>
+      </section>
+      <section class="detail-panel analytics-panel">
+        <h3>Analytics</h3>
+        <div class="analytics-summary">
+          <article><span>Total views</span><strong>${Number(stats.views || 0).toLocaleString()}</strong></article>
+          <article><span>Views this month</span><strong>${Number(monthStats.views || 0).toLocaleString()}</strong></article>
+          <article><span>Total clicks</span><strong>${sumActions(totalActions).toLocaleString()}</strong></article>
+          <article><span>Clicks this month</span><strong>${sumActions(monthActions).toLocaleString()}</strong></article>
+        </div>
+        <div class="analytics-columns">
+          <div><h4>All-time clicks</h4>${actionBreakdown(totalActions)}</div>
+          <div><h4>This month</h4>${actionBreakdown(monthActions)}</div>
+        </div>
+      </section>
+    </div>`;
+  $("clientDetailActions").innerHTML = `
+    <button class="secondary-button" data-dialog-action="copy"><i class="fa-solid fa-copy"></i> Copy / Recover URL</button>
+    <button class="secondary-button" data-dialog-action="open"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Profile</button>
+    <button class="secondary-button" data-dialog-action="edit"><i class="fa-solid fa-pen"></i> Edit Profile</button>
+    <button class="secondary-button" data-dialog-action="plan"><i class="fa-solid fa-layer-group"></i> Change Plan</button>
+    ${card.status === "activated" ? '<button class="secondary-button" data-dialog-action="suspend">Suspend</button>' : ''}
+    ${card.status === "suspended" ? '<button class="secondary-button" data-dialog-action="reactivate">Reactivate</button>' : ''}
+    ${PROTECTED_CARD_IDS.has(id) ? '<span class="protected-note"><i class="fa-solid fa-lock"></i> Protected card: release/delete disabled</span>' : '<button class="danger-button" data-dialog-action="release"><i class="fa-solid fa-rotate-left"></i> Release / Reset for Reuse</button>'}
+  `;
+  dialog.showModal();
 }
 
 async function copyText(value) {
@@ -289,34 +347,126 @@ async function copyText(value) {
   const ok = document.execCommand("copy"); area.remove(); return ok;
 }
 
-async function handleAction(event) {
-  const button = event.target.closest("[data-action]");
-  if (!button) return;
-  const id = event.currentTarget.dataset.id;
+async function performCardAction(id, action, button = null) {
   const card = cards.find((c) => c.id === id);
-  const action = button.dataset.action;
+  if (!card) return;
   if (action === "open") window.open(friendlyUrl(id), "_blank");
   if (action === "edit") location.href = editorUrl(id);
   if (action === "copy") {
     await copyText(friendlyUrl(id));
-    button.textContent = "Copied";
-    setTimeout(() => button.textContent = "Copy NFC URL", 1000);
+    if (button) {
+      const old = button.innerHTML;
+      button.textContent = "Copied";
+      setTimeout(() => button.innerHTML = old, 1000);
+    }
   }
   if (action === "code") {
     const code = card.inventory?.activationCode || "";
     if (!code) return alert("This card has no activation code.");
     await copyText(code);
-    button.textContent = "Copied";
-    setTimeout(() => button.textContent = "Copy Activation", 1000);
+    if (button) {
+      const old = button.innerHTML;
+      button.textContent = "Copied";
+      setTimeout(() => button.innerHTML = old, 1000);
+    }
   }
   if (action === "plan") await changePlan(id, card);
-  if (action === "features") openClientFeatureDialog(card);
   if (action === "comp") await toggleComplimentary(id, card);
   if (action === "sold") await updateStatus(id, "sold");
   if (action === "suspend") await updateStatus(id, "suspended");
   if (action === "reactivate") await updateStatus(id, "activated");
   if (action === "regenerate") await regenerate(id);
   if (action === "delete") await removeAvailable(id);
+  if (action === "release") await releaseForReuse(id);
+}
+
+async function handleAction(event) {
+  const button = event.target.closest("[data-action]");
+  if (!button) return;
+  await performCardAction(event.currentTarget.dataset.id, button.dataset.action, button);
+}
+
+async function deleteRefsInChunks(refs, chunkSize = 400) {
+  for (let i = 0; i < refs.length; i += chunkSize) {
+    const batch = writeBatch(db);
+    refs.slice(i, i + chunkSize).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+}
+
+async function releaseForReuse(id) {
+  const card = cards.find((c) => c.id === id);
+  if (!card || !["activated", "suspended"].includes(card.status)) return;
+  if (PROTECTED_CARD_IDS.has(id)) return alert(`${id} is protected and cannot be released or reset.`);
+  const first = confirm(`Release ${id} from its current client?\n\nThe permanent NFC URL will be kept, the current client will be unlinked, and the card will return to Available inventory.`);
+  if (!first) return;
+  const second = confirm(`Final confirmation for ${id}: archive the current profile/analytics, clear client data, generate a new activation code, and reset this URL for reuse?`);
+  if (!second) return;
+
+  const [profileSnap, ownerSnap, claimSnap, adminSnap, mediaSnap, monthSnaps, daySnaps] = await Promise.all([
+    getDoc(doc(db, "profiles", id)),
+    getDoc(doc(db, "cardOwners", id)),
+    getDoc(doc(db, "cardClaims", id)),
+    getDoc(doc(db, "cardAdmin", id)),
+    getDocs(collection(db, "cards", id, "media")),
+    getDocs(query(collection(db, "monthlyStats"), where("cardId", "==", id))),
+    getDocs(query(collection(db, "dailyStats"), where("cardId", "==", id)))
+  ]);
+
+  const releaseId = `${Date.now()}`;
+  const batch = writeBatch(db);
+  batch.set(doc(db, "cardHistory", id, "releases", releaseId), {
+    cardId: id,
+    releasedAt: serverTimestamp(),
+    releasedBy: user?.uid || "",
+    previousStatus: card.status || "",
+    previousPlan: card.plan || "Basic",
+    previousOwner: ownerSnap.exists() ? ownerSnap.data() : null,
+    previousClaim: claimSnap.exists() ? claimSnap.data() : null,
+    previousProfile: profileSnap.exists() ? profileSnap.data() : null,
+    previousAdmin: adminSnap.exists() ? adminSnap.data() : null,
+    previousStats: card.stats || {},
+    previousMonthStats: card.monthStats || {}
+  });
+
+  batch.set(doc(db, "cards", id), {
+    status: "available",
+    complimentaryPremium: false,
+    subscription: { status: "none", source: "manual" },
+    nfcStatus: "not-programmed",
+    activatedAt: deleteField(),
+    soldAt: deleteField(),
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+  batch.set(doc(db, "profiles", id), blankProfile(), { merge: false });
+  batch.set(doc(db, "inventory", id), {
+    activationCode: activationCode(),
+    inventoryVersion: 2,
+    status: "available",
+    plan: card.plan || "Basic",
+    physicalType: adminSnap.exists() ? (adminSnap.data().physicalType || "PVC") : "PVC",
+    nfcStatus: "not-programmed",
+    notes: `Released for reuse ${new Date().toLocaleDateString()}`,
+    requiresActivationCode: true,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+  batch.set(doc(db, "cardAdmin", id), {
+    clientName: deleteField(),
+    nfcStatus: "not-programmed",
+    notes: `Released for reuse ${new Date().toLocaleDateString()}`,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+  if (ownerSnap.exists()) batch.delete(doc(db, "cardOwners", id));
+  if (claimSnap.exists()) batch.delete(doc(db, "cardClaims", id));
+  batch.delete(doc(db, "ownerActivity", id));
+  batch.delete(doc(db, "cardStats", id));
+  mediaSnap.forEach((m) => batch.delete(m.ref));
+  await batch.commit();
+  await deleteRefsInChunks(monthSnaps.docs.map((d) => d.ref));
+  await deleteRefsInChunks(daySnaps.docs.map((d) => d.ref));
+  $("clientDetailDialog")?.close();
+  alert(`${id} is available again. Its permanent URL was preserved and a new activation code was generated.`);
+  await loadCards();
 }
 
 async function toggleComplimentary(id, card){
@@ -341,6 +491,7 @@ async function updateStatus(id, next) {
 
 async function removeAvailable(id) {
   const card = cards.find((c) => c.id === id);
+  if (PROTECTED_CARD_IDS.has(id)) return alert(`${id} is protected and cannot be deleted.`);
   if (!card || card.status !== "available") return;
   if (!confirm(`Delete unused NFC ${id}?`)) return;
   const batch = writeBatch(db);
@@ -354,6 +505,7 @@ async function removeAvailable(id) {
 
 async function regenerate(id) {
   const card = cards.find((c) => c.id === id);
+  if (PROTECTED_CARD_IDS.has(id)) return alert(`${id} is protected and cannot be regenerated.`);
   if (!card || card.status !== "available") return;
   const next = randomCode();
   if (!confirm(`Regenerate ${id} as ${next}? The old NFC URL will stop working.`)) return;
@@ -371,7 +523,7 @@ async function regenerate(id) {
     createdAt: serverTimestamp(), updatedAt: serverTimestamp()
   });
   if (profile.exists()) batch.set(doc(db, "profiles", next), profile.data());
-  batch.set(doc(db, "inventory", next), { activationCode: activationCode(), createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  batch.set(doc(db, "inventory", next), { activationCode: activationCode(), inventoryVersion: 2, status: "available", plan: card.plan || "Basic", physicalType: meta.exists() ? (meta.data().physicalType || "PVC") : "PVC", nfcStatus: card.nfcStatus || "not-programmed", notes: meta.exists() ? (meta.data().notes || "") : "", requiresActivationCode: card.requiresActivationCode !== false, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
   if (meta.exists()) batch.set(doc(db, "cardAdmin", next), { ...meta.data(), updatedAt: serverTimestamp() });
   batch.delete(doc(db, "cards", id)); batch.delete(doc(db, "profiles", id)); batch.delete(doc(db, "inventory", id)); batch.delete(doc(db, "cardAdmin", id));
   await batch.commit();
@@ -413,7 +565,7 @@ async function createCard(event) {
     }
     const batch = writeBatch(db);
     batch.set(doc(db, "cards", id), { inventoryVersion: 2, status: "available", plan, complimentaryPremium:false, subscription:{status:"none",source:"manual"}, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-    batch.set(doc(db, "inventory", id), { activationCode: code, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "inventory", id), { activationCode: code, inventoryVersion: 2, status: "available", plan, physicalType, nfcStatus, notes, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "cardAdmin", id), { physicalType, nfcStatus, notes, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "profiles", id), blankProfile());
     await batch.commit();
@@ -467,6 +619,21 @@ $("newCardId").addEventListener("input", updatePreview);
 $("regenerateCode").addEventListener("click", () => { $("newCardId").value = randomCode(); updatePreview(); });
 $("regenerateActivation").addEventListener("click", () => $("newActivationCode").value = activationCode());
 
+$("closeClientDetailDialog")?.addEventListener("click", () => $("clientDetailDialog").close());
+$("clientDetailDialog")?.addEventListener("click", (event) => {
+  if (event.target === $("clientDetailDialog")) $("clientDetailDialog").close();
+});
+$("clientDetailActions")?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-dialog-action]");
+  if (!button) return;
+  const id = $("clientDetailDialog").dataset.cardId;
+  const action = button.dataset.dialogAction;
+  await performCardAction(id, action, button);
+  if (["plan", "suspend", "reactivate"].includes(action)) {
+    $("clientDetailDialog").close();
+  }
+});
+
 
 async function loadPlatformSettings(){
   const snap=await getDoc(doc(db,"platform","publicSettings")); const d=snap.exists()?snap.data():{};
@@ -476,8 +643,6 @@ async function loadPlatformSettings(){
   if($("premiumCheckoutUrl")) $("premiumCheckoutUrl").value=d.premiumCheckoutUrl||"";
   if($("privacyPolicyUrl")) $("privacyPolicyUrl").value=d.privacyPolicyUrl||"";
   if($("privacyAgreementText")) $("privacyAgreementText").value=d.privacyAgreementText||"";
-  platformFeatureSettings=normalizedFeatureSettings(d.featureControls||{});
-  renderFeatureControls();
 }
 async function savePlatformSettings(){
   const payload={premiumEnabled:$("premiumEnabled")?.checked===true,billingEnabled:$("billingEnabled")?.checked===true,privacyRequired:$("privacyRequired")?.checked!==false,premiumCheckoutUrl:$("premiumCheckoutUrl")?.value.trim()||"",privacyPolicyUrl:$("privacyPolicyUrl")?.value.trim()||"",privacyAgreementText:$("privacyAgreementText")?.value.trim()||"",updatedAt:serverTimestamp()};
@@ -488,12 +653,6 @@ function initMarketing(){
   const q=$("companyQrAdmin");if(q&&window.QRCode){q.innerHTML="";new QRCode(q,{text:"https://jmxdigitalcard.com/",width:140,height:140,colorDark:"#111111",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H})}
   $("copyCompanyUrl")?.addEventListener("click",async()=>{await copyText("https://jmxdigitalcard.com/");$("copyCompanyUrl").textContent="Copied JMX URL";setTimeout(()=>$("copyCompanyUrl").innerHTML='<i class="fa-solid fa-copy"></i> Copy JMX URL',1200)});
   $("savePlatformButton")?.addEventListener("click",savePlatformSettings);
-  $("saveFeatureControls")?.addEventListener("click",saveFeatureControlSettings);
-  $("featurePanelsVisible")?.addEventListener("change",toggleFeaturePanels);
-  $("clientCustomFeaturesEnabled")?.addEventListener("change",syncClientFeatureGridState);
-  $("clientFeatureForm")?.addEventListener("submit",saveClientFeatureOverride);
-  $("closeClientFeatureDialog")?.addEventListener("click",()=>$("clientFeatureDialog")?.close());
-  $("cancelClientFeature")?.addEventListener("click",()=>$("clientFeatureDialog")?.close());
 }
 initMarketing();
 
