@@ -16,7 +16,11 @@
 
 <section class="admin-section auth-section" id="authGate">
  <div class="section-title"><i class="fa-solid fa-lock"></i><div><small>SECURE ADMIN</small><h2>Firebase Sign In</h2></div></div>
- <p class="section-help">Sign in with the admin user you create in Firebase Authentication. The public card can be viewed by anyone, but only a signed-in admin can publish changes.</p>
+ <p class="section-help">Sign in with the authorized JMX administrator account. Google is the recommended option. Access is still verified against the administrator UID stored in Firebase, so another Google account cannot become the JMX administrator.</p>
+ <div class="auth-google-row">
+  <button id="adminGoogleLogin" class="google-auth-button" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
+ </div>
+ <div class="auth-divider"><span>or use email and password</span></div>
  <div class="auth-login-grid">
   <label class="form-group"><span>Admin Email</span><input id="adminEmail" type="email" autocomplete="username" placeholder="you@example.com"></label>
   <label class="form-group"><span>Password</span><input id="adminPassword" type="password" autocomplete="current-password"></label>

@@ -13,6 +13,8 @@ import {
   getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 
@@ -254,7 +256,11 @@ function firebaseMessage(e){
   if(code.includes("permission-denied"))return "Firebase blocked the change. Check Firestore rules and that you are signed in.";
   if(code.includes("not-found")||code.includes("failed-precondition"))return "Firestore is not ready yet. Create the Firestore database in Firebase Console.";
   if(code.includes("auth/invalid-credential"))return "Email or password is incorrect.";
-  return "Could not save online: "+(e?.message||"Unknown Firebase error");
+  if(code.includes("auth/popup-closed-by-user"))return "Google sign-in was canceled before it finished.";
+  if(code.includes("auth/popup-blocked"))return "Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.";
+  if(code.includes("auth/unauthorized-domain"))return "This domain is not authorized for Google sign-in in Firebase Authentication.";
+  if(code.includes("auth/operation-not-allowed"))return "Google sign-in is not enabled yet in Firebase Authentication.";
+  return "Could not complete the request: "+(e?.message||"Unknown Firebase error");
 }
 
 async function stageImage(inputId,field,imgId,phId,maxW,maxH,mediaId){
@@ -309,6 +315,18 @@ async function signIn(){
   try{await signInWithEmailAndPassword(auth,email,password);}catch(e){setAuthStatus(firebaseMessage(e),"error");}
 }
 
+async function signInWithGoogle(){
+  setAuthStatus("Opening Google sign-in...","working");
+  const provider=new GoogleAuthProvider();
+  provider.setCustomParameters({prompt:"select_account"});
+  try{
+    await signInWithPopup(auth,provider);
+  }catch(e){
+    console.error(e);
+    setAuthStatus(firebaseMessage(e),"error");
+  }
+}
+
 async function loadAfterAuth(){
   setBusy(true);setStatus("Loading online card...","working");
   try{
@@ -361,6 +379,7 @@ function applyPlanLocks(){
 
 document.addEventListener("DOMContentLoaded",()=>{
   buildVisibility();configureEditorEvents();setCardIdentity();
+  $id("adminGoogleLogin")?.addEventListener("click",signInWithGoogle);
   $id("adminLogin")?.addEventListener("click",signIn);
   $id("adminPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")signIn()});
   $id("adminLogout")?.addEventListener("click",()=>signOut(auth));
@@ -372,7 +391,10 @@ document.addEventListener("DOMContentLoaded",()=>{
       let adminUser=cfg.exists()&&cfg.data().adminUid===user.uid;
       if(!cfg.exists()&&cardSnap.exists()&&cardSnap.data().ownerUid===user.uid){await setDoc(platformRef,{adminUid:user.uid,adminEmail:user.email||"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true});adminUser=true;}
       const ownerUser=ownerSnap.exists()&&ownerSnap.data().ownerUid===user.uid;
-      if(!adminUser&&!ownerUser){await signOut(auth);return setAuthStatus("This account does not own this card.","error");}
+      if(!adminUser&&!ownerUser){
+        await signOut(auth);
+        return setAuthStatus(CARD_ID==="main"?"This Google account is not authorized as the JMX administrator.":"This account is not authorized to edit this card.","error");
+      }
       currentRole=adminUser?"admin":"owner";currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:null;
       document.body.classList.toggle("client-owner-mode",currentRole==="owner");
       setAuthStatus(`Signed in as ${user.email||currentRole}. ${currentRole==="admin"?"JMX administrator":"Card owner"}.`,"ok");$id("adminUserEmail").textContent=user.email||currentRole;
