@@ -47,15 +47,14 @@
 </section>
 
 <section id="premiumStatsSection" class="admin-section premium-stats-section" hidden>
- <div class="section-title"><i class="fa-solid fa-chart-line"></i><div><small>PREMIUM</small><h2>Your Profile Statistics</h2></div></div>
- <p class="section-help">A simple view of how your digital card is performing. Detailed platform analytics remain available only to JMX administration.</p>
+ <div class="section-title"><i class="fa-solid fa-chart-line"></i><div><small>PREMIUM / BUSINESS</small><h2>Your Action Analytics</h2></div></div>
+ <p class="section-help">Profile-view counters are historical and frozen after August 25, 2026. New analytics prioritize real customer actions so JMX can scale with fewer Firestore writes.</p>
  <div class="premium-stats-grid">
-  <article><span>This month</span><strong id="ownerMonthViews">0</strong><small>profile opens</small></article>
-  <article><span>All time</span><strong id="ownerTotalViews">0</strong><small>profile opens</small></article>
-  <article><span>Previous month</span><strong id="ownerPreviousViews">0</strong><small id="ownerMonthCompare">—</small></article>
-  <article><span>Top action</span><strong id="ownerTopAction">—</strong><small id="ownerTopActionCount">No clicks yet</small></article>
+  <article><span>Historical profile views</span><strong id="ownerHistoricalViews">0</strong><small>frozen at the analytics transition</small></article>
+  <article><span>Tracked actions</span><strong id="ownerTrackedActions">0</strong><small>real clicks and actions</small></article>
+  <article><span>Top action</span><strong id="ownerTopAction">—</strong><small id="ownerTopActionCount">No actions yet</small></article>
+  <article><span>Analytics transition</span><strong>Aug 26, 2026</strong><small>views frozen; actions continue</small></article>
  </div>
- <div class="mini-chart-wrap"><div class="mini-chart-head"><strong>Last 30 days</strong><span>Profile opens</span></div><div id="owner30DayChart" class="mini-chart" aria-label="Last 30 days profile opens"></div></div>
 </section>
 
 <section class="admin-section">
@@ -72,7 +71,7 @@
 
 <section class="admin-section">
  <div class="section-title"><i class="fa-solid fa-image"></i><div><small>IMAGES</small><h2>Profile & Cover</h2></div></div>
- <p class="section-help">Large photos are compressed automatically so the panel stays fast.</p>
+ <p class="section-help">Photos are compressed automatically and stored in Firebase Cloud Storage so Firestore stays lightweight.</p>
  <div class="image-upload-grid">
   <div class="upload-card"><h3>Profile Photo</h3><div class="image-preview profile-preview"><img id="profilePreview"><span id="profilePlaceholder"><i class="fa-solid fa-user"></i></span></div><label class="upload-button" for="profileUpload"><i class="fa-solid fa-upload"></i> Choose Photo</label><input hidden id="profileUpload" type="file" accept="image/*"><button class="mini-button danger" type="button" data-clear-image="profileImage">Remove</button></div>
   <div class="upload-card"><h3>Cover Photo</h3><div class="image-preview cover-preview"><img id="coverPreview"><span id="coverPlaceholder"><i class="fa-solid fa-image"></i></span></div><label class="upload-button" for="coverUpload"><i class="fa-solid fa-upload"></i> Choose Cover</label><input hidden id="coverUpload" type="file" accept="image/*"><button class="mini-button danger" type="button" data-clear-image="coverImage">Remove</button></div>
@@ -106,7 +105,7 @@
  <div class="section-title"><i class="fa-solid fa-link"></i><div><small>BUSINESS LINKS</small><h2>Catalog & Extra Link</h2></div></div>
  <div class="form-grid">
   <label class="form-group full-width"><span>Catalog URL (recommended for large PDFs)</span><input id="catalog" type="url" placeholder="https://.../catalog.pdf"></label>
-  <label class="form-group full-width"><span>Upload small PDF (max 1 MB)</span><input id="catalogUpload" type="file" accept="application/pdf"></label>
+  <label class="form-group full-width"><span>Upload PDF (max 10 MB)</span><input id="catalogUpload" type="file" accept="application/pdf"></label>
   <label class="form-group"><span>Extra Link Label</span><input id="customBusinessLabel" type="text" placeholder="Request a Quote"></label>
   <label class="form-group"><span>Extra Link Subtitle</span><input id="customBusinessSubtitle" type="text" placeholder="Open our quote form"></label>
   <label class="form-group full-width"><span>Extra Link URL</span><input id="customBusinessUrl" type="url" placeholder="https://..."></label>

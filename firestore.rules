@@ -25,6 +25,10 @@ service cloud.firestore {
     function claimAfter(cardId) { return getAfter(/databases/$(database)/documents/cardClaims/$(cardId)); }
     function ownerAfter(cardId) { return getAfter(/databases/$(database)/documents/cardOwners/$(cardId)); }
     function inventoryDoc(cardId) { return get(/databases/$(database)/documents/inventory/$(cardId)); }
+    function profileViewAnalyticsOpen() {
+      // 2026-08-26 00:00 America/Chicago (CDT)
+      return request.time < timestamp.value('2026-08-26T05:00:00Z');
+    }
     function canClaim(cardId) {
       return signedIn()
         && exists(/databases/$(database)/documents/cards/$(cardId))
@@ -112,19 +116,30 @@ service cloud.firestore {
 
     match /cardStats/{cardId} {
       allow read: if isAdmin() || isOwner(cardId);
-      allow create, update: if request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']) && request.resource.data.cardId == cardId;
+      // Historical views may increment only before the fixed transition. After it,
+      // public analytics can change action counters but the existing view value is frozen.
+      allow create: if request.resource.data.cardId == cardId
+        && request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt'])
+        && (profileViewAnalyticsOpen() || !request.resource.data.keys().hasAny(['views']));
+      allow update: if request.resource.data.cardId == cardId
+        && request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt'])
+        && (profileViewAnalyticsOpen() || request.resource.data.get('views', 0) == resource.data.get('views', 0));
       allow delete: if isAdmin();
     }
 
+    // Historical monthly/daily documents remain readable and are never deleted by
+    // the transition. New writes are allowed only before the 2026-08-26 cutoff.
     match /monthlyStats/{statId} {
       allow read: if isAdmin() || (signedIn() && resource.data.cardId is string && isOwner(resource.data.cardId));
-      allow create, update: if request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']);
+      allow create, update: if profileViewAnalyticsOpen()
+        && request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']);
       allow delete: if isAdmin();
     }
 
     match /dailyStats/{statId} {
       allow read: if isAdmin() || (signedIn() && resource.data.cardId is string && isOwner(resource.data.cardId));
-      allow create, update: if request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']);
+      allow create, update: if profileViewAnalyticsOpen()
+        && request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']);
       allow delete: if isAdmin();
     }
 

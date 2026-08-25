@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch, query, where, deleteField } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getStorage, ref as storageRef, deleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDf12K0m93K4cWSotDcSg2fIS-s3uaLW_Y",
@@ -14,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const $ = (id) => document.getElementById(id);
 const SAFE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 let user = null;
@@ -44,6 +46,13 @@ function complimentaryTier(card){
 }
 function businessCountsAsActive(card){return effectivePlan(card)==="Business" && ["activated","suspended"].includes(card?.status) && card?.subscription?.status!=="canceled";}
 let featureControls = defaultFeatureControls();
+function platformAllowsForCard(card,key){
+  if(featureControls.enabled===false){const plan=effectivePlan(card);if(plan==="Business")return true;if(plan==="Premium")return !new Set(["quickCapture","leads","advancedAnalytics"]).has(key);return BASIC_FEATURE_DEFAULTS.has(key)}
+  if(featureControls.global?.[key]===false)return false;
+  const plan=effectivePlan(card),bucket=plan==="Basic"?featureControls.Basic:plan==="Business"?featureControls.Business:featureControls.Premium;
+  return bucket?.[key]!==false;
+}
+function clientAllowsFeature(card,key){return platformAllowsForCard(card,key)&&card?.featureOverrides?.[key]!==false}
 
 
 function esc(value) {
@@ -77,7 +86,6 @@ function friendlyUrl(id) {
   return `${location.origin}/c/${encodeURIComponent(id)}`;
 }
 function editorUrl(id) { return new URL(`admin.html?card=${encodeURIComponent(id)}`, location.href).href; }
-function currentMonthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
 
 async function isAdmin(currentUser) {
   if (!currentUser) return false;
@@ -143,12 +151,11 @@ async function loadCards() {
   for (const id of allIds) {
     const cardData = cardDocs.get(id);
     const inventoryData = inventoryDocs.get(id) || {};
-    const [adminSnap, ownerSnap, profileSnap, statsSnap, monthSnap] = await Promise.all([
+    const [adminSnap, ownerSnap, profileSnap, statsSnap] = await Promise.all([
       getDoc(doc(db, "cardAdmin", id)),
       getDoc(doc(db, "cardOwners", id)),
       getDoc(doc(db, "profiles", id)),
-      getDoc(doc(db, "cardStats", id)),
-      getDoc(doc(db, "monthlyStats", `${id}_${currentMonthKey()}`))
+      getDoc(doc(db, "cardStats", id))
     ]);
     const admin = adminSnap.exists() ? adminSnap.data() : {};
 
@@ -174,8 +181,7 @@ async function loadCards() {
       owner: ownerSnap.exists() ? ownerSnap.data() : null,
       profile: profileSnap.exists() ? profileSnap.data() : null,
       inventory: inventoryData,
-      stats: statsSnap.exists() ? statsSnap.data() : {},
-      monthStats: monthSnap.exists() ? monthSnap.data() : {}
+      stats: statsSnap.exists() ? statsSnap.data() : {}
     });
   }
 
@@ -211,14 +217,18 @@ function prettyActionName(name = "") {
     customLink: "Custom link",
     saveContact: "Save Contact",
     share: "Share",
-    cta: "CTA"
+    cta: "CTA",
+    quickCapture: "Quick Capture",
+    leadReceived: "Leads Received",
+    qrVisit: "QR Visits",
+    qrDownload: "QR Download"
   };
   return labels[name] || name.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase());
 }
 
 function actionBreakdown(actions = {}) {
   const entries = Object.entries(actions || {}).filter(([, value]) => Number(value || 0) > 0).sort((a,b)=>Number(b[1])-Number(a[1]));
-  if (!entries.length) return '<div class="analytics-empty">No clicks recorded yet.</div>';
+  if (!entries.length) return '<div class="analytics-empty">No tracked actions yet.</div>';
   return entries.map(([name, value]) => `<div class="analytics-action-row"><span>${esc(prettyActionName(name))}</span><strong>${Number(value || 0).toLocaleString()}</strong></div>`).join("");
 }
 
@@ -276,7 +286,6 @@ function render() {
     const owner = card.owner || {};
     const profile = card.profile || {};
     const stats = card.stats || {};
-    const monthStats = card.monthStats || {};
     const effective = effectivePlan(card);
     const displayName = profile.fullName || admin.clientName || owner.ownerEmail || card.id;
     const gift = complimentaryTier(card);
@@ -284,8 +293,8 @@ function render() {
       <button class="client-list-row" type="button" data-client-id="${esc(card.id)}">
         <span class="client-list-main"><strong>${esc(displayName)}</strong><small>${esc(card.id)} · ${esc(owner.ownerEmail || "No owner email")}</small></span>
         <span class="client-list-plan">${esc(effective)}${gift ? `<small class="gift-inline-label"><i class="fa-solid fa-gift"></i> Gift</small>` : ""}</span>
-        <span class="client-list-stat"><strong>${Number(stats.views || 0).toLocaleString()}</strong><small>total views</small></span>
-        <span class="client-list-stat"><strong>${Number(monthStats.views || 0).toLocaleString()}</strong><small>this month</small></span>
+        <span class="client-list-stat"><strong>${Number(stats.views || 0).toLocaleString()}</strong><small>historical views</small></span>
+        <span class="client-list-stat"><strong>${sumActions(stats.actions || {}).toLocaleString()}</strong><small>tracked actions</small></span>
         <span class="badge ${badgeClass(card.status)}">${esc(card.status || "activated")}</span>
         <i class="fa-solid fa-chevron-right"></i>
       </button>
@@ -410,10 +419,8 @@ async function openClientDialog(id) {
   const admin = card.admin || {};
   const owner = card.owner || {};
   const stats = card.stats || {};
-  const monthStats = card.monthStats || {};
   const effective = effectivePlan(card);
   const totalActions = stats.actions || {};
-  const monthActions = monthStats.actions || {};
   const dialog = $("clientDetailDialog");
   dialog.dataset.cardId = id;
   dialog.dataset.detailType = "client";
@@ -459,17 +466,23 @@ async function openClientDialog(id) {
           </label>
         </div>
       </section>
+      <section class="detail-panel client-feature-control-panel">
+        <h3>Client Feature Overrides</h3>
+        <p class="subtitle small">An OFF switch here hides the feature from this client's public card and from their profile editor without deleting saved data. Global and plan controls still have priority.</p>
+        <div class="feature-switch-list client-feature-switches">
+          ${FEATURE_DEFS.map(([key,label])=>{const platformOn=platformAllowsForCard(card,key),clientOn=card.featureOverrides?.[key]!==false;return `<label class="feature-switch-row ${platformOn?"":"master-off"}"><span><strong>${esc(label)}</strong><small>${platformOn?"Client-specific access":"Disabled by Global/Plan control"}</small></span><input type="checkbox" data-client-feature="${esc(key)}" ${clientOn?"checked":""} ${platformOn?"":"disabled"}><i class="switch-ui"></i></label>`}).join("")}
+        </div>
+      </section>
       <section class="detail-panel analytics-panel">
         <h3>Analytics</h3>
+        <p class="subtitle small">Profile-view history is preserved and frozen after August 25, 2026. New analytics prioritize real customer actions to reduce Firestore operations.</p>
         <div class="analytics-summary">
-          <article><span>Total views</span><strong>${Number(stats.views || 0).toLocaleString()}</strong></article>
-          <article><span>Views this month</span><strong>${Number(monthStats.views || 0).toLocaleString()}</strong></article>
-          <article><span>Total clicks</span><strong>${sumActions(totalActions).toLocaleString()}</strong></article>
-          <article><span>Clicks this month</span><strong>${sumActions(monthActions).toLocaleString()}</strong></article>
+          <article><span>Historical profile views</span><strong>${Number(stats.views || 0).toLocaleString()}</strong></article>
+          <article><span>Tracked actions</span><strong>${sumActions(totalActions).toLocaleString()}</strong></article>
+          <article><span>Transition date</span><strong>Aug 26, 2026</strong></article>
         </div>
         <div class="analytics-columns">
-          <div><h4>All-time clicks</h4>${actionBreakdown(totalActions)}</div>
-          <div><h4>This month</h4>${actionBreakdown(monthActions)}</div>
+          <div><h4>Action breakdown</h4>${actionBreakdown(totalActions)}</div>
         </div>
       </section>
     </div>`;
@@ -545,6 +558,11 @@ async function deleteRefsInChunks(refs, chunkSize = 400) {
   }
 }
 
+async function deleteProfileStorageMedia(profileData){
+  const manifest=(profileData?.media&&typeof profileData.media==="object")?profileData.media:{};
+  await Promise.all(Object.values(manifest).map(async entry=>{if(!entry?.storagePath)return;try{await deleteObject(storageRef(storage,entry.storagePath))}catch(e){if(!String(e?.code||"").includes("object-not-found"))console.warn("Storage cleanup skipped",e)}}));
+}
+
 async function releaseForReuse(id) {
   const card = cards.find((c) => c.id === id);
   if (!card || !["activated", "suspended"].includes(card.status)) return;
@@ -577,7 +595,7 @@ async function releaseForReuse(id) {
     previousProfile: profileSnap.exists() ? profileSnap.data() : null,
     previousAdmin: adminSnap.exists() ? adminSnap.data() : null,
     previousStats: card.stats || {},
-    previousMonthStats: card.monthStats || {}
+    analyticsTransitionDate: "2026-08-26"
   });
 
   batch.set(doc(db, "cards", id), {
@@ -612,6 +630,7 @@ async function releaseForReuse(id) {
   batch.delete(doc(db, "ownerActivity", id));
   batch.delete(doc(db, "cardStats", id));
   mediaSnap.forEach((m) => batch.delete(m.ref));
+  await deleteProfileStorageMedia(profileSnap.exists()?profileSnap.data():{});
   await batch.commit();
   await deleteRefsInChunks(monthSnaps.docs.map((d) => d.ref));
   await deleteRefsInChunks(daySnaps.docs.map((d) => d.ref));
@@ -741,7 +760,7 @@ function blankProfile() {
     fullName: "", position: "", company: "", city: "", state: "", description: "", phone: "", phoneRaw: "", phone2: "", phone2Raw: "", whatsapp: "", whatsappRaw: "", email: "", website: "",
     facebook: "", instagram: "", linkedin: "", twitter: "", tiktok: "", youtube: "", catalog: "", customBusinessLabel: "More Information", customBusinessSubtitle: "Open business link", customBusinessUrl: "", videoUrl: "",
     service1Title: "Service One", service1Description: "", service1Icon: "fa-star", service2Title: "Service Two", service2Description: "", service2Icon: "fa-star", service3Title: "Service Three", service3Description: "", service3Icon: "fa-star",
-    finalCtaTitle: "Let's Connect", finalCtaText: "Contact us today.", finalCtaLabel: "Contact Now", theme: "gold", visibility: {}, updatedAt: serverTimestamp()
+    finalCtaTitle: "Let's Connect", finalCtaText: "Contact us today.", finalCtaLabel: "Contact Now", theme: "gold", visibility: {}, media: {}, mediaStorageVersion: 2, updatedAt: serverTimestamp()
   };
 }
 
@@ -843,6 +862,15 @@ async function handleDialogAction(event) {
 $("clientDetailActions")?.addEventListener("click", handleDialogAction);
 $("clientDetailBody")?.addEventListener("click", handleDialogAction);
 $("clientDetailBody")?.addEventListener("change", async (event) => {
+  const featureInput=event.target.closest("[data-client-feature]");
+  if(featureInput){
+    const id=$("clientDetailDialog").dataset.cardId,card=cards.find(c=>c.id===id);if(!card)return;
+    const overrides={...((card.featureOverrides&&typeof card.featureOverrides==="object")?card.featureOverrides:{})};overrides[featureInput.dataset.clientFeature]=featureInput.checked;
+    featureInput.disabled=true;
+    try{await setDoc(doc(db,"cards",id),{featureOverrides:overrides,updatedAt:serverTimestamp()},{merge:true});await loadCards();if($("clientDetailDialog").open)await openClientDialog(id)}
+    catch(error){console.error("Client feature override failed",error);alert("Could not update this client feature. Please try again.")}
+    return;
+  }
   const input=event.target.closest("[data-gift-tier]");
   if(!input)return;
   const id=$("clientDetailDialog").dataset.cardId;

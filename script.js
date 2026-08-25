@@ -31,24 +31,51 @@ async function getOnlineProfile(){
   if(["suspended","paused"].includes(meta.status))return {__suspended:true,__meta:meta};
   const profileSnap=await getDoc(doc(db,"profiles",CARD_ID));
   const data=profileSnap.exists()?profileSnap.data():meta;
-  const out={...fallback,...data,status:meta.status||data.status||"activated",plan:meta.plan||"Premium",complimentaryPremium:meta.complimentaryPremium===true,complimentaryBusiness:meta.complimentaryBusiness===true,subscription:meta.subscription||{},visibility:{...(fallback.visibility||{}),...(data.visibility||{})},galleryImages:[]};
-  const ms=await getDocs(collection(db,"cards",CARD_ID,"media"));const gallery=[];
-  ms.forEach(d=>{const m=d.data(),u=m.data||"";if(d.id==="logo")out.logoImage=u;else if(d.id==="profile")out.profileImage=u;else if(d.id==="cover")out.coverImage=u;else if(d.id==="catalog")out.catalogFile=u;else if(d.id.startsWith("gallery-")){const i=Number(d.id.split("-")[1]);if(Number.isInteger(i))gallery[i]=u}});
-  out.galleryImages=gallery.filter(Boolean);return out
+  const out={...fallback,...data,status:meta.status||data.status||"activated",plan:meta.plan||"Premium",complimentaryPremium:meta.complimentaryPremium===true,complimentaryBusiness:meta.complimentaryBusiness===true,subscription:meta.subscription||{},featureOverrides:(meta.featureOverrides&&typeof meta.featureOverrides==="object")?meta.featureOverrides:{},visibility:{...(fallback.visibility||{}),...(data.visibility||{})},galleryImages:[]};
+  const gallery=[],manifest=(data.media&&typeof data.media==="object")?data.media:{};
+  const applyMedia=(id,m={})=>{const u=m.url||m.data||"";if(!u)return;if(id==="logo")out.logoImage=u;else if(id==="profile")out.profileImage=u;else if(id==="cover")out.coverImage=u;else if(id==="catalog")out.catalogFile=u;else if(id.startsWith("gallery-")){const i=Number(id.split("-")[1]);if(Number.isInteger(i))gallery[i]=u}};
+  Object.entries(manifest).forEach(([id,m])=>applyMedia(id,m));
+  // Legacy fallback is used only for cards that predate the Storage manifest. New cards avoid the extra media collection reads.
+  if(Number(data.mediaStorageVersion||0)<2){const ms=await getDocs(collection(db,"cards",CARD_ID,"media"));ms.forEach(d=>{if(!manifest[d.id]?.url)applyMedia(d.id,d.data())})}
+  out.galleryImages=gallery.filter(Boolean);out.media=manifest;out.mediaStorageVersion=Number(data.mediaStorageVersion||0);return out
 }
 
+// Analytics transition: profile-view counters freeze at midnight in Chicago on 2026-08-26.
+// 2026-08-26 00:00 America/Chicago = 2026-08-26T05:00:00Z (CDT).
+// Historical cardStats/monthlyStats/dailyStats documents are intentionally preserved.
+const ANALYTICS_PROFILE_VIEW_CUTOFF_ISO="2026-08-26T05:00:00Z";
+const ANALYTICS_PROFILE_VIEW_CUTOFF_MS=Date.parse(ANALYTICS_PROFILE_VIEW_CUTOFF_ISO);
+const PREMIUM_ACTIONS=new Set(["saveContact","phone","text","email","whatsapp","website","facebook","instagram","linkedin","twitter","tiktok","youtube","catalog","customLink","share","cta"]);
+const BUSINESS_ADVANCED_ACTIONS=new Set([...PREMIUM_ACTIONS,"quickCapture","leadReceived","qrVisit","qrDownload"]);
 function monthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
 function dayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function analyticsActionAllowed(action){
+  const plan=effectivePublicPlan();
+  if(plan==="Basic"||!planAllows("analytics"))return false;
+  if(plan==="Premium")return PREMIUM_ACTIONS.has(action);
+  if(plan==="Business")return (planAllows("advancedAnalytics")?BUSINESS_ADVANCED_ACTIONS:PREMIUM_ACTIONS).has(action);
+  return false;
+}
+async function trackActions(actions=[]){
+  if(CARD_ID==="main")return;
+  const allowed=[...new Set(actions)].filter(analyticsActionAllowed);
+  if(!allowed.length)return;
+  const actionIncrements={};allowed.forEach(action=>{actionIncrements[action]=increment(1)});
+  try{await setDoc(doc(db,"cardStats",CARD_ID),{cardId:CARD_ID,actions:actionIncrements,updatedAt:serverTimestamp()},{merge:true})}
+  catch(e){console.warn("Analytics action skipped",e)}
+}
 async function trackMetric(action="view"){
-  if(CARD_ID==="main") return;
-  const base={cardId:CARD_ID,updatedAt:serverTimestamp()};
-  const metric=action==="view"?{views:increment(1)}:{actions:{[action]:increment(1)}};
-  const payload={...base,...metric};
+  if(CARD_ID==="main")return;
+  if(action!=="view")return trackActions([action]);
+  // Keep the legacy view counters only until the fixed transition moment. Firestore rules
+  // also enforce this cutoff with server time so a changed browser clock cannot continue views.
+  if(Date.now()>=ANALYTICS_PROFILE_VIEW_CUTOFF_MS)return;
+  const payload={cardId:CARD_ID,views:increment(1),updatedAt:serverTimestamp()};
   try{await Promise.all([
     setDoc(doc(db,"cardStats",CARD_ID),payload,{merge:true}),
     setDoc(doc(db,"monthlyStats",`${CARD_ID}_${monthKey()}`),payload,{merge:true}),
     setDoc(doc(db,"dailyStats",`${CARD_ID}_${dayKey()}`),payload,{merge:true})
-  ])}catch(e){console.warn("Analytics skipped",e)}
+  ])}catch(e){console.warn("Legacy profile-view analytics skipped",e)}
 }
 function trackView(){return trackMetric("view")}
 function initActionTracking(){
@@ -67,10 +94,10 @@ const vid=$id("featuredVideo");if(vid){if(p.videoUrl){vid.src=youtubeEmbed(p.vid
 function loadGallery(){const imgs=Array.isArray(p.galleryImages)?p.galleryImages:[];document.querySelectorAll(".gallery-item").forEach((item,i)=>{const im=item.querySelector("img");if(imgs[i]){if(im)im.src=imgs[i];item.dataset.image=imgs[i];item.style.display=""}else item.style.display="none"})}
 function planAllows(feature){
   const planName=p.complimentaryBusiness===true?"Business":(p.complimentaryPremium===true?"Premium":(p.plan||"Premium"));
-  if(platformFeatureControls.enabled===false){if(String(planName).toLowerCase()==="business")return true;if(String(planName).toLowerCase()==="premium")return !["quickCapture","leads","advancedAnalytics"].includes(feature);return BASIC_FEATURE_DEFAULTS.has(feature)}
+  if(platformFeatureControls.enabled===false){let base;if(String(planName).toLowerCase()==="business")base=true;else if(String(planName).toLowerCase()==="premium")base=!["quickCapture","leads","advancedAnalytics"].includes(feature);else base=BASIC_FEATURE_DEFAULTS.has(feature);return base&&p.featureOverrides?.[feature]!==false}
   if(platformFeatureControls.global?.[feature]===false)return false;
   const bucket=String(planName).toLowerCase()==="basic"?platformFeatureControls.Basic:String(planName).toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
-  return bucket?.[feature]!==false;
+  return bucket?.[feature]!==false && p.featureOverrides?.[feature]!==false;
 }
 function applyVisibility(cat){const v=p.visibility||{};visible("profileDescription",planAllows("description")&&v.description!==false&&has(p.description));visible("saveContactButton",planAllows("saveContact")&&v.saveContact!==false);visible("phoneButton",planAllows("quickActions")&&planAllows("phone")&&v.quickActions!==false&&v.phone!==false&&has(p.phoneRaw));visible("textButton",planAllows("quickActions")&&planAllows("phone")&&v.quickActions!==false&&v.phone!==false&&has(p.phoneRaw));visible("emailButton",planAllows("quickActions")&&planAllows("email")&&v.quickActions!==false&&v.email!==false&&has(p.email));visible("websiteButton",planAllows("quickActions")&&planAllows("website")&&v.quickActions!==false&&v.website!==false&&has(p.website));visible("quickActions",v.quickActions!==false&&["phoneButton","textButton","emailButton","websiteButton"].some(id=>$id(id)?.style.display!=="none"));visible("phone1Row",planAllows("phone")&&v.phone!==false&&has(p.phoneRaw));visible("phone2Row",planAllows("phone2")&&v.phone2!==false&&has(p.phone2Raw));visible("whatsappRow",planAllows("whatsapp")&&v.whatsapp!==false&&has(p.whatsappRaw||p.phoneRaw));visible("emailRow",planAllows("email")&&v.email!==false&&has(p.email));visible("websiteRow",planAllows("website")&&v.website!==false&&has(p.website));visible("locationRow",planAllows("location")&&v.location!==false&&(has(p.city)||has(p.state)));visible("contactSection",["phone1Row","phone2Row","whatsappRow","emailRow","websiteRow","locationRow"].some(id=>$id(id)?.style.display!=="none"));const socials=[["facebookLink","facebook",p.facebook],["instagramLink","instagram",p.instagram],["linkedinLink","linkedin",p.linkedin],["twitterLink","twitter",p.twitter],["tiktokLink","tiktok",p.tiktok],["youtubeLink","youtube",p.youtube]];socials.forEach(([id,k,u])=>visible(id,planAllows(k)&&v[k]!==false&&has(u)));visible("socialSection",socials.some(([id])=>$id(id)?.style.display!=="none"));visible("services",planAllows("services")&&v.services!==false);visible("gallery",planAllows("gallery")&&v.gallery!==false&&Array.isArray(p.galleryImages)&&p.galleryImages.length>0);visible("videoSection",planAllows("video")&&v.video!==false&&has(p.videoUrl));visible("qrSection",planAllows("qr")&&v.qr!==false);visible("finalCtaSection",planAllows("finalCTA")&&v.finalCTA!==false);visible("businessServicesLink",planAllows("services")&&v.services!==false);visible("businessGalleryLink",planAllows("gallery")&&v.gallery!==false&&Array.isArray(p.galleryImages)&&p.galleryImages.length>0);visible("catalogLink",planAllows("catalog")&&v.catalog!==false&&has(cat));visible("customBusinessLink",planAllows("customBusiness")&&v.customBusiness!==false&&has(p.customBusinessUrl));visible("businessLinksSection",planAllows("businessLinks")&&v.businessLinks!==false&&["businessServicesLink","businessGalleryLink","catalogLink","customBusinessLink"].some(id=>$id(id)?.style.display!=="none"));visible("quickCaptureSection",planAllows("quickCapture")&&planAllows("leads"))}
 const themes={gold:["#b88a2b","#e7cc84","#745317","184, 138, 43"],blue:["#2563eb","#93c5fd","#1e3a8a","37, 99, 235"],emerald:["#059669","#6ee7b7","#065f46","5, 150, 105"],purple:["#7c3aed","#c4b5fd","#4c1d95","124, 58, 237"],red:["#dc2626","#fca5a5","#7f1d1d","220, 38, 38"],black:["#171717","#a3a3a3","#050505","23, 23, 23"],cyan:["#06b6d4","#a5f3fc","#155e75","6, 182, 212"]};
@@ -96,7 +123,7 @@ async function submitQuickCapture(event){
     const now=Date.now(),expiresAt=Timestamp.fromMillis(now+30*24*60*60*1000);
     const policies=window.__jmxPublicSettings?.business||{};
     await addDoc(collection(db,"leads",CARD_ID,"items"),{cardId:CARD_ID,name,phone,email,company,message,status:"New",notes:"",meetingNotes:"",followUpDate:null,createdAt:serverTimestamp(),expiresAt,policyVersion:String(policies.policyVersion||policies.updatedAt||"business-v1"),acceptedAt:serverTimestamp(),plan:"Business"});
-    trackMetric("quickCapture");
+    trackActions(["quickCapture","leadReceived"]);
     event.currentTarget.reset();if(status)status.textContent="Your contact was shared successfully.";
   }catch(e){console.error("Quick Capture failed",e);if(status)status.textContent="Could not share your contact. Please try again."}finally{if(button)button.disabled=false}
 }

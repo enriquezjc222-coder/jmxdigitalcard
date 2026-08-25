@@ -1,0 +1,79 @@
+JMX DIGITAL CARD — ANALYTICS SCALABILITY OPTIMIZATION
+
+Transition date
+- Official date: 2026-08-26
+- Cutoff moment: 2026-08-26T05:00:00Z = 00:00 America/Chicago (CDT).
+- Firestore rules enforce the cutoff using request.time (server time).
+- Existing cardStats/monthlyStats/dailyStats documents are not deleted or reset by this implementation.
+
+What changed
+1. Passive Profile Views
+- Before cutoff, the legacy view counter can continue writing cardStats + monthlyStats + dailyStats.
+- At/after cutoff, generic profile opens no longer generate Profile View writes.
+- Existing total/monthly/daily view values remain stored as historical values.
+
+2. Basic
+- Basic does not record action analytics because Analytics is not part of the Basic default entitlement.
+- Basic profile opens do not generate Profile View analytics after the cutoff.
+
+3. Premium
+- Premium keeps action-based analytics only when the Analytics feature is allowed.
+- Examples: Save Contact, phone, text, email, WhatsApp, website, social links, catalog, business link, share and CTA.
+- One real action now produces one aggregate cardStats write instead of cardStats + monthlyStats + dailyStats.
+
+4. JMX Business
+- Business keeps Premium actions plus advanced real events when Advanced Analytics is enabled: Quick Capture, Leads Received, QR Visits when src=qr is present, and QR Download.
+- NFC Visits are NOT invented because the currently programmed NFC URL does not reliably identify NFC as a source.
+- Quick Capture + Leads Received are incremented together in one Firestore write.
+- Leads by date remain available from real Lead documents and do not require a duplicate view counter.
+
+5. Owner editor
+- Removed live monthly/previous-month Profile View UI and the 30-day Profile View chart because those values freeze after transition.
+- Shows Historical Profile Views, Tracked Actions, Top Action, and the transition date.
+- Owner editor now reads only cardStats for its analytics summary instead of cardStats + two monthly docs + 30 daily docs.
+
+6. Administrator dashboard
+- Main card load no longer reads the current monthlyStats document for every card.
+- Client rows show Historical Views and Tracked Actions.
+- Detail shows historical frozen views and action breakdown.
+
+Estimated operation reduction
+- Old passive visit: up to 3 Firestore analytics writes (global + monthly + daily).
+- New passive visit after cutoff: 0 Profile View writes.
+- Old tracked action: up to 3 Firestore analytics writes.
+- New eligible Premium/Business action: 1 aggregate cardStats write.
+- Quick Capture + Leads Received: both counters are combined into 1 analytics write after the Lead is created.
+
+Historical analytics
+- No automatic deletion, reset, zeroing, reassignment or destructive migration was added.
+- cardStats views remain as historical totals.
+- monthlyStats and dailyStats remain readable historical documents.
+
+Files modified
+- script.js
+- admin.html
+- admin.js
+- dashboard.js
+- firestore.rules
+
+Files created
+- JMX-ANALYTICS-SCALABILITY-OPTIMIZATION-AUG2026.txt
+
+Preserved systems
+- Cloud Storage media architecture and legacy Base64 fallback
+- Feature Control Center (Global -> Plan -> Client -> Owner visibility)
+- Basic / Premium / Business
+- Complimentary Premium / Complimentary Business
+- Quick Capture / Leads / 30-day expiresAt behavior
+- Existing Cloud Function source (NOT deployed)
+- NFC / QR / activation flow / permanent Card IDs and URLs
+
+Deployment still pending
+- Do NOT deploy Cloud Functions yet.
+- Publish the updated project to GitHub/Hosting when approved.
+- Publish updated firestore.rules so the transition is enforced server-side.
+- Publish storage.rules / configure Cloud Storage as required by the prior Storage optimization.
+- Cloud Function deployment remains a later separate step.
+
+Important limitation
+- This ZIP cannot inspect or mutate the live production Firestore database. Therefore existing production Card IDs, activation codes, owners, URLs and historical values were not altered or destructively tested. The implementation is designed to preserve them.

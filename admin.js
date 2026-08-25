@@ -18,6 +18,13 @@ import {
   signInWithPopup,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDf12K0m93K4cWSotDcSg2fIS-s3uaLW_Y",
@@ -31,6 +38,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 const LEGACY_STORAGE_KEY = "premiumDigitalCardProfile";
 const THEME_KEY = "digitalCardTheme";
@@ -74,19 +82,21 @@ let currentProfile = structuredCloneSafe(defaults);
 let currentUser = null;
 let currentCardOwnerUid = null;
 let currentCardPlan = "Premium";
+let currentCardFeatureOverrides = {};
 let currentRole = "none";
 let pendingMedia = new Map();
 let pendingDeletes = new Set();
 const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
-const FEATURE_KEYS=Object.keys(VISIBILITY_LABELS);
-function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=true;Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
+const BUSINESS_ONLY_FEATURES=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","brandingRemoval","advancedNetworkingInsights"]);
+const FEATURE_KEYS=[...new Set([...Object.keys(VISIBILITY_LABELS),"customQR","qrDownload","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","brandingRemoval","advancedNetworkingInsights"])];
+function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=!BUSINESS_ONLY_FEATURES.has(k);Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
 function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
 let platformFeatureControls=defaultFeatureControls();
 function featureEnabledForPlan(feature){
-  if(platformFeatureControls.enabled===false){return ["premium","business"].includes(currentCardPlan.toLowerCase())||BASIC_FEATURE_DEFAULTS.has(feature)}
+  if(platformFeatureControls.enabled===false){const base=["premium","business"].includes(currentCardPlan.toLowerCase())||BASIC_FEATURE_DEFAULTS.has(feature);return base&&currentCardFeatureOverrides?.[feature]!==false}
   if(platformFeatureControls.global?.[feature]===false)return false;
   const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:currentCardPlan.toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
-  return group?.[feature]!==false;
+  return group?.[feature]!==false && currentCardFeatureOverrides?.[feature]!==false;
 }
 const FEATURE_INPUT_IDS={description:["description"],phone:["phone"],phone2:["phone2"],whatsapp:["whatsapp"],email:["email"],website:["website"],facebook:["facebook"],instagram:["instagram"],linkedin:["linkedin"],twitter:["twitter"],tiktok:["tiktok"],youtube:["youtube"],catalog:["catalog","catalogUpload"],customBusiness:["customBusinessLabel","customBusinessSubtitle","customBusinessUrl"],video:["videoUrl"],services:["service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon"],gallery:["galleryUpload","clearGallery"],finalCTA:["finalCtaTitle","finalCtaText","finalCtaLabel"]};
 
@@ -127,13 +137,22 @@ async function loadRemoteProfile(){
   if(!cardSnap.exists()&&!profileSnap.exists()) return null;
   const meta=cardSnap.exists()?cardSnap.data():{};
   currentCardPlan=meta.complimentaryBusiness===true?"Business":(meta.complimentaryPremium===true?"Premium":(meta.plan||"Premium"));
+  currentCardFeatureOverrides=(meta.featureOverrides&&typeof meta.featureOverrides==="object")?meta.featureOverrides:{};
   currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:(meta.ownerUid||null);
   const data=profileSnap.exists()?profileSnap.data():meta;
   const p={...structuredCloneSafe(defaults),...data,visibility:{...defaults.visibility,...(data.visibility||{})},galleryImages:[]};
   ["ownerUid","createdAt","updatedAt","plan","status"].forEach(k=>delete p[k]);
-  const mediaSnap=await getDocs(mediaCol);const gallery=[];
-  mediaSnap.forEach(d=>{const m=d.data(),dataUrl=m.data||"";if(d.id==="logo")p.logoImage=dataUrl;else if(d.id==="profile")p.profileImage=dataUrl;else if(d.id==="cover")p.coverImage=dataUrl;else if(d.id==="catalog"){p.catalogFile=dataUrl;p.catalogFileName=m.name||p.catalogFileName||"";}else if(d.id.startsWith("gallery-")){const i=Number(d.id.split("-")[1]);if(Number.isInteger(i))gallery[i]=dataUrl;}});
-  p.galleryImages=gallery.filter(Boolean);return p;
+  const gallery=[];
+  const manifest=(data.media&&typeof data.media==="object")?data.media:{};
+  const applyMedia=(id,m={})=>{const url=m.url||m.data||"";if(!url)return;if(id==="logo")p.logoImage=url;else if(id==="profile")p.profileImage=url;else if(id==="cover")p.coverImage=url;else if(id==="catalog"){p.catalogFile=url;p.catalogFileName=m.name||p.catalogFileName||"";}else if(id.startsWith("gallery-")){const i=Number(id.split("-")[1]);if(Number.isInteger(i))gallery[i]=url;}};
+  Object.entries(manifest).forEach(([id,m])=>applyMedia(id,m));
+  // Backward compatibility: legacy cards may still keep Base64/data URLs in cards/{cardId}/media.
+  // New cards use mediaStorageVersion 2 and skip this collection query entirely.
+  if(Number(data.mediaStorageVersion||0)<2){
+    const mediaSnap=await getDocs(mediaCol);
+    mediaSnap.forEach(d=>{if(!manifest[d.id]?.url)applyMedia(d.id,d.data())});
+  }
+  p.galleryImages=gallery.filter(Boolean);p.media={...manifest};p.mediaStorageVersion=Number(data.mediaStorageVersion||0);return p;
 }
 
 function profileForFirestore(p){
@@ -150,9 +169,45 @@ async function ensureCardDocument(){
   await setDoc(profileRef,profileForFirestore(p),{merge:true});
 }
 
-async function saveMediaDoc(id,data,name=""){
-  if(!data){ await deleteDoc(doc(db,"cards",CARD_ID,"media",id)).catch(()=>{}); return; }
-  await setDoc(doc(db,"cards",CARD_ID,"media",id),{data,name,updatedAt:serverTimestamp()},{merge:true});
+function dataUrlToBlob(dataUrl){
+  const [head,body]=String(dataUrl||"").split(",",2);
+  const mime=(head.match(/^data:([^;]+)/)||[])[1]||"application/octet-stream";
+  const bytes=atob(body||"");const arr=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+function safeStorageName(name,mime){
+  const base=String(name||"file").replace(/[^a-zA-Z0-9._-]+/g,"-").slice(-90)||"file";
+  if(base.includes("."))return base;
+  const ext=mime==="application/pdf"?"pdf":mime==="image/png"?"png":mime==="image/webp"?"webp":"jpg";return `${base}.${ext}`;
+}
+async function deleteStorageMediaEntry(entry){
+  if(entry?.storagePath){try{await deleteObject(storageRef(storage,entry.storagePath))}catch(e){if(!String(e?.code||"").includes("object-not-found"))console.warn("Could not remove previous Storage object",e)}}
+}
+async function uploadMediaToStorage(id,data,name=""){
+  const blob=dataUrlToBlob(data),fileName=safeStorageName(name,blob.type);
+  const path=`cards/${CARD_ID}/${id}/${Date.now()}-${crypto.randomUUID().slice(0,8)}-${fileName}`;
+  const r=storageRef(storage,path);
+  await uploadBytes(r,blob,{contentType:blob.type,customMetadata:{cardId:CARD_ID,mediaId:id,ownerUid:currentCardOwnerUid||currentUser?.uid||""}});
+  const url=await getDownloadURL(r);
+  return {url,storagePath:path,name:fileName,contentType:blob.type,size:blob.size,updatedAtMillis:Date.now()};
+}
+async function savePendingMediaToStorage(profile){
+  const manifest={...((profile.media&&typeof profile.media==="object")?profile.media:{})};
+  for(const [id,m] of pendingMedia.entries()){
+    const previous=manifest[id];
+    const next=await uploadMediaToStorage(id,m.data,m.name||"");
+    manifest[id]=next;
+    await deleteStorageMediaEntry(previous);
+    // Explicit replacement: remove only the replaced legacy media doc after the Storage upload succeeds.
+    await deleteDoc(doc(db,"cards",CARD_ID,"media",id)).catch(()=>{});
+  }
+  for(const id of pendingDeletes){
+    await deleteStorageMediaEntry(manifest[id]);delete manifest[id];
+    await deleteDoc(doc(db,"cards",CARD_ID,"media",id)).catch(()=>{});
+  }
+  profile.media=manifest;
+  // Only cards already on v2 stay v2. New cards are created v2 by the dashboard.
+  if(Number(profile.mediaStorageVersion||0)>=2)profile.mediaStorageVersion=2;
 }
 
 function setInputData(profile){
@@ -240,11 +295,10 @@ async function saveProfile(){
   const p=collectFormProfile(); if(!p.fullName)return setStatus("Please enter a name.","error");
   setBusy(true); setStatus("Publishing changes online...","working");
   try{
+    await savePendingMediaToStorage(p);
     await setDoc(profileRef,profileForFirestore(p),{merge:true});
     await saveAdminMeta(p);
     await saveCardAccess();
-    for(const [id,m] of pendingMedia.entries()) await saveMediaDoc(id,m.data,m.name||"");
-    for(const id of pendingDeletes) await saveMediaDoc(id,"");
     pendingMedia.clear();pendingDeletes.clear();
     currentProfile=p;
     try{localStorage.setItem(LEGACY_STORAGE_KEY,JSON.stringify(p));localStorage.setItem(THEME_KEY,p.theme);}catch{}
@@ -259,6 +313,8 @@ async function resetAll(){
   setBusy(true);
   try{
     currentProfile=structuredCloneSafe(defaults); setInputData(currentProfile);
+    const oldProfile=await getDoc(profileRef);const oldManifest=oldProfile.exists()?(oldProfile.data().media||{}):{};
+    await Promise.all(Object.values(oldManifest).map(entry=>deleteStorageMediaEntry(entry)));
     await setDoc(profileRef,profileForFirestore(currentProfile));
     const media=await getDocs(mediaCol); await Promise.all(media.docs.map(d=>deleteDoc(d.ref)));
     pendingMedia.clear();pendingDeletes.clear();
@@ -307,7 +363,7 @@ async function handleGallery(files){
 
 async function handleCatalog(file){
   if(!file)return;if(file.type!=="application/pdf")return setStatus("Please choose a PDF.","error");
-  if(file.size>600000)return setStatus("For online storage, this PDF must be under 600 KB. For larger catalogs, use Catalog URL.","error");
+  if(file.size>10*1024*1024)return setStatus("This PDF must be under 10 MB. For larger catalogs, use Catalog URL.","error");
   try{const data=await fileToDataURL(file);currentProfile.catalogFile=data;currentProfile.catalogFileName=file.name;pendingMedia.set("catalog",{data,name:file.name});pendingDeletes.delete("catalog");setStatus("PDF ready. Press Save Changes to publish it.");}catch{setStatus("Could not read that PDF.","error")}
 }
 
@@ -366,38 +422,58 @@ async function loadAfterAuth(){
 }
 
 
-function statMonthKey(offset=0){const d=new Date();d.setMonth(d.getMonth()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
-function statDayKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
-function prettyAction(name){return ({whatsapp:"WhatsApp",phone:"Phone",email:"Email",website:"Website",facebook:"Facebook",instagram:"Instagram",linkedin:"LinkedIn",twitter:"X / Twitter",tiktok:"TikTok",youtube:"YouTube",catalog:"Catalog",saveContact:"Save Contact",share:"Share",text:"Text Message",customLink:"Business Link",cta:"Contact Button"})[name]||name||"—"}
+function prettyAction(name){return ({whatsapp:"WhatsApp",phone:"Phone",email:"Email",website:"Website",facebook:"Facebook",instagram:"Instagram",linkedin:"LinkedIn",twitter:"X / Twitter",tiktok:"TikTok",youtube:"YouTube",catalog:"Catalog",saveContact:"Save Contact",share:"Share",text:"Text Message",customLink:"Business Link",cta:"Contact Button",quickCapture:"Quick Capture",leadReceived:"Leads Received",qrVisit:"QR Visits",qrDownload:"QR Download"})[name]||name||"—"}
+function sumOwnerActions(actions={}){return Object.values(actions||{}).reduce((sum,value)=>sum+Number(value||0),0)}
 async function loadPremiumOwnerStats(){
   const section=$id("premiumStatsSection");if(!section)return;
-  const show=currentRole==="owner"&&["premium","business"].includes(String(currentCardPlan).toLowerCase());section.hidden=!show; const net=$id("businessNetworkingSection"); if(net)net.hidden=!show; if(!show)return;
+  const show=currentRole==="owner"&&["premium","business"].includes(String(currentCardPlan).toLowerCase())&&featureEnabledForPlan("analytics");section.hidden=!show; const net=$id("businessNetworkingSection"); if(net){const networkingAllowed=String(currentCardPlan).toLowerCase()==="business"&&(featureEnabledForPlan("customQR")||featureEnabledForPlan("brandingRemoval"));net.hidden=!networkingAllowed;} if(!show)return;
   try{
-    const [totalSnap,monthSnap,prevSnap]=await Promise.all([getDoc(doc(db,"cardStats",CARD_ID)),getDoc(doc(db,"monthlyStats",`${CARD_ID}_${statMonthKey(0)}`)),getDoc(doc(db,"monthlyStats",`${CARD_ID}_${statMonthKey(-1)}`))]);
-    const total=totalSnap.exists()?totalSnap.data():{},month=monthSnap.exists()?monthSnap.data():{},prev=prevSnap.exists()?prevSnap.data():{};
-    $id("ownerMonthViews").textContent=Number(month.views||0).toLocaleString();$id("ownerTotalViews").textContent=Number(total.views||0).toLocaleString();$id("ownerPreviousViews").textContent=Number(prev.views||0).toLocaleString();
-    const pv=Number(prev.views||0),mv=Number(month.views||0);$id("ownerMonthCompare").textContent=pv?`${mv>=pv?"+":""}${Math.round((mv-pv)/pv*100)}% vs previous month`:(mv?"New activity this month":"No previous-month data");
-    const actions=month.actions||{};const top=Object.entries(actions).sort((a,b)=>Number(b[1])-Number(a[1]))[0];$id("ownerTopAction").textContent=top?prettyAction(top[0]):"—";$id("ownerTopActionCount").textContent=top?`${Number(top[1]).toLocaleString()} clicks this month`:"No clicks yet";
-    const days=[];for(let i=29;i>=0;i--){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);days.push({d,key:statDayKey(d),v:0})}
-    await Promise.all(days.map(async x=>{const snap=await getDoc(doc(db,"dailyStats",`${CARD_ID}_${x.key}`));x.v=snap.exists()?Number(snap.data().views||0):0}));
-    const max=Math.max(1,...days.map(x=>x.v)),chart=$id("owner30DayChart");chart.innerHTML=days.map(x=>`<span class="mini-bar" style="height:${Math.max(4,Math.round(x.v/max*100))}%" title="${x.key}: ${x.v} opens"></span>`).join("");
-  }catch(e){console.warn("Premium owner stats unavailable",e)}
+    const totalSnap=await getDoc(doc(db,"cardStats",CARD_ID));
+    const total=totalSnap.exists()?totalSnap.data():{},actions=total.actions||{};
+    $id("ownerHistoricalViews").textContent=Number(total.views||0).toLocaleString();
+    $id("ownerTrackedActions").textContent=sumOwnerActions(actions).toLocaleString();
+    const top=Object.entries(actions).sort((a,b)=>Number(b[1])-Number(a[1]))[0];
+    $id("ownerTopAction").textContent=top?prettyAction(top[0]):"—";
+    $id("ownerTopActionCount").textContent=top?`${Number(top[1]).toLocaleString()} tracked actions`:"No actions yet";
+  }catch(e){console.warn("Owner action analytics unavailable",e)}
 }
 const PREMIUM_ONLY_IDS=new Set(["phone2","website","instagram","linkedin","twitter","tiktok","youtube","catalog","catalogUpload","customBusinessLabel","customBusinessSubtitle","customBusinessUrl","videoUrl","service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon","galleryUpload","clearGallery","finalCtaTitle","finalCtaText","finalCtaLabel"]);
+function featureWrappers(feature){
+  const ids=FEATURE_INPUT_IDS[feature]||[],nodes=[];
+  ids.forEach(id=>{const el=$id(id);if(!el)return;const wrap=el.closest(".form-group,.upload-card,.editor-card")||el; if(!nodes.includes(wrap))nodes.push(wrap)});
+  const sectionFeature={services:"service1Title",gallery:"galleryUpload",video:"videoUrl",finalCTA:"finalCtaTitle"}[feature];
+  if(sectionFeature){const sec=$id(sectionFeature)?.closest(".admin-section");if(sec&&!nodes.includes(sec))nodes.push(sec)}
+  if(feature==="customQR")[$id("qrDarkColor"),$id("qrLightColor")].forEach(el=>{const w=el?.closest(".form-group");if(w&&!nodes.includes(w))nodes.push(w)});
+  if(feature==="brandingRemoval"){const w=$id("removeJmxBranding")?.closest(".form-group");if(w&&!nodes.includes(w))nodes.push(w)}
+  if(feature==="analytics"){const sec=$id("premiumStatsSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
+  if(feature==="leads"||feature==="quickCapture"){const sec=$id("businessLeadsSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
+  return nodes;
+}
+function setOwnerFeatureVisibility(feature,allowed){
+  featureWrappers(feature).forEach(node=>{node.hidden=!allowed;node.dataset.adminFeatureHidden=allowed?"false":"true"});
+  document.querySelectorAll(`[data-vis="${feature}"]`).forEach(el=>{const wrap=el.closest(".toggle-item")||el;wrap.hidden=!allowed;el.disabled=!allowed});
+}
+function collapseEmptyEditorSections(){
+  const candidates=["phone","facebook","catalog"];
+  candidates.forEach(id=>{const sec=$id(id)?.closest(".admin-section");if(!sec)return;const visible=[...sec.querySelectorAll(".form-group,.upload-card,.editor-card")].some(x=>!x.hidden);sec.hidden=!visible});
+  const visSec=$id("visibilityGrid")?.closest(".admin-section");if(visSec)visSec.hidden=![...visSec.querySelectorAll(".toggle-item")].some(x=>!x.hidden);
+  const net=$id("businessNetworkingSection");if(net&&currentRole==="owner"){const visible=[...net.querySelectorAll(".form-group")].some(x=>!x.hidden);net.hidden=!visible}
+}
 function applyPlanLocks(){
   const owner=currentRole==="owner";
-  const basic=currentCardPlan.toLowerCase()==="basic"&&owner;
-  // Reset legacy plan locks first, then apply live platform controls.
+  document.querySelectorAll("[data-admin-feature-hidden]").forEach(el=>{el.hidden=false;delete el.dataset.adminFeatureHidden});
   document.querySelectorAll("input,textarea,select,button").forEach(el=>{if(PREMIUM_ONLY_IDS.has(el.id))el.disabled=false});
-  document.querySelectorAll("[data-vis]").forEach(el=>el.disabled=false);
+  document.querySelectorAll("[data-vis]").forEach(el=>{el.disabled=false;(el.closest(".toggle-item")||el).hidden=false});
   if(owner){
+    FEATURE_KEYS.forEach(feature=>setOwnerFeatureVisibility(feature,featureEnabledForPlan(feature)));
     Object.entries(FEATURE_INPUT_IDS).forEach(([feature,ids])=>ids.forEach(id=>{const el=$id(id);if(el)el.disabled=!featureEnabledForPlan(feature)}));
-    document.querySelectorAll("[data-vis]").forEach(el=>{el.disabled=!featureEnabledForPlan(el.dataset.vis)});
+    collapseEmptyEditorSections();
   }
   let note=$id("planAccessNote");if(!note){note=document.createElement("div");note.id="planAccessNote";note.className="admin-note";document.querySelector(".card-management-section")?.after(note)}
-  const disabled=FEATURE_KEYS.filter(k=>!featureEnabledForPlan(k)).map(k=>VISIBILITY_LABELS[k]);
-  note.innerHTML=`<strong>Plan:</strong> ${currentCardPlan}. ${owner?(disabled.length?`The platform administrator has disabled: ${disabled.join(", ")}.`:`All ${currentCardPlan} modules are enabled by the platform administrator.`):"Administrator view: all profile fields remain editable; public visibility follows the Feature Control Center."}`;
+  const disabled=FEATURE_KEYS.filter(k=>!featureEnabledForPlan(k)).map(k=>VISIBILITY_LABELS[k]||({customQR:"Custom QR",qrDownload:"QR Download",analytics:"Analytics",advancedAnalytics:"Advanced Analytics",quickCapture:"Quick Capture",leads:"Leads",contactNotes:"Contact Notes",meetingNotes:"Meeting Notes",followUp:"Follow-Up",csvExport:"CSV Export",vcfDownload:"VCF Download",contactMap:"Contact Map",aiScanner:"AI Scanner",autoIntroEmail:"Auto-Intro Email",appleWallet:"Apple Wallet",googleWallet:"Google Wallet",brandingRemoval:"Branding Removal",advancedNetworkingInsights:"Advanced Networking Insights"}[k])).filter(Boolean);
+  note.innerHTML=`<strong>Plan:</strong> ${currentCardPlan}. ${owner?(disabled.length?`Features disabled by JMX administration are hidden from this editor and from the public card.`:`All available ${currentCardPlan} modules are enabled by JMX administration.`):"Administrator view: all profile fields remain editable; public visibility follows the Feature Control Center."}`;
 }
+
 
 
 function formatLeadDate(ts){try{return ts?.toDate?ts.toDate().toLocaleDateString():"—"}catch{return"—"}}
@@ -406,7 +482,7 @@ function escapeLead(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;",
 let currentLeads=[];
 async function loadBusinessLeads(){
   const section=$id("businessLeadsSection");if(!section)return;
-  const show=currentRole!=="none"&&String(currentCardPlan).toLowerCase()==="business"&&platformFeatureControls.Business?.leads!==false&&platformFeatureControls.global?.leads!==false;
+  const show=currentRole!=="none"&&String(currentCardPlan).toLowerCase()==="business"&&featureEnabledForPlan("leads")&&featureEnabledForPlan("quickCapture");
   section.hidden=!show;if(!show)return;
   try{
     const snap=await getDocs(collection(db,"leads",CARD_ID,"items"));
