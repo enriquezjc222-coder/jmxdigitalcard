@@ -73,6 +73,50 @@
   <div class="feature-save-row"><button id="saveFeatureControls" class="primary-button" type="button"><i class="fa-solid fa-sliders"></i> Save Feature Controls</button><p id="featureControlStatus" class="status"></p></div>
 </section>
 
+<section class="panel ai-scanner-admin-panel" id="aiScannerAdminPanel">
+  <div class="toolbar ai-scanner-toolbar">
+    <div>
+      <p class="eyebrow">AI BUSINESS CARD SCANNER</p>
+      <h2>Provider, Cost & Emergency Controls</h2>
+      <p class="subtitle small">Feature access is controlled above by Global / Basic / Premium / Business. This panel controls external OCR calls, limits, diagnostics and usage.</p>
+    </div>
+    <label class="switch-row kill-switch-row"><input id="aiKillSwitch" type="checkbox"><span class="switch-ui"></span><strong>Allow external AI/OCR services</strong></label>
+  </div>
+  <div id="aiKillSwitchState" class="ai-kill-state blocked">External AI Services: BLOCKED</div>
+  <div class="ai-provider-grid">
+    <article><span>OCR Provider</span><strong id="aiOcrProviderState">Google Vision: Ready to test</strong></article>
+    <article><span>AI Parsing</span><strong id="aiParsingProviderState">Basic fallback active</strong></article>
+    <article><span>Provider Check</span><strong id="aiScannerProviderStatus">Not checked yet</strong></article>
+  </div>
+  <div class="ai-admin-actions">
+    <button id="checkAiScannerConnection" class="secondary-button" type="button"><i class="fa-solid fa-plug-circle-check"></i> Check Connection</button>
+    <button id="saveAiScannerSettings" class="primary-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save AI Scanner Settings</button>
+    <p id="aiScannerAdminStatus" class="status"></p>
+  </div>
+  <div class="ai-limit-grid">
+    <label><span>Basic Monthly Scan Limit</span><select id="aiLimitBasicMode"><option value="disabled">Limit disabled</option><option value="unlimited">Unlimited</option><option value="number">Monthly limit</option></select><input id="aiLimitBasicCount" type="number" min="1" max="100000" value="25" disabled></label>
+    <label><span>Premium Monthly Scan Limit</span><select id="aiLimitPremiumMode"><option value="disabled">Limit disabled</option><option value="unlimited">Unlimited</option><option value="number">Monthly limit</option></select><input id="aiLimitPremiumCount" type="number" min="1" max="100000" value="100" disabled></label>
+    <label><span>JMX Business Monthly Scan Limit</span><select id="aiLimitBusinessMode"><option value="disabled">Limit disabled</option><option value="unlimited">Unlimited</option><option value="number">Monthly limit</option></select><input id="aiLimitBusinessCount" type="number" min="1" max="100000" value="500" disabled></label>
+  </div>
+  <div class="ai-usage-header"><div><h3>AI Scanner Usage</h3><small>Current month: <strong id="aiUsageMonth">—</strong></small></div><button id="refreshAiUsage" class="secondary-button" type="button">Refresh Usage</button></div>
+  <div class="ai-usage-grid">
+    <article><span>Total Scans</span><strong id="aiUsageTotal">0</strong></article>
+    <article><span>OCR Requests</span><strong id="aiUsageOcr">0</strong></article>
+    <article><span>Successful</span><strong id="aiUsageSuccess">0</strong></article>
+    <article><span>Failed</span><strong id="aiUsageFailed">0</strong></article>
+    <article><span>Basic</span><strong id="aiUsageBasic">0</strong></article>
+    <article><span>Premium</span><strong id="aiUsagePremium">0</strong></article>
+    <article><span>Business</span><strong id="aiUsageBusiness">0</strong></article>
+  </div>
+  <div class="ai-test-box">
+    <div><h3>Test AI Card Scanner</h3><p class="subtitle small">Admin-only Test Mode runs OCR against a chosen test card and does not create Leads or production usage.</p></div>
+    <input id="aiTestCardId" maxlength="8" placeholder="TEST Card ID">
+    <input id="aiTestImage" type="file" accept="image/jpeg,image/png,image/webp">
+    <button id="testAiScanner" class="secondary-button" type="button">Run Test Scan</button>
+    <p id="aiTestStatus" class="status"></p>
+  </div>
+</section>
+
 <section class="panel business-settings-panel" id="businessSettingsPanel">
   <div class="toolbar"><div><p class="eyebrow">JMX BUSINESS</p><h2>Business Website Settings & Policies</h2><p class="subtitle small">Business stays hidden publicly until you enable it. Legal text fields are placeholders until approved content is entered.</p></div><label class="switch-row"><input id="businessEnabled" type="checkbox"><span class="switch-ui"></span><strong>Show JMX Business on Website</strong></label></div>
   <div class="settings-grid">

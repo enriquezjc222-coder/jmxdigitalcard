@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/fireba
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch, query, where, deleteField } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getStorage, ref as storageRef, deleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDf12K0m93K4cWSotDcSg2fIS-s3uaLW_Y",
@@ -16,6 +17,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const functions = getFunctions(app);
 const $ = (id) => document.getElementById(id);
 const SAFE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 let user = null;
@@ -25,6 +27,29 @@ const FEATURE_DEFS = [
   ["description","Description"],["saveContact","Save Contact"],["quickActions","Quick Actions"],["phone","Primary Phone"],["phone2","Second Phone"],["whatsapp","WhatsApp"],["email","Email"],["website","Website"],["location","Location"],["facebook","Facebook"],["instagram","Instagram"],["linkedin","LinkedIn"],["twitter","X / Twitter"],["tiktok","TikTok"],["youtube","YouTube"],["services","Services"],["gallery","Gallery"],["video","Featured Video"],["qr","QR Code"],["customQR","Custom QR"],["qrDownload","QR Download"],["finalCTA","Final CTA"],["businessLinks","Business Links"],["catalog","Catalog / PDF"],["customBusiness","Custom Business Link"],["analytics","Analytics"],["advancedAnalytics","Advanced Analytics"],["quickCapture","Quick Capture"],["leads","Leads / My Contacts"],["contactNotes","Contact Notes"],["meetingNotes","Meeting Notes"],["followUp","Follow-Up"],["csvExport","CSV Export"],["vcfDownload","VCF Download"],["contactMap","Contact Map"],["aiScanner","AI Business Card Scanner"],["autoIntroEmail","Auto-Intro Email"],["appleWallet","Apple Wallet"],["googleWallet","Google Wallet"],["brandingRemoval","Branding Removal"],["advancedNetworkingInsights","Advanced Networking Insights"]
 ];
 const BASIC_FEATURE_DEFAULTS = new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
+const EXTERNAL_PENDING_FEATURES = new Set(["contactMap","autoIntroEmail","appleWallet","googleWallet","advancedNetworkingInsights"]);
+let clientDialogDraft = null;
+let clientDialogOriginal = null;
+function cloneFeatureOverrides(card){return {...((card?.featureOverrides&&typeof card.featureOverrides==="object")?card.featureOverrides:{})}}
+function createClientDialogDraft(card){return {basePlan:basePlan(card),complimentaryPremium:card?.complimentaryPremium===true,complimentaryBusiness:card?.complimentaryBusiness===true,featureOverrides:cloneFeatureOverrides(card),aiScannerMonthlyLimit:(card?.aiScannerMonthlyLimit&&typeof card.aiScannerMonthlyLimit==="object")?{...card.aiScannerMonthlyLimit}:{mode:"disabled",count:0}}}
+function dialogCardFromDraft(card,draft=clientDialogDraft){return draft?{...card,plan:draft.basePlan,complimentaryPremium:draft.complimentaryPremium,complimentaryBusiness:draft.complimentaryBusiness,featureOverrides:draft.featureOverrides,aiScannerMonthlyLimit:draft.aiScannerMonthlyLimit}:card}
+function normalizeDialogDraft(draft){
+  if(!draft)return draft;
+  if(draft.basePlan==="Business"){draft.complimentaryPremium=false;draft.complimentaryBusiness=false;}
+  else if(draft.basePlan==="Premium"){draft.complimentaryPremium=false;}
+  if(draft.complimentaryBusiness)draft.complimentaryPremium=false;
+  return draft;
+}
+function dialogDraftChanged(){
+  if(!clientDialogDraft||!clientDialogOriginal)return false;
+  const stable=x=>JSON.stringify({basePlan:x.basePlan,complimentaryPremium:x.complimentaryPremium===true,complimentaryBusiness:x.complimentaryBusiness===true,featureOverrides:x.featureOverrides||{},aiScannerMonthlyLimit:x.aiScannerMonthlyLimit||{mode:"disabled",count:0}});
+  return stable(clientDialogDraft)!==stable(clientDialogOriginal);
+}
+function setDialogSaveState(message=""){
+  const b=document.querySelector('[data-dialog-action="saveClientChanges"]');
+  if(b)b.disabled=!dialogDraftChanged();
+  const st=$("clientDetailSaveStatus");if(st)st.textContent=message|| (dialogDraftChanged()?"Unsaved changes":"All changes saved");
+}
 function defaultFeatureControls(){
   const global={},Basic={},Premium={},Business={};
   const businessOnly=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","brandingRemoval","advancedNetworkingInsights"]);
@@ -410,16 +435,21 @@ async function openInventoryDialog(id) {
 }
 
 
-async function openClientDialog(id) {
+async function openClientDialog(id, preserveDraft=false) {
   const card = cards.find((c) => c.id === id);
   if (!card) return;
+  if(!preserveDraft || !clientDialogDraft || $("clientDetailDialog")?.dataset.cardId!==id){
+    clientDialogDraft=normalizeDialogDraft(createClientDialogDraft(card));
+    clientDialogOriginal=JSON.parse(JSON.stringify(clientDialogDraft));
+  }
+  const viewCard=dialogCardFromDraft(card);
   const claimSnap = await getDoc(doc(db, "cardClaims", id));
   const profile = card.profile || {};
   const claim = claimSnap.exists() ? claimSnap.data() : {};
   const admin = card.admin || {};
   const owner = card.owner || {};
   const stats = card.stats || {};
-  const effective = effectivePlan(card);
+  const effective = effectivePlan(viewCard);
   const totalActions = stats.actions || {};
   const dialog = $("clientDetailDialog");
   dialog.dataset.cardId = id;
@@ -433,7 +463,7 @@ async function openClientDialog(id) {
         <div class="detail-list">
           <div><span>Card code</span><strong>${esc(id)}</strong></div>
           <div><span>Permanent URL</span><strong class="break-anywhere">${esc(friendlyUrl(id))}</strong></div>
-          <div><span>Plan</span><strong>${esc(effective)}</strong></div><div><span>Subscription</span><strong>${esc(card.subscription?.status || "none")}</strong></div><div><span>Source</span><strong>${esc(card.complimentaryBusiness?"complimentary business":card.complimentaryPremium?"complimentary premium":(card.subscription?.source||"manual"))}</strong></div>
+          <div><span>Plan</span><strong>${esc(effective)}</strong></div><div><span>Subscription</span><strong>${esc(card.subscription?.status || "none")}</strong></div><div><span>Source</span><strong>${esc(viewCard.complimentaryBusiness?"complimentary business":viewCard.complimentaryPremium?"complimentary premium":(card.subscription?.source||"manual"))}</strong></div>
           <div><span>Status</span><strong>${esc(card.status || "activated")}</strong></div>
           <div><span>Owner email</span><strong>${esc(owner.ownerEmail || claim.ownerEmail || "—")}</strong></div>
           <div><span>Name</span><strong>${esc(profile.fullName || admin.clientName || "—")}</strong></div>
@@ -447,30 +477,42 @@ async function openClientDialog(id) {
       </section>
       <section class="detail-panel access-control-panel">
         <h3>Plan & Complimentary Access</h3>
-        <p class="subtitle small">Base plan stays intact when you give a complimentary upgrade. Turning the gift off returns the client to the base plan automatically.</p>
+        <p class="subtitle small">Changes below are staged until you press Save Changes. Complimentary access never erases the client's base plan or profile data.</p>
         <div class="access-status-grid">
-          <div><span>Base plan</span><strong>${esc(basePlan(card))}</strong></div>
+          <div><span>Base plan</span><strong>${esc(basePlan(viewCard))}</strong></div>
           <div><span>Current access</span><strong>${esc(effective)}</strong></div>
         </div>
         <div class="plan-choice-row" role="group" aria-label="Change base plan">
-          ${["Basic","Premium","Business"].map(plan=>`<button type="button" class="plan-choice-button ${basePlan(card)===plan?"active":""}" data-dialog-action="setBasePlan" data-plan-value="${plan}">${plan==="Business"?"JMX Business":plan}</button>`).join("")}
+          ${["Basic","Premium","Business"].map(plan=>`<button type="button" class="plan-choice-button ${basePlan(viewCard)===plan?"active":""}" data-draft-base-plan="${plan}">${plan==="Business"?"JMX Business":plan}</button>`).join("")}
         </div>
         <div class="gift-switch-stack">
-          <label class="gift-switch-row ${basePlan(card)==="Business"?"disabled":""}">
-            <span><strong><i class="fa-solid fa-gift"></i> Complimentary Premium</strong><small>Free access until you turn it off.</small></span>
-            <input type="checkbox" data-gift-tier="Premium" ${card.complimentaryPremium===true?"checked":""} ${basePlan(card)==="Business"?"disabled":""}><i class="gift-switch-ui"></i>
+          <label class="gift-switch-row ${basePlan(viewCard)==="Business"?"disabled":""}">
+            <span><strong><i class="fa-solid fa-gift"></i> Complimentary Premium</strong><small>Free access until you turn it off and save.</small></span>
+            <input type="checkbox" data-gift-tier="Premium" ${viewCard.complimentaryPremium===true?"checked":""} ${["Premium","Business"].includes(basePlan(viewCard))?"disabled":""}><i class="gift-switch-ui"></i>
           </label>
-          <label class="gift-switch-row ${basePlan(card)==="Business"?"disabled":""}">
-            <span><strong><i class="fa-solid fa-gift"></i> Complimentary JMX Business</strong><small>Free Business access until you turn it off.</small></span>
-            <input type="checkbox" data-gift-tier="Business" ${card.complimentaryBusiness===true?"checked":""} ${basePlan(card)==="Business"?"disabled":""}><i class="gift-switch-ui"></i>
+          <label class="gift-switch-row ${basePlan(viewCard)==="Business"?"disabled":""}">
+            <span><strong><i class="fa-solid fa-gift"></i> Complimentary JMX Business</strong><small>Free Business access until you turn it off and save.</small></span>
+            <input type="checkbox" data-gift-tier="Business" ${viewCard.complimentaryBusiness===true?"checked":""} ${basePlan(viewCard)==="Business"?"disabled":""}><i class="gift-switch-ui"></i>
           </label>
         </div>
       </section>
       <section class="detail-panel client-feature-control-panel">
         <h3>Client Feature Overrides</h3>
-        <p class="subtitle small">An OFF switch here hides the feature from this client's public card and from their profile editor without deleting saved data. Global and plan controls still have priority.</p>
+        <p class="subtitle small">ON permits the feature for this client when Global and Plan controls also allow it. OFF hides it from the public card and owner editor without deleting saved data. Press Save Changes to apply.</p>
         <div class="feature-switch-list client-feature-switches">
-          ${FEATURE_DEFS.map(([key,label])=>{const platformOn=platformAllowsForCard(card,key),clientOn=card.featureOverrides?.[key]!==false;return `<label class="feature-switch-row ${platformOn?"":"master-off"}"><span><strong>${esc(label)}</strong><small>${platformOn?"Client-specific access":"Disabled by Global/Plan control"}</small></span><input type="checkbox" data-client-feature="${esc(key)}" ${clientOn?"checked":""} ${platformOn?"":"disabled"}><i class="switch-ui"></i></label>`}).join("")}
+          ${FEATURE_DEFS.map(([key,label])=>{const platformOn=platformAllowsForCard(viewCard,key),clientOn=viewCard.featureOverrides?.[key]!==false,pending=EXTERNAL_PENDING_FEATURES.has(key);return `<label class="feature-switch-row ${platformOn?"":"master-off"} ${pending?"integration-pending":""}"><span><strong>${esc(label)}</strong><small>${pending?"External integration pending — access setting is stored but no live module is simulated":(platformOn?"Client-specific access":"Disabled by Global/Plan control")}</small></span><input type="checkbox" data-client-feature="${esc(key)}" ${clientOn?"checked":""} ${platformOn&&!pending?"":"disabled"}><i class="switch-ui" aria-hidden="true"></i></label>`}).join("")}
+        </div>
+      </section>
+      <section class="detail-panel ai-client-limit-panel">
+        <h3>AI Scanner Monthly Limit</h3>
+        <p class="subtitle small">Optional client-specific override. Disabled means no client-specific cap is enforced; plan/global permissions still apply.</p>
+        <div class="ai-limit-inline">
+          <select data-ai-client-limit-mode>
+            <option value="disabled" ${viewCard.aiScannerMonthlyLimit?.mode!=="number"&&viewCard.aiScannerMonthlyLimit?.mode!=="unlimited"?"selected":""}>Limit disabled</option>
+            <option value="unlimited" ${viewCard.aiScannerMonthlyLimit?.mode==="unlimited"?"selected":""}>Unlimited</option>
+            <option value="number" ${viewCard.aiScannerMonthlyLimit?.mode==="number"?"selected":""}>Custom monthly limit</option>
+          </select>
+          <input data-ai-client-limit-count type="number" min="1" max="100000" value="${Number(viewCard.aiScannerMonthlyLimit?.count||50)}" ${viewCard.aiScannerMonthlyLimit?.mode==="number"?"":"disabled"}>
         </div>
       </section>
       <section class="detail-panel analytics-panel">
@@ -487,15 +529,44 @@ async function openClientDialog(id) {
       </section>
     </div>`;
   $("clientDetailActions").innerHTML = `
+    <div class="client-save-cluster"><button class="primary-button" data-dialog-action="saveClientChanges" ${dialogDraftChanged()?"":"disabled"}><i class="fa-solid fa-floppy-disk"></i> Save Changes</button><span id="clientDetailSaveStatus" class="client-save-status" aria-live="polite">${dialogDraftChanged()?"Unsaved changes":"All changes saved"}</span></div>
     <button class="secondary-button" data-dialog-action="copy"><i class="fa-solid fa-copy"></i> Copy / Recover URL</button>
     <button class="secondary-button" data-dialog-action="open"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Profile</button>
     <button class="secondary-button" data-dialog-action="edit"><i class="fa-solid fa-pen"></i> Edit Profile</button>
-    <button class="secondary-button" data-dialog-action="plan"><i class="fa-solid fa-layer-group"></i> Change Base Plan</button>
     ${card.status === "activated" ? '<button class="secondary-button" data-dialog-action="suspend">Suspend</button>' : ''}
     ${card.status === "suspended" ? '<button class="secondary-button" data-dialog-action="reactivate">Reactivate</button>' : ''}
     ${PROTECTED_CARD_IDS.has(id) ? '<span class="protected-note"><i class="fa-solid fa-lock"></i> Protected card: release/delete disabled</span>' : '<button class="danger-button" data-dialog-action="release"><i class="fa-solid fa-rotate-left"></i> Release / Reset for Reuse</button>'}
   `;
   if (!dialog.open) dialog.showModal();
+  setDialogSaveState();
+}
+
+async function saveClientDialogChanges(id){
+  const card=cards.find(c=>c.id===id);if(!card||!clientDialogDraft||!clientDialogOriginal)return;
+  normalizeDialogDraft(clientDialogDraft);
+  if(!dialogDraftChanged()){setDialogSaveState("No changes to save");return;}
+  const saveButton=document.querySelector('[data-dialog-action="saveClientChanges"]');if(saveButton)saveButton.disabled=true;
+  setDialogSaveState("Saving…");
+  const originalHadGift=card.complimentaryPremium===true||card.complimentaryBusiness===true;
+  const baseStatus=originalHadGift?(card.preGiftSubscriptionStatus||"none"):(card.subscription?.status||"none");
+  const baseSource=originalHadGift?(card.preGiftSubscriptionSource||"manual"):(card.subscription?.source||"manual");
+  const tier=clientDialogDraft.complimentaryBusiness?"Business":clientDialogDraft.complimentaryPremium?"Premium":null;
+  const payload={plan:clientDialogDraft.basePlan,featureOverrides:{...clientDialogDraft.featureOverrides},aiScannerMonthlyLimit:{...(clientDialogDraft.aiScannerMonthlyLimit||{mode:"disabled",count:0})},complimentaryPremium:tier==="Premium",complimentaryBusiness:tier==="Business",updatedAt:serverTimestamp()};
+  if(tier){
+    payload.complimentaryBasePlan=clientDialogDraft.basePlan;payload.preGiftSubscriptionStatus=baseStatus;payload.preGiftSubscriptionSource=baseSource;
+    payload.subscription={...(card.subscription||{}),status:"active",source:"complimentary",complimentaryTier:tier};
+  }else{
+    payload.complimentaryBasePlan=deleteField();payload.preGiftSubscriptionStatus=deleteField();payload.preGiftSubscriptionSource=deleteField();
+    payload.subscription={...(card.subscription||{}),status:baseStatus,source:baseSource,complimentaryTier:deleteField()};
+  }
+  try{
+    const batch=writeBatch(db);batch.set(doc(db,"cards",id),payload,{merge:true});
+    if(clientDialogDraft.basePlan!==basePlan(card))batch.set(doc(db,"inventory",id),{plan:clientDialogDraft.basePlan,updatedAt:serverTimestamp()},{merge:true});
+    await batch.commit();await loadCards();
+    clientDialogDraft=null;clientDialogOriginal=null;
+    if($("clientDetailDialog").open)await openClientDialog(id,false);
+    setDialogSaveState("Changes saved");
+  }catch(error){console.error("Client changes save failed",error);setDialogSaveState("Save failed — changes are still pending");if(saveButton)saveButton.disabled=false;}
 }
 
 async function copyText(value) {
@@ -844,46 +915,39 @@ $("newCardId").addEventListener("input", updatePreview);
 $("regenerateCode").addEventListener("click", () => { $("newCardId").value = randomCode(); updatePreview(); });
 $("regenerateActivation").addEventListener("click", () => $("newActivationCode").value = activationCode());
 
-$("closeClientDetailDialog")?.addEventListener("click", () => $("clientDetailDialog").close());
-$("clientDetailDialog")?.addEventListener("click", (event) => {
-  if (event.target === $("clientDetailDialog")) $("clientDetailDialog").close();
-});
+function closeClientDetailSafely(){if(dialogDraftChanged()&&!confirm("Discard unsaved client changes?"))return;clientDialogDraft=null;clientDialogOriginal=null;$("clientDetailDialog").close();}
+$("closeClientDetailDialog")?.addEventListener("click", closeClientDetailSafely);
+$("clientDetailDialog")?.addEventListener("click", (event) => {if (event.target === $("clientDetailDialog")) closeClientDetailSafely();});
+$("clientDetailDialog")?.addEventListener("cancel",(event)=>{if(dialogDraftChanged()&&!confirm("Discard unsaved client changes?")){event.preventDefault();return;}clientDialogDraft=null;clientDialogOriginal=null;});
 async function handleDialogAction(event) {
   const button = event.target.closest("[data-dialog-action]");
   if (!button) return;
   const id = $("clientDetailDialog").dataset.cardId;
   const action = button.dataset.dialogAction;
+  if(action==="saveClientChanges") return saveClientDialogChanges(id);
   await performCardAction(id, action, button);
-  if (action === "setBasePlan" && $("clientDetailDialog").open) await openClientDialog(id);
   if (["plan", "sold", "suspend", "reactivate", "regenerate", "delete", "release"].includes(action) && $("clientDetailDialog").open) {
     $("clientDetailDialog").close();
   }
 }
 $("clientDetailActions")?.addEventListener("click", handleDialogAction);
 $("clientDetailBody")?.addEventListener("click", handleDialogAction);
+$("clientDetailBody")?.addEventListener("click", async (event)=>{
+  const planButton=event.target.closest("[data-draft-base-plan]");if(!planButton)return;
+  clientDialogDraft.basePlan=planButton.dataset.draftBasePlan;normalizeDialogDraft(clientDialogDraft);
+  const id=$("clientDetailDialog").dataset.cardId;await openClientDialog(id,true);setDialogSaveState();
+});
 $("clientDetailBody")?.addEventListener("change", async (event) => {
   const featureInput=event.target.closest("[data-client-feature]");
-  if(featureInput){
-    const id=$("clientDetailDialog").dataset.cardId,card=cards.find(c=>c.id===id);if(!card)return;
-    const overrides={...((card.featureOverrides&&typeof card.featureOverrides==="object")?card.featureOverrides:{})};overrides[featureInput.dataset.clientFeature]=featureInput.checked;
-    featureInput.disabled=true;
-    try{await setDoc(doc(db,"cards",id),{featureOverrides:overrides,updatedAt:serverTimestamp()},{merge:true});await loadCards();if($("clientDetailDialog").open)await openClientDialog(id)}
-    catch(error){console.error("Client feature override failed",error);alert("Could not update this client feature. Please try again.")}
-    return;
-  }
-  const input=event.target.closest("[data-gift-tier]");
-  if(!input)return;
-  const id=$("clientDetailDialog").dataset.cardId;
-  const card=cards.find(c=>c.id===id);
-  if(!card)return;
-  input.disabled=true;
-  try{
-    await setComplimentaryTier(id,card,input.dataset.giftTier,input.checked);
-    if($("clientDetailDialog").open) await openClientDialog(id);
-  }catch(error){
-    console.error("Complimentary access update failed",error);
-    alert("Could not update complimentary access. Please try again.");
-  }finally{input.disabled=false;}
+  if(featureInput){clientDialogDraft.featureOverrides[featureInput.dataset.clientFeature]=featureInput.checked;setDialogSaveState();return;}
+  const limitMode=event.target.closest("[data-ai-client-limit-mode]");
+  if(limitMode){clientDialogDraft.aiScannerMonthlyLimit={mode:limitMode.value,count:Number(document.querySelector("[data-ai-client-limit-count]")?.value||50)};const count=document.querySelector("[data-ai-client-limit-count]");if(count)count.disabled=limitMode.value!=="number";setDialogSaveState();return;}
+  const limitCount=event.target.closest("[data-ai-client-limit-count]");
+  if(limitCount){clientDialogDraft.aiScannerMonthlyLimit={mode:"number",count:Math.max(1,Number(limitCount.value||1))};setDialogSaveState();return;}
+  const input=event.target.closest("[data-gift-tier]");if(!input)return;
+  if(input.dataset.giftTier==="Business"){clientDialogDraft.complimentaryBusiness=input.checked;if(input.checked)clientDialogDraft.complimentaryPremium=false;}
+  else {clientDialogDraft.complimentaryPremium=input.checked;if(input.checked)clientDialogDraft.complimentaryBusiness=false;}
+  normalizeDialogDraft(clientDialogDraft);const id=$("clientDetailDialog").dataset.cardId;await openClientDialog(id,true);setDialogSaveState();
 });
 
 
@@ -959,6 +1023,46 @@ async function savePlatformSettings(){
   const status=$("platformStatus");
   try{await setDoc(doc(db,"platform","publicSettings"),payload,{merge:true});if(status){status.textContent="Platform settings saved.";status.className="status ok"}}catch(e){console.error(e);if(status){status.textContent="Could not save platform settings.";status.className="status error"}}
 }
+
+const aiScannerHealthCall=httpsCallable(functions,"aiScannerHealth");
+const aiScannerSummaryCall=httpsCallable(functions,"getAiScannerAdminSummary");
+const scanBusinessCardCall=httpsCallable(functions,"scanBusinessCard");
+let aiScannerAdminConfig={externalServicesAllowed:false,ocrProvider:"googleVision",aiParsingProvider:"basic",limits:{Basic:{mode:"disabled",count:0},Premium:{mode:"disabled",count:0},Business:{mode:"disabled",count:0}}};
+function aiLimitFromUi(plan){const mode=$("aiLimit"+plan+"Mode")?.value||"disabled";return{mode,count:Math.max(0,Number($("aiLimit"+plan+"Count")?.value||0))}}
+function renderAiScannerAdminConfig(){
+  if($("aiKillSwitch"))$("aiKillSwitch").checked=aiScannerAdminConfig.externalServicesAllowed===true;
+  ["Basic","Premium","Business"].forEach(plan=>{const lim=aiScannerAdminConfig.limits?.[plan]||{mode:"disabled",count:0};if($("aiLimit"+plan+"Mode"))$("aiLimit"+plan+"Mode").value=lim.mode||"disabled";if($("aiLimit"+plan+"Count")){$("aiLimit"+plan+"Count").value=Number(lim.count||50);$("aiLimit"+plan+"Count").disabled=lim.mode!=="number";}});
+  const state=$("aiKillSwitchState");if(state){const on=aiScannerAdminConfig.externalServicesAllowed===true;state.textContent=on?"External AI Services: ACTIVE":"External AI Services: BLOCKED";state.className="ai-kill-state "+(on?"active":"blocked");}
+}
+async function loadAiScannerAdmin(){
+  try{const snap=await getDoc(doc(db,"platform","aiScanner"));if(snap.exists())aiScannerAdminConfig={...aiScannerAdminConfig,...snap.data(),limits:{...aiScannerAdminConfig.limits,...(snap.data().limits||{})}};renderAiScannerAdminConfig();await refreshAiScannerAdminSummary();}
+  catch(e){console.warn("AI Scanner admin configuration unavailable",e);const st=$("aiScannerAdminStatus");if(st)st.textContent="AI Scanner configuration could not be loaded.";}
+}
+async function saveAiScannerAdmin(){
+  const nextOn=$("aiKillSwitch")?.checked===true;
+  if(aiScannerAdminConfig.externalServicesAllowed===true&&!nextOn&&!confirm("Disable external AI services? This stops new billable AI Card Scanner requests until you turn them back on.")){if($("aiKillSwitch"))$("aiKillSwitch").checked=true;return;}
+  const status=$("aiScannerAdminStatus");if(status){status.textContent="Saving AI Scanner settings…";status.className="status";}
+  const payload={externalServicesAllowed:nextOn,ocrProvider:"googleVision",aiParsingProvider:"basic",limits:{Basic:aiLimitFromUi("Basic"),Premium:aiLimitFromUi("Premium"),Business:aiLimitFromUi("Business")},updatedAt:serverTimestamp()};
+  try{await setDoc(doc(db,"platform","aiScanner"),payload,{merge:true});aiScannerAdminConfig={...aiScannerAdminConfig,...payload};renderAiScannerAdminConfig();if(status){status.textContent="AI Scanner settings saved successfully.";status.className="status ok";}}
+  catch(e){console.error(e);if(status){status.textContent="Unable to save AI Scanner settings. Please try again.";status.className="status error";}}
+}
+async function checkAiScannerConnection(){
+  const status=$("aiScannerProviderStatus");if(status)status.textContent="Checking configuration…";
+  try{const r=(await aiScannerHealthCall({})).data;const o=$("aiOcrProviderState"),a=$("aiParsingProviderState");if(o)o.textContent=`${r.ocr.provider}: ${r.ocr.status}`;if(a)a.textContent=`${r.aiParsing.provider}: ${r.aiParsing.status}`;if(status)status.textContent=r.externalServicesAllowed?"Provider configuration is ready for a live scan test.":"Kill Switch is OFF. External calls are blocked.";}
+  catch(e){console.error(e);if(status)status.textContent="Provider check failed: "+(e?.message||"unknown error");}
+}
+async function refreshAiScannerAdminSummary(){
+  try{const r=(await aiScannerSummaryCall({})).data, u=r.usage||{};if($("aiUsageMonth"))$("aiUsageMonth").textContent=r.month||"—";if($("aiUsageTotal"))$("aiUsageTotal").textContent=Number(u.totalScans||0).toLocaleString();if($("aiUsageSuccess"))$("aiUsageSuccess").textContent=Number(u.successfulScans||0).toLocaleString();if($("aiUsageFailed"))$("aiUsageFailed").textContent=Number(u.failedScans||0).toLocaleString();if($("aiUsageOcr"))$("aiUsageOcr").textContent=Number(u.ocrRequests||0).toLocaleString();if($("aiUsageBasic"))$("aiUsageBasic").textContent=Number(u.planScans?.Basic||0).toLocaleString();if($("aiUsagePremium"))$("aiUsagePremium").textContent=Number(u.planScans?.Premium||0).toLocaleString();if($("aiUsageBusiness"))$("aiUsageBusiness").textContent=Number(u.planScans?.Business||0).toLocaleString();}
+  catch(e){console.warn("AI Scanner usage unavailable",e);}
+}
+function fileToCompressedBase64(file,maxW=1600,maxH=1100,quality=.82){return new Promise((resolve,reject)=>{if(!file||!/^image\/(jpeg|png|webp)$/i.test(file.type))return reject(new Error("Choose a JPG, PNG, or WebP image."));if(file.size>12*1024*1024)return reject(new Error("Image must be under 12 MB."));const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const scale=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight),c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);resolve(c.toDataURL("image/jpeg",quality).split(",")[1]);};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Could not read image."));};img.src=url;});}
+async function runAdminAiScannerTest(){const cardId=cleanCode($("aiTestCardId")?.value||"");const file=$("aiTestImage")?.files?.[0],status=$("aiTestStatus");if(!cardId||!file){if(status)status.textContent="Enter a test Card ID and choose a business card image.";return;}if(status)status.textContent="Running Test Mode OCR…";try{const imageBase64=await fileToCompressedBase64(file);const r=(await scanBusinessCardCall({cardId,imageBase64,testMode:true})).data;if(status)status.textContent=`Test successful: ${r.contact?.fullName||"contact detected"}. Test Mode did not create Leads or production usage.`;await checkAiScannerConnection();}catch(e){console.error(e);if(status)status.textContent="Test failed: "+(e?.message||"unknown error");}}
+function initAiScannerAdmin(){
+  $("saveAiScannerSettings")?.addEventListener("click",saveAiScannerAdmin);$("checkAiScannerConnection")?.addEventListener("click",checkAiScannerConnection);$("testAiScanner")?.addEventListener("click",runAdminAiScannerTest);$("refreshAiUsage")?.addEventListener("click",refreshAiScannerAdminSummary);
+  ["Basic","Premium","Business"].forEach(plan=>$("aiLimit"+plan+"Mode")?.addEventListener("change",e=>{const input=$("aiLimit"+plan+"Count");if(input)input.disabled=e.target.value!=="number";}));
+  $("aiKillSwitch")?.addEventListener("change",e=>{const state=$("aiKillSwitchState");if(state){state.textContent=e.target.checked?"External AI Services: ACTIVE":"External AI Services: BLOCKED";state.className="ai-kill-state "+(e.target.checked?"active":"blocked");}});
+}
+
 function initMarketing(){
   const q=$("companyQrAdmin");if(q&&window.QRCode){q.innerHTML="";new QRCode(q,{text:"https://jmxdigitalcard.com/",width:140,height:140,colorDark:"#111111",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H})}
   $("copyCompanyUrl")?.addEventListener("click",async()=>{await copyText("https://jmxdigitalcard.com/");$("copyCompanyUrl").textContent="Copied JMX URL";setTimeout(()=>$("copyCompanyUrl").innerHTML='<i class="fa-solid fa-copy"></i> Copy JMX URL',1200)});
@@ -970,6 +1074,7 @@ function initMarketing(){
   $("globalFeatureSwitches")?.addEventListener("change",updateFeatureDependencyUI);
 }
 initMarketing();
+initAiScannerAdmin();
 
 onAuthStateChanged(auth, async (currentUser) => {
   user = currentUser || null;
@@ -982,7 +1087,7 @@ onAuthStateChanged(auth, async (currentUser) => {
       await signOut(auth);
       return setLoginStatus("This account is not the JMX platform administrator.", "error");
     }
-    await Promise.all([loadCards(),loadPlatformSettings()]);
+    await Promise.all([loadCards(),loadPlatformSettings(),loadAiScannerAdmin()]);
   } catch (error) {
     console.error(error);
     setLoginStatus("Could not load dashboard: " + error.message, "error");

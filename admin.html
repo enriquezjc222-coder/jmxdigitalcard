@@ -52,8 +52,8 @@
  <div class="premium-stats-grid">
   <article><span>Historical profile views</span><strong id="ownerHistoricalViews">0</strong><small>frozen at the analytics transition</small></article>
   <article><span>Tracked actions</span><strong id="ownerTrackedActions">0</strong><small>real clicks and actions</small></article>
-  <article><span>Top action</span><strong id="ownerTopAction">—</strong><small id="ownerTopActionCount">No actions yet</small></article>
-  <article><span>Analytics transition</span><strong>Aug 26, 2026</strong><small>views frozen; actions continue</small></article>
+  <article data-advanced-analytics><span>Top action</span><strong id="ownerTopAction">—</strong><small id="ownerTopActionCount">No actions yet</small></article>
+  <article data-advanced-analytics><span>Analytics transition</span><strong>Aug 26, 2026</strong><small>views frozen; actions continue</small></article>
  </div>
 </section>
 
@@ -162,7 +162,43 @@
   <label class="form-group"><span>QR Light Color</span><input id="qrLightColor" type="color" value="#ffffff"></label>
   <label class="form-group full-width switch-form"><span>Branding</span><label class="switch-row"><input id="removeJmxBranding" type="checkbox"><span class="switch-ui"></span><strong>Remove JMX Branding</strong></label></label>
  </div>
- <p class="section-help">QR colors are applied only when Business Custom QR is enabled. High contrast is enforced for scan reliability.</p>
+ <p class="section-help">QR colors are saved with Save Changes and applied publicly only when Business Custom QR is allowed. If a selected pair has low contrast, JMX safely adjusts it while preserving the chosen accent as much as possible.</p>
+</section>
+
+<section id="aiScannerSection" class="admin-section ai-scanner-section" hidden>
+ <div class="section-title"><i class="fa-solid fa-id-card-clip"></i><div><small>AI CONTACT CAPTURE</small><h2>AI Business Card Scanner</h2></div></div>
+ <p class="section-help">Take a photo or upload a business card, review the detected information, then save it as a Lead or Contact. The original image is processed temporarily and is not stored by JMX.</p>
+ <div class="ai-scanner-status-row"><span id="aiScannerAvailability" class="scanner-badge">Checking scanner…</span><span id="aiScannerUsageText" class="scanner-usage-text"></span></div>
+ <div class="scanner-capture-grid">
+  <label class="scanner-capture-button"><i class="fa-solid fa-camera"></i><strong>Take Photo</strong><small>Use your phone camera</small><input id="aiScannerCameraInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden></label>
+  <label class="scanner-capture-button"><i class="fa-solid fa-image"></i><strong>Upload Card</strong><small>Choose an existing image</small><input id="aiScannerUploadInput" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
+ </div>
+ <div id="aiScannerImageBox" class="scanner-image-box" hidden><img id="aiScannerImagePreview" alt="Business card preview"><div class="scanner-image-actions"><button id="aiScannerScanButton" class="mini-button" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Use Photo / Scan</button><button id="aiScannerRetakeButton" class="mini-button" type="button">Scan Again</button><button id="aiScannerCancelButton" class="mini-button danger" type="button">Cancel</button></div></div>
+ <div id="aiScannerProgress" class="scanner-progress" hidden><i class="fa-solid fa-spinner fa-spin"></i><strong id="aiScannerProgressText">Scanning business card...</strong></div>
+ <div id="aiScannerError" class="admin-note scanner-error" hidden></div>
+ <div id="aiScannerErrorActions" class="scanner-error-actions" hidden><button id="scannerTryAgain" class="mini-button" type="button">Try Again</button><button id="scannerUploadAnother" class="mini-button" type="button">Upload Another Card</button><button id="scannerEnterManual" class="mini-button" type="button">Enter Manually</button></div>
+ <div id="aiScannerPreviewPanel" class="scanner-preview-panel" hidden>
+  <div class="scanner-preview-head"><div><small>SCANNED CONTACT</small><h3>Review before saving</h3></div><button id="aiScannerEditToggle" class="mini-button" type="button">Edit</button></div>
+  <div class="form-grid scanner-fields">
+   <label class="form-group"><span>First Name</span><input id="scanFirstName"></label><label class="form-group"><span>Last Name</span><input id="scanLastName"></label>
+   <label class="form-group full-width"><span>Full Name</span><input id="scanFullName"></label>
+   <label class="form-group"><span>Company</span><input id="scanCompany"></label><label class="form-group"><span>Job Title</span><input id="scanJobTitle"></label>
+   <label class="form-group"><span>Mobile Phone</span><input id="scanMobilePhone"></label><label class="form-group"><span>Office Phone</span><input id="scanOfficePhone"></label>
+   <label class="form-group"><span>Additional Phone</span><input id="scanAdditionalPhone"></label><label class="form-group"><span>Email</span><input id="scanEmail" type="email"></label>
+   <label class="form-group full-width"><span>Website</span><input id="scanWebsite"></label>
+   <label class="form-group full-width"><span>Address</span><input id="scanAddress"></label><label class="form-group"><span>City</span><input id="scanCity"></label><label class="form-group"><span>State</span><input id="scanState"></label><label class="form-group"><span>ZIP Code</span><input id="scanZipCode"></label>
+   <label class="form-group"><span>WhatsApp</span><input id="scanWhatsapp"></label><label class="form-group"><span>LinkedIn</span><input id="scanLinkedin"></label>
+   <label class="form-group"><span>Facebook</span><input id="scanFacebook"></label><label class="form-group"><span>Instagram</span><input id="scanInstagram"></label>
+   <label class="form-group"><span>Category</span><select id="scanCategory"><option>Customer</option><option>Prospect</option><option>Vendor</option><option selected>Networking</option><option>Partner</option><option>Contractor</option><option>Employee</option><option>Other</option></select></label>
+   <label class="form-group"><span>Where did you meet?</span><select id="scanWhereMet"><option value="">Not specified</option><option>Trade Show</option><option>Networking Event</option><option>Job Site</option><option>Office</option><option>Restaurant</option><option>Conference</option><option>Other</option></select></label>
+   <label class="form-group"><span>Date Met</span><input id="scanDateMet" type="date"></label><label class="form-group full-width"><span>Notes</span><textarea id="scanNotes" rows="3"></textarea></label>
+  </div>
+  <div id="scannerDuplicatePanel" class="scanner-duplicate-panel" hidden><strong>This contact already exists</strong><p id="scannerDuplicateText"></p><div class="scanner-duplicate-actions"><button id="scannerViewExisting" class="mini-button" type="button">View Existing Contact</button><button id="scannerUpdateExisting" class="mini-button" type="button">Update Existing Contact</button><button id="scannerSaveNewAnyway" class="mini-button" type="button">Save as New Anyway</button></div></div>
+  <div class="scanner-save-actions"><button id="scannerSaveLead" class="save-button scanner-action-button" type="button">Save Lead</button><button id="scannerAddContact" class="save-button scanner-action-button secondary-save" type="button">Add to Contacts</button><button id="scannerPreviewCancel" class="reset-button scanner-action-button" type="button">Cancel</button></div>
+  <p id="aiScannerSaveStatus" class="save-status" aria-live="polite"></p>
+ </div>
+ <div class="scanner-history-block"><div class="scanner-history-head"><h3>Scan History</h3><button id="refreshScannerHistory" class="mini-button" type="button">Refresh</button></div><div id="aiScannerHistoryList" class="scanner-history-list"></div><p id="aiScannerHistoryEmpty" class="section-help">No scanner history yet.</p></div>
+ <div class="scanner-history-block"><div class="scanner-history-head"><h3>Saved Contacts</h3><button id="refreshScannerContacts" class="mini-button" type="button">Refresh</button></div><div id="aiScannerContactsList" class="scanner-history-list"></div><p id="aiScannerContactsEmpty" class="section-help">No scanner contacts saved yet.</p></div>
 </section>
 
 <section id="businessLeadsSection" class="admin-section business-leads-section" hidden>
