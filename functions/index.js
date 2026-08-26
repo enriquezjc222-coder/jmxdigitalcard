@@ -215,6 +215,36 @@ exports.aiScannerHealth = onCall(async (request) => {
   };
 });
 
+exports.saveAiScannerAdminConfig = onCall(async (request) => {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Sign in first.");
+  if (!(await isPlatformAdmin(request.auth.uid))) throw new HttpsError("permission-denied", "Administrator access required.");
+
+  const data = request.data || {};
+  const normalizeLimit = (raw) => {
+    const mode = ["disabled", "unlimited", "number"].includes(raw?.mode) ? raw.mode : "disabled";
+    const count = mode === "number" ? Math.max(1, Math.min(100000, Number(raw?.count || 1))) : 0;
+    return {mode, count};
+  };
+  const config = {
+    externalServicesAllowed: data.externalServicesAllowed === true,
+    ocrProvider: data.ocrProvider === "googleVision" ? "googleVision" : "googleVision",
+    aiParsingProvider: data.aiParsingProvider === "basic" ? "basic" : "basic",
+    limits: {
+      Basic: normalizeLimit(data.limits?.Basic),
+      Premium: normalizeLimit(data.limits?.Premium),
+      Business: normalizeLimit(data.limits?.Business)
+    },
+    updatedAt: Timestamp.now(),
+    updatedBy: request.auth.uid
+  };
+
+  await db.doc("platform/aiScanner").set(config, {merge: true});
+  const saved = await db.doc("platform/aiScanner").get();
+  const savedConfig = {...DEFAULT_SCANNER_CONFIG, ...(saved.exists ? saved.data() : {})};
+  savedConfig.limits = {...DEFAULT_SCANNER_CONFIG.limits, ...(savedConfig.limits || {})};
+  return {saved: true, config: savedConfig};
+});
+
 exports.aiScannerClientStatus = onCall(async (request) => {
   const cardId = sanitizeCardId(request.data?.cardId);
   const authz = await authorizeCard(request, cardId);
