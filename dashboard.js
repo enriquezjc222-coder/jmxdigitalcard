@@ -1026,6 +1026,7 @@ async function savePlatformSettings(){
 
 const aiScannerHealthCall=httpsCallable(functions,"aiScannerHealth");
 const aiScannerSummaryCall=httpsCallable(functions,"getAiScannerAdminSummary");
+const saveAiScannerAdminConfigCall=httpsCallable(functions,"saveAiScannerAdminConfig");
 const scanBusinessCardCall=httpsCallable(functions,"scanBusinessCard");
 let aiScannerAdminConfig={externalServicesAllowed:false,ocrProvider:"googleVision",aiParsingProvider:"basic",limits:{Basic:{mode:"disabled",count:0},Premium:{mode:"disabled",count:0},Business:{mode:"disabled",count:0}}};
 function aiLimitFromUi(plan){const mode=$("aiLimit"+plan+"Mode")?.value||"disabled";return{mode,count:Math.max(0,Number($("aiLimit"+plan+"Count")?.value||0))}}
@@ -1035,25 +1036,42 @@ function renderAiScannerAdminConfig(){
   const state=$("aiKillSwitchState");if(state){const on=aiScannerAdminConfig.externalServicesAllowed===true;state.textContent=on?"External AI Services: ACTIVE":"External AI Services: BLOCKED";state.className="ai-kill-state "+(on?"active":"blocked");}
 }
 async function loadAiScannerAdmin(){
-  try{const snap=await getDoc(doc(db,"platform","aiScanner"));if(snap.exists())aiScannerAdminConfig={...aiScannerAdminConfig,...snap.data(),limits:{...aiScannerAdminConfig.limits,...(snap.data().limits||{})}};renderAiScannerAdminConfig();await refreshAiScannerAdminSummary();}
-  catch(e){console.warn("AI Scanner admin configuration unavailable",e);const st=$("aiScannerAdminStatus");if(st)st.textContent="AI Scanner configuration could not be loaded.";}
+  try{
+    const r=(await aiScannerSummaryCall({})).data;
+    const cfg=r?.config||{};
+    aiScannerAdminConfig={...aiScannerAdminConfig,...cfg,limits:{...aiScannerAdminConfig.limits,...(cfg.limits||{})}};
+    renderAiScannerAdminConfig();
+    renderAiScannerUsage(r);
+  }catch(e){
+    console.warn("AI Scanner admin configuration unavailable",{code:e?.code||"unknown",message:e?.message||String(e),operation:"loadAiScannerAdmin",source:"getAiScannerAdminSummary",authenticated:!!auth.currentUser});
+    const st=$("aiScannerAdminStatus");if(st){st.textContent="AI Scanner configuration could not be loaded.";st.className="status error";}
+  }
 }
 async function saveAiScannerAdmin(){
   const nextOn=$("aiKillSwitch")?.checked===true;
   if(aiScannerAdminConfig.externalServicesAllowed===true&&!nextOn&&!confirm("Disable external AI services? This stops new billable AI Card Scanner requests until you turn them back on.")){if($("aiKillSwitch"))$("aiKillSwitch").checked=true;return;}
   const status=$("aiScannerAdminStatus");if(status){status.textContent="Saving AI Scanner settings…";status.className="status";}
-  const payload={externalServicesAllowed:nextOn,ocrProvider:"googleVision",aiParsingProvider:"basic",limits:{Basic:aiLimitFromUi("Basic"),Premium:aiLimitFromUi("Premium"),Business:aiLimitFromUi("Business")},updatedAt:serverTimestamp()};
-  try{await setDoc(doc(db,"platform","aiScanner"),payload,{merge:true});aiScannerAdminConfig={...aiScannerAdminConfig,...payload};renderAiScannerAdminConfig();if(status){status.textContent="AI Scanner settings saved successfully.";status.className="status ok";}}
-  catch(e){console.error(e);if(status){status.textContent="Unable to save AI Scanner settings. Please try again.";status.className="status error";}}
+  const payload={externalServicesAllowed:nextOn,ocrProvider:"googleVision",aiParsingProvider:"basic",limits:{Basic:aiLimitFromUi("Basic"),Premium:aiLimitFromUi("Premium"),Business:aiLimitFromUi("Business")}};
+  try{
+    const result=(await saveAiScannerAdminConfigCall(payload)).data;
+    const saved=result?.config||payload;
+    aiScannerAdminConfig={...aiScannerAdminConfig,...saved,limits:{...aiScannerAdminConfig.limits,...(saved.limits||payload.limits)}};
+    renderAiScannerAdminConfig();
+    if(status){status.textContent="AI Scanner settings saved successfully.";status.className="status ok";}
+  }catch(e){
+    console.error("AI Scanner settings save failed",{code:e?.code||"unknown",message:e?.message||String(e),operation:"saveAiScannerAdmin",documentPath:"platform/aiScanner",authenticated:!!auth.currentUser,uidPresent:!!auth.currentUser?.uid});
+    if(status){status.textContent="Unable to save AI Scanner settings. Please try again.";status.className="status error";}
+  }
 }
 async function checkAiScannerConnection(){
   const status=$("aiScannerProviderStatus");if(status)status.textContent="Checking configuration…";
   try{const r=(await aiScannerHealthCall({})).data;const o=$("aiOcrProviderState"),a=$("aiParsingProviderState");if(o)o.textContent=`${r.ocr.provider}: ${r.ocr.status}`;if(a)a.textContent=`${r.aiParsing.provider}: ${r.aiParsing.status}`;if(status)status.textContent=r.externalServicesAllowed?"Provider configuration is ready for a live scan test.":"Kill Switch is OFF. External calls are blocked.";}
   catch(e){console.error(e);if(status)status.textContent="Provider check failed: "+(e?.message||"unknown error");}
 }
+function renderAiScannerUsage(r={}){const u=r.usage||{};if($("aiUsageMonth"))$("aiUsageMonth").textContent=r.month||"—";if($("aiUsageTotal"))$("aiUsageTotal").textContent=Number(u.totalScans||0).toLocaleString();if($("aiUsageSuccess"))$("aiUsageSuccess").textContent=Number(u.successfulScans||0).toLocaleString();if($("aiUsageFailed"))$("aiUsageFailed").textContent=Number(u.failedScans||0).toLocaleString();if($("aiUsageOcr"))$("aiUsageOcr").textContent=Number(u.ocrRequests||0).toLocaleString();if($("aiUsageBasic"))$("aiUsageBasic").textContent=Number(u.planScans?.Basic||0).toLocaleString();if($("aiUsagePremium"))$("aiUsagePremium").textContent=Number(u.planScans?.Premium||0).toLocaleString();if($("aiUsageBusiness"))$("aiUsageBusiness").textContent=Number(u.planScans?.Business||0).toLocaleString();}
 async function refreshAiScannerAdminSummary(){
-  try{const r=(await aiScannerSummaryCall({})).data, u=r.usage||{};if($("aiUsageMonth"))$("aiUsageMonth").textContent=r.month||"—";if($("aiUsageTotal"))$("aiUsageTotal").textContent=Number(u.totalScans||0).toLocaleString();if($("aiUsageSuccess"))$("aiUsageSuccess").textContent=Number(u.successfulScans||0).toLocaleString();if($("aiUsageFailed"))$("aiUsageFailed").textContent=Number(u.failedScans||0).toLocaleString();if($("aiUsageOcr"))$("aiUsageOcr").textContent=Number(u.ocrRequests||0).toLocaleString();if($("aiUsageBasic"))$("aiUsageBasic").textContent=Number(u.planScans?.Basic||0).toLocaleString();if($("aiUsagePremium"))$("aiUsagePremium").textContent=Number(u.planScans?.Premium||0).toLocaleString();if($("aiUsageBusiness"))$("aiUsageBusiness").textContent=Number(u.planScans?.Business||0).toLocaleString();}
-  catch(e){console.warn("AI Scanner usage unavailable",e);}
+  try{const r=(await aiScannerSummaryCall({})).data;renderAiScannerUsage(r);}
+  catch(e){console.warn("AI Scanner usage unavailable",{code:e?.code||"unknown",message:e?.message||String(e),operation:"refreshAiScannerAdminSummary",authenticated:!!auth.currentUser});}
 }
 function fileToCompressedBase64(file,maxW=1600,maxH=1100,quality=.82){return new Promise((resolve,reject)=>{if(!file||!/^image\/(jpeg|png|webp)$/i.test(file.type))return reject(new Error("Choose a JPG, PNG, or WebP image."));if(file.size>12*1024*1024)return reject(new Error("Image must be under 12 MB."));const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const scale=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight),c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);resolve(c.toDataURL("image/jpeg",quality).split(",")[1]);};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Could not read image."));};img.src=url;});}
 async function runAdminAiScannerTest(){const cardId=cleanCode($("aiTestCardId")?.value||"");const file=$("aiTestImage")?.files?.[0],status=$("aiTestStatus");if(!cardId||!file){if(status)status.textContent="Enter a test Card ID and choose a business card image.";return;}if(status)status.textContent="Running Test Mode OCR…";try{const imageBase64=await fileToCompressedBase64(file);const r=(await scanBusinessCardCall({cardId,imageBase64,testMode:true})).data;if(status)status.textContent=`Test successful: ${r.contact?.fullName||"contact detected"}. Test Mode did not create Leads or production usage.`;await checkAiScannerConnection();}catch(e){console.error(e);if(status)status.textContent="Test failed: "+(e?.message||"unknown error");}}
