@@ -162,6 +162,13 @@
   <label class="form-group"><span>QR Light Color</span><input id="qrLightColor" type="color" value="#ffffff"></label>
   <label class="form-group full-width switch-form"><span>Branding</span><label class="switch-row"><input id="removeJmxBranding" type="checkbox"><span class="switch-ui"></span><strong>Remove JMX Branding</strong></label></label>
  </div>
+ <div id="qrCardThemesControl" class="qr-card-themes-control" hidden>
+  <button id="qrCardThemesToggle" class="qr-themes-toggle" type="button" aria-expanded="false"><i class="fa-solid fa-palette"></i> Themes <i class="fa-solid fa-chevron-down"></i></button>
+  <div id="qrCardThemesPanel" class="qr-themes-panel" hidden>
+   <p class="section-help">Choose one of the same 36 JMX designs used by Google Wallet. This selection is independent and is published with Save Changes.</p>
+   <div class="qr-theme-layout"><div id="qrCardThemeGrid" class="wallet-theme-grid"></div><div class="wallet-preview-wrap"><div id="qrCardThemePreview" class="qr-card-theme-preview"><div class="qr-preview-code">QR</div></div><p>Selected: <strong id="qrCardThemeSelectedName">JMX Classic</strong></p></div></div>
+  </div>
+ </div>
  <p class="section-help">QR colors are saved with Save Changes and applied publicly only when Business Custom QR is allowed. If a selected pair has low contrast, JMX safely adjusts it while preserving the chosen accent as much as possible.</p>
 </section>
 

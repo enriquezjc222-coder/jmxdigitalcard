@@ -60,7 +60,7 @@ const VISIBILITY_LABELS = {
   twitter:"X / Twitter", tiktok:"TikTok", youtube:"YouTube", businessLinks:"Business Links",
   catalog:"Catalog", customBusiness:"Extra business link", services:"Services", gallery:"Gallery",
   video:"Video", qr:"QR code", finalCTA:"Final contact button",
-  aiScanner:"AI Business Card Scanner", leads:"Leads / My Contacts", googleWalletThemes:"Google Wallet Themes"
+  aiScanner:"AI Business Card Scanner", leads:"Leads / My Contacts", googleWalletThemes:"Google Wallet Themes", qrCardThemes:"QR Card Themes"
 };
 
 const defaults = {
@@ -77,7 +77,7 @@ const defaults = {
   service2Title:"", service2Description:"", service2Icon:"fa-screwdriver-wrench",
   service3Title:"", service3Description:"", service3Icon:"fa-paint-roller",
   finalCtaTitle:"Let's Connect", finalCtaText:"",
-  finalCtaLabel:"Contact Now", theme:"gold", qrDarkColor:"#111111", qrLightColor:"#ffffff", removeJmxBranding:false,
+  finalCtaLabel:"Contact Now", theme:"gold", qrCardTheme:"default", qrDarkColor:"#111111", qrLightColor:"#ffffff", removeJmxBranding:false,
   visibility:Object.fromEntries(Object.keys(VISIBILITY_LABELS).map(k=>[k,true]))
 };
 
@@ -90,15 +90,15 @@ let currentRole = "none";
 let pendingMedia = new Map();
 let pendingDeletes = new Set();
 const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
-const BUSINESS_ONLY_FEATURES=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","brandingRemoval","advancedNetworkingInsights"]);
-const FEATURE_KEYS=[...new Set([...Object.keys(VISIBILITY_LABELS),"customQR","qrDownload","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","brandingRemoval","advancedNetworkingInsights"])];
+const BUSINESS_ONLY_FEATURES=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);
+const FEATURE_KEYS=[...new Set([...Object.keys(VISIBILITY_LABELS),"customQR","qrDownload","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"])];
 function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=!BUSINESS_ONLY_FEATURES.has(k);Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
 function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
 let platformFeatureControls=defaultFeatureControls();
 function featureEnabledForPlan(feature){
   // Google Wallet supports an explicit per-client admin override. A stored true/false
   // wins over Global/Plan; an absent value inherits the platform controls.
-  if(["googleWallet","googleWalletThemes"].includes(feature) && typeof currentCardFeatureOverrides?.[feature]==="boolean") return currentCardFeatureOverrides[feature];
+  if(["googleWallet","googleWalletThemes","qrCardThemes"].includes(feature) && typeof currentCardFeatureOverrides?.[feature]==="boolean") return currentCardFeatureOverrides[feature];
   if(platformFeatureControls.enabled===false){const base=["premium","business"].includes(currentCardPlan.toLowerCase())||BASIC_FEATURE_DEFAULTS.has(feature);return base&&currentCardFeatureOverrides?.[feature]!==false}
   if(platformFeatureControls.global?.[feature]===false)return false;
   const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:currentCardPlan.toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
@@ -261,7 +261,7 @@ function collectFormProfile(){
   p.website=normalizeURL(getVal("website")); p.catalog=normalizeURL(getVal("catalog")); p.customBusinessUrl=normalizeURL(getVal("customBusinessUrl"));
   ["facebook","instagram","linkedin","twitter","tiktok","youtube"].forEach(k=>p[k]=normalizeURL(p[k]));
   p.phoneRaw=normalizePhone(p.phone); p.phone2Raw=normalizePhone(p.phone2); p.whatsappRaw=normalizePhone(p.whatsapp);
-  p.visibility=readVisibility(); p.theme=document.querySelector(".admin-theme.active")?.dataset.theme||currentProfile.theme||"gold"; p.qrDarkColor=getVal("qrDarkColor")||"#111111"; p.qrLightColor=getVal("qrLightColor")||"#ffffff"; p.removeJmxBranding=$id("removeJmxBranding")?.checked===true;
+  p.visibility=readVisibility(); p.theme=document.querySelector(".admin-theme.active")?.dataset.theme||currentProfile.theme||"gold"; p.qrDarkColor=getVal("qrDarkColor")||"#111111"; p.qrLightColor=getVal("qrLightColor")||"#ffffff"; p.removeJmxBranding=$id("removeJmxBranding")?.checked===true; p.qrCardTheme=selectedQrCardTheme||currentProfile.qrCardTheme||"default";
   return p;
 }
 
@@ -269,7 +269,7 @@ async function loadAdminMeta(){
   try{
     const [cardSnap,ownerSnap]=await Promise.all([getDoc(cardRef),getDoc(ownerRef)]);
     const c=cardSnap.exists()?cardSnap.data():{},o=ownerSnap.exists()?ownerSnap.data():{};
-    selectedWalletTheme=c.googleWalletTheme||selectedWalletTheme||"default";
+    selectedWalletTheme=c.googleWalletTheme||selectedWalletTheme||"default"; selectedQrCardTheme=currentProfile.qrCardTheme||selectedQrCardTheme||"default";
     if(currentRole==="owner"){
       setVal("clientEditorEmail",o.ownerEmail||currentUser?.email||"");
       if($id("clientPlan"))$id("clientPlan").value=c.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("complimentaryBusiness"))$id("complimentaryBusiness").checked=c.complimentaryBusiness===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=(c.complimentaryBusiness||c.complimentaryPremium)?"complimentary":(c.subscription?.source||"manual");
@@ -422,7 +422,7 @@ async function loadAfterAuth(){
       pendingMedia.clear(); pendingDeletes.clear();
       setStatus("Online card loaded.");
     }
-    currentProfile=remote;selectedWalletTheme=remote.googleWalletTheme||"default";setInputData(currentProfile);await loadAdminMeta();
+    currentProfile=remote;selectedWalletTheme=remote.googleWalletTheme||"default";selectedQrCardTheme=remote.qrCardTheme||"default";setInputData(currentProfile);await loadAdminMeta();
     try{const settingsSnap=await getDoc(publicSettingsRef);platformFeatureControls=mergeFeatureControls(settingsSnap.exists()?(settingsSnap.data().featureControls||{}):{});}catch(e){console.warn("Feature controls unavailable",e);platformFeatureControls=defaultFeatureControls();}
   }catch(e){console.error(e);currentProfile=getLegacyProfile()||structuredCloneSafe(defaults);setInputData(currentProfile);setStatus(firebaseMessage(e),"error");}
   finally{setBusy(false);}
@@ -437,7 +437,7 @@ async function loadPremiumOwnerStats(){
   const planLower=String(currentCardPlan).toLowerCase();
   const advanced=planLower==="business"&&featureEnabledForPlan("advancedAnalytics");document.querySelectorAll("[data-advanced-analytics]").forEach(el=>el.hidden=!advanced);
   document.querySelectorAll("[data-premium-retired-counter]").forEach(el=>{el.hidden=planLower==="premium"});
-  const net=$id("businessNetworkingSection"); if(net){const networkingAllowed=String(currentCardPlan).toLowerCase()==="business"&&(featureEnabledForPlan("customQR")||featureEnabledForPlan("brandingRemoval"));net.hidden=!networkingAllowed;} if(!show)return;
+  const net=$id("businessNetworkingSection"); if(net){const networkingAllowed=featureEnabledForPlan("qrCardThemes")||(String(currentCardPlan).toLowerCase()==="business"&&(featureEnabledForPlan("customQR")||featureEnabledForPlan("brandingRemoval")));net.hidden=!networkingAllowed;} if(!show)return;
   try{
     const totalSnap=await getDoc(doc(db,"cardStats",CARD_ID));
     const total=totalSnap.exists()?totalSnap.data():{},actions=total.actions||{};
@@ -461,6 +461,7 @@ function featureWrappers(feature){
   if(feature==="aiScanner"){const sec=$id("aiScannerSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   if(feature==="googleWallet"){const sec=$id("googleWalletSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   if(feature==="googleWalletThemes"){const sec=$id("googleWalletThemesSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
+  if(feature==="qrCardThemes"){const sec=$id("qrCardThemesControl");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   return nodes;
 }
 function setOwnerFeatureVisibility(feature,allowed){
@@ -471,7 +472,7 @@ function collapseEmptyEditorSections(){
   const candidates=["phone","facebook","catalog"];
   candidates.forEach(id=>{const sec=$id(id)?.closest(".admin-section");if(!sec)return;const visible=[...sec.querySelectorAll(".form-group,.upload-card,.editor-card")].some(x=>!x.hidden);sec.hidden=!visible});
   const visSec=$id("visibilityGrid")?.closest(".admin-section");if(visSec)visSec.hidden=![...visSec.querySelectorAll(".toggle-item")].some(x=>!x.hidden);
-  const net=$id("businessNetworkingSection");if(net&&currentRole==="owner"){const visible=[...net.querySelectorAll(".form-group")].some(x=>!x.hidden);net.hidden=!visible}
+  const net=$id("businessNetworkingSection");if(net&&currentRole==="owner"){const visible=[...net.querySelectorAll(".form-group,#qrCardThemesControl")].some(x=>!x.hidden);net.hidden=!visible}
 }
 function applyPlanLocks(){
   const owner=currentRole==="owner";
@@ -480,7 +481,7 @@ function applyPlanLocks(){
   document.querySelectorAll("[data-vis]").forEach(el=>{el.disabled=false;(el.closest(".toggle-item")||el).hidden=false});
   if(owner){
     FEATURE_KEYS.forEach(feature=>setOwnerFeatureVisibility(feature,featureEnabledForPlan(feature)));
-    renderWalletThemes();
+    renderWalletThemes(); renderQrCardThemes();
     Object.entries(FEATURE_INPUT_IDS).forEach(([feature,ids])=>ids.forEach(id=>{const el=$id(id);if(el)el.disabled=!featureEnabledForPlan(feature)}));
     const catalogUpload=$id("catalogUpload");
     if(catalogUpload){const uploadWrap=catalogUpload.closest(".form-group")||catalogUpload;const premiumOwner=String(currentCardPlan).toLowerCase()==="premium";uploadWrap.hidden=premiumOwner;catalogUpload.disabled=premiumOwner||!featureEnabledForPlan("catalog");}
@@ -539,6 +540,7 @@ const WALLET_THEMES=[
  {id:"cosmic_pearl",name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#172554 0%,#6366f1 24%,#a78bfa 39%,#f0abfc 53%,#5eead4 68%,#f8fafc 82%,#312e81 100%)"}
 ];
 let selectedWalletTheme="default";
+let selectedQrCardTheme="default";
 const saveGoogleWalletThemeCall=httpsCallable(functions,"saveGoogleWalletTheme");
 function walletThemeAllowed(t){return t.plans.includes(currentCardPlan)&&featureEnabledForPlan("googleWallet")&&featureEnabledForPlan("googleWalletThemes")}
 function renderWalletThemes(){
@@ -551,6 +553,17 @@ function renderWalletThemes(){
 }
 function updateWalletThemePreview(){const t=WALLET_THEMES.find(x=>x.id===selectedWalletTheme)||WALLET_THEMES[0],card=$id("walletThemePreview");if(!card)return;card.style.background=t.css;$id("walletPreviewCompany").textContent=currentProfile.company||"JMX DIGITAL CARD";$id("walletPreviewName").textContent=currentProfile.fullName||"Card Owner";$id("walletPreviewPosition").textContent=currentProfile.position||"Digital Business Card";$id("walletThemeSelectedName").textContent=t.name;document.querySelectorAll("[data-wallet-theme]").forEach(b=>{const on=b.dataset.walletTheme===selectedWalletTheme;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
 async function saveWalletTheme(){const status=$id("walletThemeStatus"),btn=$id("saveWalletTheme");if(btn)btn.disabled=true;if(status)status.textContent="Saving theme…";try{const r=(await saveGoogleWalletThemeCall({cardId:CARD_ID,themeId:selectedWalletTheme})).data;if(status){status.textContent=`${r?.themeName||"Theme"} saved. Your existing Wallet pass will be updated when you use Add to Google Wallet.`;status.className="save-status ok";}}catch(e){console.error(e);if(status){status.textContent=e?.message||"Could not save Wallet theme.";status.className="save-status error";}}finally{if(btn)btn.disabled=false}}
+
+
+function renderQrCardThemes(){
+ const box=$id("qrCardThemesControl"),grid=$id("qrCardThemeGrid"); if(!box||!grid)return;
+ const allowed=featureEnabledForPlan("qrCardThemes")&&currentRole==="owner"; box.hidden=!allowed; if(!allowed)return;
+ if(!WALLET_THEMES.some(t=>t.id===selectedQrCardTheme))selectedQrCardTheme="default";
+ const tile=t=>`<button type="button" class="wallet-theme-tile ${t.id===selectedQrCardTheme?"selected":""}" data-qr-card-theme="${t.id}" aria-pressed="${t.id===selectedQrCardTheme}"><span class="wallet-theme-swatch" style="background:${t.css}"></span><strong>${t.name}</strong></button>`;
+ const classic=WALLET_THEMES.filter(t=>t.tier!=="Premium"),premium=WALLET_THEMES.filter(t=>t.tier==="Premium");
+ grid.innerHTML=`<div class="wallet-theme-collection"><div class="wallet-theme-collection-title"><span>Classic Themes</span><small>${classic.length}</small></div><div class="wallet-theme-collection-grid">${classic.map(tile).join("")}</div></div><div class="wallet-theme-collection premium"><div class="wallet-theme-collection-title"><span>Premium Themes</span><small>${premium.length}</small></div><div class="wallet-theme-collection-grid">${premium.map(tile).join("")}</div></div>`; updateQrCardThemePreview();
+}
+function updateQrCardThemePreview(){const t=WALLET_THEMES.find(x=>x.id===selectedQrCardTheme)||WALLET_THEMES[0],card=$id("qrCardThemePreview");if(!card)return;card.style.background=t.css;$id("qrCardThemeSelectedName").textContent=t.name;document.querySelectorAll("[data-qr-card-theme]").forEach(b=>{const on=b.dataset.qrCardTheme===selectedQrCardTheme;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
 
 const createGoogleWalletPassCall=httpsCallable(functions,"createGoogleWalletPass");
 async function addToGoogleWallet(){
@@ -621,6 +634,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   $id("businessLeadsList")?.addEventListener("click",handleLeadAction);
   $id("exportLeadsCsv")?.addEventListener("click",exportLeadsCsv);
   $id("addGoogleWallet")?.addEventListener("click",addToGoogleWallet);
+  $id("qrCardThemesToggle")?.addEventListener("click",()=>{const panel=$id("qrCardThemesPanel");if(panel){panel.hidden=!panel.hidden;$id("qrCardThemesToggle").setAttribute("aria-expanded",String(!panel.hidden))}});
+  $id("qrCardThemeGrid")?.addEventListener("click",e=>{const b=e.target.closest("[data-qr-card-theme]");if(!b)return;selectedQrCardTheme=b.dataset.qrCardTheme;updateQrCardThemePreview();setStatus("QR Card Theme selected. Press Save Changes to publish it.")});
   $id("walletThemeGrid")?.addEventListener("click",e=>{const b=e.target.closest("[data-wallet-theme]");if(!b)return;selectedWalletTheme=b.dataset.walletTheme;updateWalletThemePreview()});
   $id("saveWalletTheme")?.addEventListener("click",saveWalletTheme);
   onAuthStateChanged(auth,async user=>{

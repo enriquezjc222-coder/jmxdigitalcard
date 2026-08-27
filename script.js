@@ -8,11 +8,11 @@ const params=new URLSearchParams(location.search);
 const pathMatch=location.pathname.match(/^\/c\/([A-Za-z0-9_-]+)\/?$/);
 const CARD_ID=sanitizeCardId(pathMatch?.[1]||params.get("card")||"main");
 if(params.get("pretty")==="1"&&CARD_ID!=="main"&&!(["localhost","127.0.0.1"].includes(location.hostname)||location.hostname.endsWith("github.io"))) history.replaceState({},"",`/c/${CARD_ID}`);
-const fallback={fullName:"",position:"",company:"",city:"",state:"",description:"",phone:"",phoneRaw:"",phone2:"",phone2Raw:"",whatsapp:"",whatsappRaw:"",email:"",website:"",facebook:"",instagram:"",linkedin:"",twitter:"",tiktok:"",youtube:"",catalog:"",catalogFile:"",customBusinessLabel:"",customBusinessSubtitle:"",customBusinessUrl:"",profileImage:"",coverImage:"",logoImage:"",galleryImages:[],videoUrl:"",service1Title:"",service1Description:"",service1Icon:"fa-house",service2Title:"",service2Description:"",service2Icon:"fa-screwdriver-wrench",service3Title:"",service3Description:"",service3Icon:"fa-paint-roller",finalCtaTitle:"Let's Connect",finalCtaText:"",finalCtaLabel:"Contact Now",theme:"gold",qrDarkColor:"#111111",qrLightColor:"#ffffff",removeJmxBranding:false,status:"active",visibility:{}}
+const fallback={fullName:"",position:"",company:"",city:"",state:"",description:"",phone:"",phoneRaw:"",phone2:"",phone2Raw:"",whatsapp:"",whatsappRaw:"",email:"",website:"",facebook:"",instagram:"",linkedin:"",twitter:"",tiktok:"",youtube:"",catalog:"",catalogFile:"",customBusinessLabel:"",customBusinessSubtitle:"",customBusinessUrl:"",profileImage:"",coverImage:"",logoImage:"",galleryImages:[],videoUrl:"",service1Title:"",service1Description:"",service1Icon:"fa-house",service2Title:"",service2Description:"",service2Icon:"fa-screwdriver-wrench",service3Title:"",service3Description:"",service3Icon:"fa-paint-roller",finalCtaTitle:"Let's Connect",finalCtaText:"",finalCtaLabel:"Contact Now",theme:"gold",qrCardTheme:"default",qrDarkColor:"#111111",qrLightColor:"#ffffff",removeJmxBranding:false,status:"active",visibility:{}}
 let p={...fallback};
-const FEATURE_KEYS=["description","saveContact","quickActions","phone","phone2","whatsapp","email","website","location","facebook","instagram","linkedin","twitter","tiktok","youtube","services","gallery","video","qr","customQR","qrDownload","finalCTA","businessLinks","catalog","customBusiness","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","brandingRemoval","advancedNetworkingInsights"];
+const FEATURE_KEYS=["description","saveContact","quickActions","phone","phone2","whatsapp","email","website","location","facebook","instagram","linkedin","twitter","tiktok","youtube","services","gallery","video","qr","customQR","qrDownload","finalCTA","businessLinks","catalog","customBusiness","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","qrCardThemes","brandingRemoval","advancedNetworkingInsights"];
 const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
-function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};const businessOnly=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","brandingRemoval","advancedNetworkingInsights"]);FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=!businessOnly.has(k);Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
+function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};const businessOnly=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=!businessOnly.has(k);Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
 let platformFeatureControls=defaultFeatureControls();
 function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
 
@@ -94,6 +94,7 @@ const vid=$id("featuredVideo");if(vid){if(p.videoUrl){vid.src=youtubeEmbed(p.vid
 function loadGallery(){const imgs=Array.isArray(p.galleryImages)?p.galleryImages:[];document.querySelectorAll(".gallery-item").forEach((item,i)=>{const im=item.querySelector("img");if(imgs[i]){if(im)im.src=imgs[i];item.dataset.image=imgs[i];item.style.display=""}else item.style.display="none"})}
 function planAllows(feature){
   const planName=p.complimentaryBusiness===true?"Business":(p.complimentaryPremium===true?"Premium":(p.plan||"Premium"));
+  if(["qrCardThemes"].includes(feature) && typeof p.featureOverrides?.[feature]==="boolean") return p.featureOverrides[feature];
   if(platformFeatureControls.enabled===false){let base;if(String(planName).toLowerCase()==="business")base=true;else if(String(planName).toLowerCase()==="premium")base=!["quickCapture","leads","advancedAnalytics"].includes(feature);else base=BASIC_FEATURE_DEFAULTS.has(feature);return base&&p.featureOverrides?.[feature]!==false}
   if(platformFeatureControls.global?.[feature]===false)return false;
   const bucket=String(planName).toLowerCase()==="basic"?platformFeatureControls.Basic:String(planName).toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
@@ -134,6 +135,48 @@ function initQuickCapture(){
   $id("closeBusinessPolicyDialog")?.addEventListener("click",()=>$id("businessPolicyDialog")?.close());
 }
 
+const QR_CARD_THEMES=[
+ {id:"default",name:"JMX Classic",hex:"#1f2937",plans:["Basic","Premium","Business"],css:"linear-gradient(135deg,#111827,#374151)"},
+ {id:"silver_uv",name:"Silver UV",hex:"#64748b",plans:["Basic","Premium","Business"],css:"linear-gradient(135deg,#dbeafe 0%,#64748b 32%,#7c3aed 68%,#14b8a6 100%)"},
+ {id:"black_gold",name:"Black Gold",hex:"#171717",plans:["Premium","Business"],css:"linear-gradient(135deg,#050505 0%,#262626 55%,#d4af37 100%)"},
+ {id:"black_matte",name:"Black Matte Glow",hex:"#111827",plans:["Basic","Premium","Business"],css:"linear-gradient(135deg,#030712,#111827 60%,#22d3ee)"},
+ {id:"electric_blue",name:"Electric Blue",hex:"#075985",plans:["Basic","Premium","Business"],css:"linear-gradient(135deg,#020617,#075985 55%,#38bdf8)"},
+ {id:"deep_navy",name:"Deep Navy",hex:"#172554",plans:["Premium","Business"],css:"linear-gradient(135deg,#020617,#172554 58%,#6366f1)"},
+ {id:"emerald",name:"Emerald",hex:"#065f46",plans:["Basic","Premium","Business"],css:"linear-gradient(135deg,#022c22,#065f46 55%,#34d399)"},
+ {id:"teal",name:"Teal Aurora",hex:"#115e59",plans:["Premium","Business"],css:"linear-gradient(135deg,#042f2e,#115e59 55%,#2dd4bf)"},
+ {id:"purple",name:"Royal Purple",hex:"#581c87",plans:["Basic","Premium","Business"],css:"linear-gradient(135deg,#1e1b4b,#581c87 55%,#c084fc)"},
+ {id:"violet",name:"Violet Beam",hex:"#5b21b6",plans:["Premium","Business"],css:"linear-gradient(135deg,#2e1065,#5b21b6 55%,#a78bfa)"},
+ {id:"aurora",name:"Aurora",hex:"#0f766e",plans:["Business"],css:"linear-gradient(135deg,#164e63,#0f766e 42%,#7c3aed 72%,#22d3ee)"},
+ {id:"red_matte",name:"Red Matte Glow",hex:"#991b1b",plans:["Basic","Premium","Business"],css:"linear-gradient(135deg,#450a0a,#991b1b 58%,#f87171)"},
+ {id:"red_gold",name:"Red Gold",hex:"#9f1239",plans:["Premium","Business"],css:"linear-gradient(135deg,#4c0519,#9f1239 58%,#fbbf24)"},
+ {id:"rose_gold",name:"Rose Gold",hex:"#9f5f67",plans:["Premium","Business"],css:"linear-gradient(135deg,#4c1d2f,#9f5f67 55%,#f9a8d4)"},
+ {id:"copper",name:"Copper",hex:"#9a3412",plans:["Business"],css:"linear-gradient(135deg,#431407,#9a3412 55%,#fb923c)"},
+ {id:"carbon_red",name:"Carbon Red",hex:"#27272a",plans:["Business"],css:"linear-gradient(135deg,#09090b,#27272a 62%,#dc2626)"},
+ {id:"gold",name:"Liquid Gold",hex:"#854d0e",plans:["Premium","Business"],css:"linear-gradient(135deg,#422006,#854d0e 52%,#fde047)"},
+ {id:"cyan",name:"Electric Cyan",hex:"#0e7490",plans:["Business"],css:"linear-gradient(135deg,#083344,#0e7490 55%,#67e8f9)"},
+ // Premium Collection — additive IDs; existing 18 above remain unchanged.
+ {id:"platinum_prism",name:"Platinum Prism",hex:"#6b7280",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#0b0f17 0%,#cbd5e1 20%,#f8fafc 34%,#8b5cf6 53%,#22d3ee 69%,#64748b 86%,#111827 100%)"},
+ {id:"obsidian_chrome",name:"Obsidian Chrome",hex:"#18181b",plans:["Business"],tier:"Premium",css:"linear-gradient(145deg,#020204 0%,#09090b 32%,#52525b 48%,#0a0a0b 62%,#a1a1aa 72%,#09090b 100%)"},
+ {id:"midnight_spectrum",name:"Midnight Spectrum",hex:"#111827",plans:["Business"],tier:"Premium",css:"linear-gradient(120deg,#020617 0%,#111827 38%,#312e81 53%,#7c3aed 66%,#059669 80%,#020617 100%)"},
+ {id:"ultraviolet_titanium",name:"Ultraviolet Titanium",hex:"#4c1d95",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#111827 0%,#71717a 28%,#c4b5fd 43%,#7c3aed 58%,#312e81 74%,#18181b 100%)"},
+ {id:"emerald_amethyst",name:"Emerald Amethyst",hex:"#065f46",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#022c22 0%,#059669 32%,#34d399 45%,#6d28d9 66%,#c084fc 80%,#111827 100%)"},
+ {id:"sapphire_violet",name:"Sapphire Violet",hex:"#1e3a8a",plans:["Business"],tier:"Premium",css:"linear-gradient(130deg,#020617 0%,#1d4ed8 34%,#38bdf8 48%,#7c3aed 67%,#c084fc 82%,#111827 100%)"},
+ {id:"crimson_solar",name:"Crimson Solar",hex:"#991b1b",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#260303 0%,#7f1d1d 32%,#dc2626 52%,#f59e0b 73%,#fde047 86%,#3f0808 100%)"},
+ {id:"ruby_chrome",name:"Ruby Chrome",hex:"#9f1239",plans:["Business"],tier:"Premium",css:"linear-gradient(145deg,#190307 0%,#881337 28%,#fb7185 44%,#e11d48 58%,#fecdd3 72%,#4c0519 100%)"},
+ {id:"champagne_metal",name:"Champagne Metal",hex:"#a16207",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#422006 0%,#a16207 27%,#fef3c7 44%,#d6a84b 59%,#fff7d6 75%,#713f12 100%)"},
+ {id:"rose_platinum",name:"Rose Platinum",hex:"#9d6b75",plans:["Business"],tier:"Premium",css:"linear-gradient(130deg,#3f2028 0%,#9d6b75 28%,#fce7f3 44%,#c4b5bd 58%,#f9a8d4 76%,#4c1d2f 100%)"},
+ {id:"molten_copper",name:"Molten Copper",hex:"#9a3412",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#2a0d05 0%,#7c2d12 28%,#f97316 47%,#fed7aa 59%,#c2410c 76%,#431407 100%)"},
+ {id:"titanium_ice",name:"Titanium Ice",hex:"#475569",plans:["Business"],tier:"Premium",css:"linear-gradient(130deg,#0f172a 0%,#64748b 28%,#e2e8f0 44%,#67e8f9 57%,#94a3b8 73%,#1e293b 100%)"},
+ {id:"graphite_laser",name:"Graphite Laser",hex:"#27272a",plans:["Business"],tier:"Premium",css:"linear-gradient(120deg,#09090b 0%,#27272a 36%,#52525b 48%,#22d3ee 56%,#8b5cf6 64%,#18181b 100%)"},
+ {id:"opal_shift",name:"Opal Shift",hex:"#94a3b8",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#e2e8f0 0%,#f8fafc 24%,#a7f3d0 41%,#bfdbfe 56%,#ddd6fe 70%,#fbcfe8 84%,#cbd5e1 100%)"},
+ {id:"arctic_hologram",name:"Arctic Hologram",hex:"#0891b2",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#0c4a6e 0%,#22d3ee 25%,#a5f3fc 38%,#c4b5fd 54%,#f0abfc 67%,#34d399 82%,#164e63 100%)"},
+ {id:"black_neon_flux",name:"Black Neon Flux",hex:"#09090b",plans:["Business"],tier:"Premium",css:"linear-gradient(120deg,#000 0%,#09090b 38%,#06b6d4 49%,#8b5cf6 58%,#22c55e 68%,#09090b 79%,#000 100%)"},
+ {id:"scarlet_noir",name:"Scarlet Noir",hex:"#7f1d1d",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#09090b 0%,#450a0a 34%,#b91c1c 52%,#fb7185 62%,#f59e0b 73%,#18181b 100%)"},
+ {id:"cosmic_pearl",name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#172554 0%,#6366f1 24%,#a78bfa 39%,#f0abfc 53%,#5eead4 68%,#f8fafc 82%,#312e81 100%)"}
+];
+
+function renderPublicQrCardTheme(){const host=$id("qrCardThemePublic"),code=$id("qrCardThemeCode");if(!host||!code)return;const allowed=planAllows("qrCardThemes")&&planAllows("qr");visible("qrCardThemePublic",allowed);if(!allowed)return;const t=QR_CARD_THEMES.find(x=>x.id===(p.qrCardTheme||"default"))||QR_CARD_THEMES[0];host.style.background=t.css;code.innerHTML="";const [dark,light]=effectivePublicPlan()==="Business"&&planAllows("customQR")?validQrColors():["#111111","#ffffff"];new QRCode(code,{text:qrShareURL(),width:150,height:150,colorDark:dark,colorLight:light,correctLevel:QRCode.CorrectLevel.H})}
+
 function qrShareURL(){const u=new URL(cardURL(),location.href);u.searchParams.set("src","qr");return u.href}
 function validQrColors(){
   const valid=h=>/^#[0-9a-f]{6}$/i.test(h||"");const dark=valid(p.qrDarkColor)?p.qrDarkColor:"#111111",light=valid(p.qrLightColor)?p.qrLightColor:"#ffffff";
@@ -143,7 +186,7 @@ function validQrColors(){
   const base=rgb(dark);for(let f=.85;f>=.2;f-=.05){const candidate=hex(base.map(v=>v*f));if(ratio(candidate,light)>=4.5)return[candidate,light]}
   return["#111111","#ffffff"];
 }
-function initQR(){const q=$id("qrCode");if(!q||typeof QRCode==="undefined")return;q.innerHTML="";const [dark,light]=effectivePublicPlan()==="Business"&&planAllows("customQR")?validQrColors():["#111111","#ffffff"];new QRCode(q,{text:qrShareURL(),width:160,height:160,colorDark:dark,colorLight:light,correctLevel:QRCode.CorrectLevel.H});const btn=$id("downloadQrButton");if(btn){btn.hidden=!(effectivePublicPlan()==="Business"&&planAllows("qrDownload"));btn.onclick=()=>{const canvas=q.querySelector("canvas"),img=q.querySelector("img"),a=document.createElement("a");a.download=`JMX-${CARD_ID}-QR.png`;a.href=canvas?.toDataURL("image/png")||img?.src||"";if(a.href)a.click();trackMetric("qrDownload")}}}
+function initQR(){const q=$id("qrCode");if(!q||typeof QRCode==="undefined")return;q.innerHTML="";const [dark,light]=effectivePublicPlan()==="Business"&&planAllows("customQR")?validQrColors():["#111111","#ffffff"];new QRCode(q,{text:qrShareURL(),width:160,height:160,colorDark:dark,colorLight:light,correctLevel:QRCode.CorrectLevel.H});renderPublicQrCardTheme();const btn=$id("downloadQrButton");if(btn){btn.hidden=!(effectivePublicPlan()==="Business"&&planAllows("qrDownload"));btn.onclick=()=>{const canvas=q.querySelector("canvas"),img=q.querySelector("img"),a=document.createElement("a");a.download=`JMX-${CARD_ID}-QR.png`;a.href=canvas?.toDataURL("image/png")||img?.src||"";if(a.href)a.click();trackMetric("qrDownload")}}}
 function toast(m){let e=$id("toastMessage");if(!e){e=document.createElement("div");e.id="toastMessage";e.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:11px 16px;border-radius:12px;z-index:9999";document.body.appendChild(e)}e.textContent=m;e.style.display="block";clearTimeout(window._toast);window._toast=setTimeout(()=>e.style.display="none",2200)}
 function showUnavailable(title,message){const app=document.querySelector(".digital-card-app");if(app)app.style.display="none";const box=document.createElement("main");box.className="public-status-screen";box.innerHTML=`<div class="public-status-card"><div class="public-status-icon"><i class="fa-regular fa-address-card"></i></div><h1>${title}</h1><p>${message}</p><a href="https://jmxdigitalcard.com">JMX Digital Card</a></div>`;document.body.appendChild(box);document.body.classList.remove("firebase-loading")}
 async function boot(){
