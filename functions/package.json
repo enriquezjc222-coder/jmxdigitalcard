@@ -1,10 +1,14 @@
 {
   "name": "jmx-digital-card-functions",
   "private": true,
-  "engines": {"node": "20"},
+  "engines": {
+    "node": "20"
+  },
   "main": "index.js",
   "dependencies": {
     "firebase-admin": "^13.4.0",
-    "firebase-functions": "^6.4.0"
+    "firebase-functions": "^6.4.0",
+    "google-auth-library": "^10.3.0",
+    "jsonwebtoken": "^9.0.2"
   }
 }

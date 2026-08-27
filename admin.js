@@ -96,6 +96,9 @@ function defaultFeatureControls(){const global={},Basic={},Premium={},Business={
 function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
 let platformFeatureControls=defaultFeatureControls();
 function featureEnabledForPlan(feature){
+  // Google Wallet supports an explicit per-client admin override. A stored true/false
+  // wins over Global/Plan; an absent value inherits the platform controls.
+  if(feature==="googleWallet" && typeof currentCardFeatureOverrides?.googleWallet==="boolean") return currentCardFeatureOverrides.googleWallet;
   if(platformFeatureControls.enabled===false){const base=["premium","business"].includes(currentCardPlan.toLowerCase())||BASIC_FEATURE_DEFAULTS.has(feature);return base&&currentCardFeatureOverrides?.[feature]!==false}
   if(platformFeatureControls.global?.[feature]===false)return false;
   const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:currentCardPlan.toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
@@ -455,6 +458,7 @@ function featureWrappers(feature){
   if(feature==="analytics"){const sec=$id("premiumStatsSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   if(feature==="leads"){const sec=$id("businessLeadsSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   if(feature==="aiScanner"){const sec=$id("aiScannerSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
+  if(feature==="googleWallet"){const sec=$id("googleWalletSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   return nodes;
 }
 function setOwnerFeatureVisibility(feature,allowed){
@@ -478,6 +482,10 @@ function applyPlanLocks(){
     const catalogUpload=$id("catalogUpload");
     if(catalogUpload){const uploadWrap=catalogUpload.closest(".form-group")||catalogUpload;const premiumOwner=String(currentCardPlan).toLowerCase()==="premium";uploadWrap.hidden=premiumOwner;catalogUpload.disabled=premiumOwner||!featureEnabledForPlan("catalog");}
     collapseEmptyEditorSections();
+  } else {
+    // Add to Google Wallet is an owner-only action; administrators control access
+    // from the main dashboard instead of receiving an owner Wallet button here.
+    const walletSection=$id("googleWalletSection");if(walletSection)walletSection.hidden=true;
   }
   let note=$id("planAccessNote");if(!note){note=document.createElement("div");note.id="planAccessNote";note.className="admin-note";document.querySelector(".card-management-section")?.after(note)}
   const disabled=FEATURE_KEYS.filter(k=>!featureEnabledForPlan(k)).map(k=>VISIBILITY_LABELS[k]||({customQR:"Custom QR",qrDownload:"QR Download",analytics:"Analytics",advancedAnalytics:"Advanced Analytics",quickCapture:"Quick Capture",leads:"Leads",contactNotes:"Contact Notes",meetingNotes:"Meeting Notes",followUp:"Follow-Up",csvExport:"CSV Export",vcfDownload:"VCF Download",contactMap:"Contact Map",aiScanner:"AI Scanner",autoIntroEmail:"Auto-Intro Email",appleWallet:"Apple Wallet",googleWallet:"Google Wallet",brandingRemoval:"Branding Removal",advancedNetworkingInsights:"Advanced Networking Insights"}[k])).filter(Boolean);
@@ -486,6 +494,14 @@ function applyPlanLocks(){
 
 
 
+
+
+const createGoogleWalletPassCall=httpsCallable(functions,"createGoogleWalletPass");
+async function addToGoogleWallet(){
+  const button=$id("addGoogleWallet"),status=$id("googleWalletStatus");if(button)button.disabled=true;if(status){status.textContent="Preparing Google Wallet pass…";status.className="save-status";}
+  try{const result=(await createGoogleWalletPassCall({cardId:CARD_ID})).data;if(!result?.saveUrl)throw new Error("No Google Wallet URL was returned.");if(status){status.textContent=result.action==="created"?"Google Wallet pass created. Opening Google Wallet…":"Google Wallet pass updated. Opening Google Wallet…";status.className="save-status ok";}window.open(result.saveUrl,"_blank","noopener,noreferrer");}
+  catch(e){console.error("Google Wallet",e);if(status){status.textContent=e?.message||"Google Wallet is unavailable. Check the setup and try again.";status.className="save-status error";}}finally{if(button)button.disabled=false;}
+}
 
 const aiScannerStatusCall=httpsCallable(functions,"aiScannerClientStatus");
 const scanBusinessCardCall=httpsCallable(functions,"scanBusinessCard");
@@ -548,6 +564,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   $id("adminLogout")?.addEventListener("click",()=>signOut(auth));
   $id("businessLeadsList")?.addEventListener("click",handleLeadAction);
   $id("exportLeadsCsv")?.addEventListener("click",exportLeadsCsv);
+  $id("addGoogleWallet")?.addEventListener("click",addToGoogleWallet);
   onAuthStateChanged(auth,async user=>{
     currentUser=user||null;document.body.classList.toggle("admin-authenticated",Boolean(user));
     if(!user){currentRole="none";setAuthStatus("Sign in to edit your JMX Digital Card.");$id("adminUserEmail").textContent="";return;}

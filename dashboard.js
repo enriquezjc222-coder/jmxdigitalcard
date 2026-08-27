@@ -27,7 +27,7 @@ const FEATURE_DEFS = [
   ["description","Description"],["saveContact","Save Contact"],["quickActions","Quick Actions"],["phone","Primary Phone"],["phone2","Second Phone"],["whatsapp","WhatsApp"],["email","Email"],["website","Website"],["location","Location"],["facebook","Facebook"],["instagram","Instagram"],["linkedin","LinkedIn"],["twitter","X / Twitter"],["tiktok","TikTok"],["youtube","YouTube"],["services","Services"],["gallery","Gallery"],["video","Featured Video"],["qr","QR Code"],["customQR","Custom QR"],["qrDownload","QR Download"],["finalCTA","Final CTA"],["businessLinks","Business Links"],["catalog","Catalog / PDF"],["customBusiness","Custom Business Link"],["analytics","Analytics"],["advancedAnalytics","Advanced Analytics"],["quickCapture","Quick Capture"],["leads","Leads / My Contacts"],["contactNotes","Contact Notes"],["meetingNotes","Meeting Notes"],["followUp","Follow-Up"],["csvExport","CSV Export"],["vcfDownload","VCF Download"],["contactMap","Contact Map"],["aiScanner","AI Business Card Scanner"],["autoIntroEmail","Auto-Intro Email"],["appleWallet","Apple Wallet"],["googleWallet","Google Wallet"],["brandingRemoval","Branding Removal"],["advancedNetworkingInsights","Advanced Networking Insights"]
 ];
 const BASIC_FEATURE_DEFAULTS = new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
-const EXTERNAL_PENDING_FEATURES = new Set(["contactMap","autoIntroEmail","appleWallet","googleWallet","advancedNetworkingInsights"]);
+const EXTERNAL_PENDING_FEATURES = new Set(["contactMap","autoIntroEmail","appleWallet","advancedNetworkingInsights"]);
 let clientDialogDraft = null;
 let clientDialogOriginal = null;
 function cloneFeatureOverrides(card){return {...((card?.featureOverrides&&typeof card.featureOverrides==="object")?card.featureOverrides:{})}}
@@ -72,6 +72,7 @@ function complimentaryTier(card){
 function businessCountsAsActive(card){return effectivePlan(card)==="Business" && ["activated","suspended"].includes(card?.status) && card?.subscription?.status!=="canceled";}
 let featureControls = defaultFeatureControls();
 function platformAllowsForCard(card,key){
+  if(key==="googleWallet" && typeof card?.featureOverrides?.googleWallet==="boolean") return card.featureOverrides.googleWallet;
   if(featureControls.enabled===false){const plan=effectivePlan(card);if(plan==="Business")return true;if(plan==="Premium")return !new Set(["quickCapture","leads","advancedAnalytics"]).has(key);return BASIC_FEATURE_DEFAULTS.has(key)}
   if(featureControls.global?.[key]===false)return false;
   const plan=effectivePlan(card),bucket=plan==="Basic"?featureControls.Basic:plan==="Business"?featureControls.Business:featureControls.Premium;
@@ -500,7 +501,17 @@ async function openClientDialog(id, preserveDraft=false) {
         <h3>Client Feature Overrides</h3>
         <p class="subtitle small">ON permits the feature for this client when Global and Plan controls also allow it. OFF hides it from the public card and owner editor without deleting saved data. Press Save Changes to apply.</p>
         <div class="feature-switch-list client-feature-switches">
-          ${FEATURE_DEFS.map(([key,label])=>{const platformOn=platformAllowsForCard(viewCard,key),clientOn=viewCard.featureOverrides?.[key]!==false,pending=EXTERNAL_PENDING_FEATURES.has(key);return `<label class="feature-switch-row ${platformOn?"":"master-off"} ${pending?"integration-pending":""}"><span><strong>${esc(label)}</strong><small>${pending?"External integration pending — access setting is stored but no live module is simulated":(platformOn?"Client-specific access":"Disabled by Global/Plan control")}</small></span><input type="checkbox" data-client-feature="${esc(key)}" ${clientOn?"checked":""} ${platformOn&&!pending?"":"disabled"}><i class="switch-ui" aria-hidden="true"></i></label>`}).join("")}
+          ${FEATURE_DEFS.map(([key,label])=>{
+            const pending=EXTERNAL_PENDING_FEATURES.has(key);
+            if(key==="googleWallet"){
+              const raw=viewCard.featureOverrides?.googleWallet;
+              const inherited=(()=>{const copy={...viewCard,featureOverrides:{...(viewCard.featureOverrides||{})}};delete copy.featureOverrides.googleWallet;return platformAllowsForCard(copy,"googleWallet")})();
+              const value=raw===true?"on":raw===false?"off":"inherit";
+              return `<label class="feature-switch-row wallet-override-row"><span><strong>${esc(label)}</strong><small>Owner-only Wallet access. Inherit currently resolves to ${inherited?"ON":"OFF"}; explicit ON/OFF overrides Global and Plan for this client.</small></span><select class="client-feature-select" data-client-feature-select="googleWallet" aria-label="Google Wallet override"><option value="inherit" ${value==="inherit"?"selected":""}>INHERIT</option><option value="on" ${value==="on"?"selected":""}>ON</option><option value="off" ${value==="off"?"selected":""}>OFF</option></select></label>`;
+            }
+            const platformOn=platformAllowsForCard(viewCard,key),clientOn=viewCard.featureOverrides?.[key]!==false;
+            return `<label class="feature-switch-row ${platformOn?"":"master-off"} ${pending?"integration-pending":""}"><span><strong>${esc(label)}</strong><small>${pending?"External integration pending — access setting is stored but no live module is simulated":(platformOn?"Client-specific access":"Disabled by Global/Plan control")}</small></span><input type="checkbox" data-client-feature="${esc(key)}" ${clientOn?"checked":""} ${platformOn&&!pending?"":"disabled"}><i class="switch-ui" aria-hidden="true"></i></label>`
+          }).join("")}
         </div>
       </section>
       <section class="detail-panel ai-client-limit-panel">
@@ -938,6 +949,12 @@ $("clientDetailBody")?.addEventListener("click", async (event)=>{
   const id=$("clientDetailDialog").dataset.cardId;await openClientDialog(id,true);setDialogSaveState();
 });
 $("clientDetailBody")?.addEventListener("change", async (event) => {
+  const walletSelect=event.target.closest("[data-client-feature-select=\"googleWallet\"]");
+  if(walletSelect){
+    if(walletSelect.value==="inherit") delete clientDialogDraft.featureOverrides.googleWallet;
+    else clientDialogDraft.featureOverrides.googleWallet=walletSelect.value==="on";
+    setDialogSaveState();return;
+  }
   const featureInput=event.target.closest("[data-client-feature]");
   if(featureInput){clientDialogDraft.featureOverrides[featureInput.dataset.clientFeature]=featureInput.checked;setDialogSaveState();return;}
   const limitMode=event.target.closest("[data-ai-client-limit-mode]");

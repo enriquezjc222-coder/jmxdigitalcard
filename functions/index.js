@@ -1,10 +1,18 @@
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {initializeApp, getApp} = require("firebase-admin/app");
+const {defineSecret} = require("firebase-functions/params");
+const {GoogleAuth} = require("google-auth-library");
+const jwt = require("jsonwebtoken");
 const {getFirestore, Timestamp, FieldValue} = require("firebase-admin/firestore");
 
 initializeApp();
 const db = getFirestore();
+const GOOGLE_WALLET_SERVICE_ACCOUNT = defineSecret("GOOGLE_WALLET_SERVICE_ACCOUNT");
+const WALLET_ISSUER_ID = "3388000000023177664";
+const WALLET_CLASS_ID = `${WALLET_ISSUER_ID}.jmx_digital_card`;
+const WALLET_ORIGIN = "https://jmxdigitalcard.com";
+const WALLET_IMAGE_URL = `${WALLET_ORIGIN}/google-wallet-jmx.jpg`;
 
 const BASIC_FEATURE_DEFAULTS = new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
 const DEFAULT_SCANNER_CONFIG = {
@@ -46,6 +54,9 @@ function mergeFeatureControls(raw = {}) {
 function featureAllows(card, publicSettings, key) {
   const controls = mergeFeatureControls(publicSettings?.featureControls || {});
   const plan = normalizePlan(card);
+  // Google Wallet has a tri-state client override: true/false are explicit,
+  // while a missing value inherits Global + Plan controls.
+  if (key === "googleWallet" && typeof card?.featureOverrides?.googleWallet === "boolean") return card.featureOverrides.googleWallet;
   if (controls.enabled === false) {
     const baseAllowed = plan === "Business" || (plan === "Premium" && !new Set(["quickCapture","leads","advancedAnalytics"]).has(key)) || BASIC_FEATURE_DEFAULTS.has(key);
     return baseAllowed && card?.featureOverrides?.[key] !== false;
@@ -334,4 +345,66 @@ exports.saveAiScannerRecord = onCall(async (request) => {
   ]).catch(() => {});
   await db.collection(`aiScannerHistory/${cardId}/items`).add({cardId, ownerUid: request.auth.uid, name: contact.fullName || "", company: contact.company || "", source: "AI Card Scanner", status: target === "lead" ? "saved_as_lead" : "saved_as_contact", recordId: ref.id, createdAt: now});
   return {ok: true, id: ref.id, target};
+});
+
+
+function walletObjectSuffix(cardId) {
+  return `jmx_${sanitizeCardId(cardId).toLowerCase().replace(/[^a-z0-9_-]/g, "_")}`.slice(0, 120);
+}
+function walletPublicUrl(cardId) {
+  return cardId === "main" ? `${WALLET_ORIGIN}/` : `${WALLET_ORIGIN}/c/${encodeURIComponent(cardId)}`;
+}
+function walletLocalized(value) { return {defaultValue: {language: "en-US", value: safeString(value, 60) || "JMX Digital Card"}}; }
+function walletServiceAccount() {
+  let credentials;
+  try { credentials = JSON.parse(GOOGLE_WALLET_SERVICE_ACCOUNT.value()); }
+  catch (_) { throw new HttpsError("failed-precondition", "Google Wallet credentials are not configured."); }
+  if (!credentials?.client_email || !credentials?.private_key) throw new HttpsError("failed-precondition", "Google Wallet credentials are incomplete.");
+  return credentials;
+}
+async function authorizeWallet(request, cardId) {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Sign in to add this card to Google Wallet.");
+  const [cardSnap, profileSnap, settingsSnap] = await Promise.all([db.doc(`cards/${cardId}`).get(), db.doc(`profiles/${cardId}`).get(), db.doc("platform/publicSettings").get()]);
+  if (!cardSnap.exists) throw new HttpsError("not-found", "Card not found.");
+  const card = cardSnap.data();
+  const owner = await cardOwnerMatches(cardId, request.auth.uid);
+  if (!owner) throw new HttpsError("permission-denied", "Only the authenticated owner of this card can add it to Google Wallet.");
+  const publicSettings = settingsSnap.exists ? settingsSnap.data() : {};
+  if (!featureAllows(card, publicSettings, "googleWallet")) throw new HttpsError("permission-denied", "Google Wallet is disabled for this card.");
+  if (["available", "sold"].includes(String(card.status || "").toLowerCase())) throw new HttpsError("failed-precondition", "This card must be activated before it can be added to Google Wallet.");
+  return {card, profile: profileSnap.exists ? profileSnap.data() : card};
+}
+function buildWalletObject(cardId, card, profile) {
+  const publicUrl = walletPublicUrl(cardId);
+  const objectId = `${WALLET_ISSUER_ID}.${walletObjectSuffix(cardId)}`;
+  const name = safeString(profile?.fullName || card?.clientName || "JMX Digital Card", 60);
+  const company = safeString(profile?.company || "JMX Digital Card", 60);
+  const position = safeString(profile?.position || "Digital Business Card", 60);
+  return {id: objectId, classId: WALLET_CLASS_ID, state: "ACTIVE", cardTitle: walletLocalized(company), header: walletLocalized(name), subheader: walletLocalized(position), barcode: {type: "QR_CODE", value: publicUrl, alternateText: cardId}, logo: {sourceUri: {uri: WALLET_IMAGE_URL}, contentDescription: walletLocalized("JMX Digital Card")}, linksModuleData: {uris: [{uri: publicUrl, description: "Open JMX Digital Card", id: "jmxDigitalCard"}]}, textModulesData: [{id: "company", header: "Company", body: company}, {id: "card", header: "Digital Card", body: cardId}]};
+}
+async function upsertWalletObject(credentials, object) {
+  const auth = new GoogleAuth({credentials, scopes: ["https://www.googleapis.com/auth/wallet_object.issuer"]});
+  const client = await auth.getClient();
+  const resource = encodeURIComponent(object.id), base = "https://walletobjects.googleapis.com/walletobjects/v1/genericObject";
+  try { await client.request({url: `${base}/${resource}`, method: "GET"}); await client.request({url: `${base}/${resource}`, method: "PUT", data: object}); return "updated"; }
+  catch (error) { if (error?.response?.status !== 404) throw error; await client.request({url: base, method: "POST", data: object}); return "created"; }
+}
+exports.createGoogleWalletPass = onCall({secrets: [GOOGLE_WALLET_SERVICE_ACCOUNT], timeoutSeconds: 30}, async (request) => {
+  const cardId = sanitizeCardId(request.data?.cardId), authz = await authorizeWallet(request, cardId), credentials = walletServiceAccount();
+  const object = buildWalletObject(cardId, authz.card, authz.profile);
+  try {
+    const action = await upsertWalletObject(credentials, object), now = Timestamp.now();
+    await db.doc(`cards/${cardId}`).set({googleWalletObjectId: object.id, googleWalletStatus: "active", googleWalletUpdatedAt: now, ...(action === "created" ? {googleWalletCreatedAt: now} : {})}, {merge: true});
+    const claims = {iss: credentials.client_email, aud: "google", typ: "savetowallet", iat: Math.floor(Date.now()/1000), origins: [WALLET_ORIGIN], payload: {genericObjects: [{id: object.id, classId: WALLET_CLASS_ID}]}};
+    const token = jwt.sign(claims, credentials.private_key, {algorithm: "RS256"});
+    console.info("Google Wallet pass ready", {cardId, objectId: object.id, classId: WALLET_CLASS_ID, action});
+    return {ok: true, objectId: object.id, action, saveUrl: `https://pay.google.com/gp/v/save/${token}`};
+  } catch (error) {
+    console.error("Google Wallet API error", {cardId, objectId: object.id, classId: WALLET_CLASS_ID, status: error?.response?.status, code: error?.code, message: error?.message});
+    if (error instanceof HttpsError) throw error;
+    const status = error?.response?.status;
+    if (status === 401 || status === 403) throw new HttpsError("permission-denied", "Google Wallet service account is not authorized for this issuer.");
+    if (status === 404) throw new HttpsError("failed-precondition", "Google Wallet class was not found. Verify the configured Class ID.");
+    throw new HttpsError("internal", "Google Wallet could not create or update this pass.");
+  }
 });
