@@ -41,8 +41,8 @@ function sanitizeCardId(value) {
   return raw.toUpperCase().replace(/[^A-Z0-9_-]/g, "-").slice(0, 64) || "main";
 }
 function defaultFeatureControls() {
-  const keys = ["description","saveContact","quickActions","phone","phone2","whatsapp","email","website","location","facebook","instagram","linkedin","twitter","tiktok","youtube","services","gallery","video","qr","customQR","qrDownload","finalCTA","businessLinks","catalog","customBusiness","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","brandingRemoval","advancedNetworkingInsights"];
-  const businessOnly = new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","brandingRemoval","advancedNetworkingInsights"]);
+  const keys = ["description","saveContact","quickActions","phone","phone2","whatsapp","email","website","location","facebook","instagram","linkedin","twitter","tiktok","youtube","services","gallery","video","qr","customQR","qrDownload","finalCTA","businessLinks","catalog","customBusiness","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","brandingRemoval","advancedNetworkingInsights"];
+  const businessOnly = new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","brandingRemoval","advancedNetworkingInsights"]);
   const global = {}, Basic = {}, Premium = {}, Business = {};
   keys.forEach((k) => { global[k] = true; Basic[k] = BASIC_FEATURE_DEFAULTS.has(k); Premium[k] = !businessOnly.has(k); Business[k] = true; });
   return {enabled: true, global, Basic, Premium, Business};
@@ -56,7 +56,7 @@ function featureAllows(card, publicSettings, key) {
   const plan = normalizePlan(card);
   // Google Wallet has a tri-state client override: true/false are explicit,
   // while a missing value inherits Global + Plan controls.
-  if (key === "googleWallet" && typeof card?.featureOverrides?.googleWallet === "boolean") return card.featureOverrides.googleWallet;
+  if (["googleWallet", "googleWalletThemes"].includes(key) && typeof card?.featureOverrides?.[key] === "boolean") return card.featureOverrides[key];
   if (controls.enabled === false) {
     const baseAllowed = plan === "Business" || (plan === "Premium" && !new Set(["quickCapture","leads","advancedAnalytics"]).has(key)) || BASIC_FEATURE_DEFAULTS.has(key);
     return baseAllowed && card?.featureOverrides?.[key] !== false;
@@ -348,6 +348,12 @@ exports.saveAiScannerRecord = onCall(async (request) => {
 });
 
 
+const WALLET_THEMES = Object.freeze({
+  default:{name:"JMX Classic",hex:"#1f2937",plans:["Basic","Premium","Business"]}, silver_uv:{name:"Silver UV",hex:"#64748b",plans:["Basic","Premium","Business"]}, black_gold:{name:"Black Gold",hex:"#171717",plans:["Premium","Business"]}, black_matte:{name:"Black Matte Glow",hex:"#111827",plans:["Basic","Premium","Business"]}, electric_blue:{name:"Electric Blue",hex:"#075985",plans:["Basic","Premium","Business"]}, deep_navy:{name:"Deep Navy",hex:"#172554",plans:["Premium","Business"]}, emerald:{name:"Emerald",hex:"#065f46",plans:["Basic","Premium","Business"]}, teal:{name:"Teal Aurora",hex:"#115e59",plans:["Premium","Business"]}, purple:{name:"Royal Purple",hex:"#581c87",plans:["Basic","Premium","Business"]}, violet:{name:"Violet Beam",hex:"#5b21b6",plans:["Premium","Business"]}, aurora:{name:"Aurora",hex:"#0f766e",plans:["Business"]}, red_matte:{name:"Red Matte Glow",hex:"#991b1b",plans:["Basic","Premium","Business"]}, red_gold:{name:"Red Gold",hex:"#9f1239",plans:["Premium","Business"]}, rose_gold:{name:"Rose Gold",hex:"#9f5f67",plans:["Premium","Business"]}, copper:{name:"Copper",hex:"#9a3412",plans:["Business"]}, carbon_red:{name:"Carbon Red",hex:"#27272a",plans:["Business"]}, gold:{name:"Liquid Gold",hex:"#854d0e",plans:["Premium","Business"]}, cyan:{name:"Electric Cyan",hex:"#0e7490",plans:["Business"]},
+  platinum_prism:{name:"Platinum Prism",hex:"#6b7280",plans:["Business"]}, obsidian_chrome:{name:"Obsidian Chrome",hex:"#18181b",plans:["Business"]}, midnight_spectrum:{name:"Midnight Spectrum",hex:"#111827",plans:["Business"]}, ultraviolet_titanium:{name:"Ultraviolet Titanium",hex:"#4c1d95",plans:["Business"]}, emerald_amethyst:{name:"Emerald Amethyst",hex:"#065f46",plans:["Business"]}, sapphire_violet:{name:"Sapphire Violet",hex:"#1e3a8a",plans:["Business"]}, crimson_solar:{name:"Crimson Solar",hex:"#991b1b",plans:["Business"]}, ruby_chrome:{name:"Ruby Chrome",hex:"#9f1239",plans:["Business"]}, champagne_metal:{name:"Champagne Metal",hex:"#a16207",plans:["Business"]}, rose_platinum:{name:"Rose Platinum",hex:"#9d6b75",plans:["Business"]}, molten_copper:{name:"Molten Copper",hex:"#9a3412",plans:["Business"]}, titanium_ice:{name:"Titanium Ice",hex:"#475569",plans:["Business"]}, graphite_laser:{name:"Graphite Laser",hex:"#27272a",plans:["Business"]}, opal_shift:{name:"Opal Shift",hex:"#94a3b8",plans:["Business"]}, arctic_hologram:{name:"Arctic Hologram",hex:"#0891b2",plans:["Business"]}, black_neon_flux:{name:"Black Neon Flux",hex:"#09090b",plans:["Business"]}, scarlet_noir:{name:"Scarlet Noir",hex:"#7f1d1d",plans:["Business"]}, cosmic_pearl:{name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"]}
+});
+function resolvedWalletTheme(card={}) { const id=safeString(card.googleWalletTheme||"default",40); return {id:WALLET_THEMES[id]?id:"default", ...(WALLET_THEMES[id]||WALLET_THEMES.default)}; }
+
 function walletObjectSuffix(cardId) {
   return `jmx_${sanitizeCardId(cardId).toLowerCase().replace(/[^a-z0-9_-]/g, "_")}`.slice(0, 120);
 }
@@ -380,7 +386,8 @@ function buildWalletObject(cardId, card, profile) {
   const name = safeString(profile?.fullName || card?.clientName || "JMX Digital Card", 60);
   const company = safeString(profile?.company || "JMX Digital Card", 60);
   const position = safeString(profile?.position || "Digital Business Card", 60);
-  return {id: objectId, classId: WALLET_CLASS_ID, state: "ACTIVE", cardTitle: walletLocalized(company), header: walletLocalized(name), subheader: walletLocalized(position), barcode: {type: "QR_CODE", value: publicUrl, alternateText: cardId}, logo: {sourceUri: {uri: WALLET_IMAGE_URL}, contentDescription: walletLocalized("JMX Digital Card")}, linksModuleData: {uris: [{uri: publicUrl, description: "Open JMX Digital Card", id: "jmxDigitalCard"}]}, textModulesData: [{id: "company", header: "Company", body: company}, {id: "card", header: "Digital Card", body: cardId}]};
+  const walletTheme = resolvedWalletTheme(card);
+  return {id: objectId, classId: WALLET_CLASS_ID, state: "ACTIVE", hexBackgroundColor: walletTheme.hex, cardTitle: walletLocalized(company), header: walletLocalized(name), subheader: walletLocalized(position), barcode: {type: "QR_CODE", value: publicUrl, alternateText: cardId}, logo: {sourceUri: {uri: WALLET_IMAGE_URL}, contentDescription: walletLocalized("JMX Digital Card")}, linksModuleData: {uris: [{uri: publicUrl, description: "Open JMX Digital Card", id: "jmxDigitalCard"}]}, textModulesData: [{id: "company", header: "Company", body: company}, {id: "card", header: "Digital Card", body: cardId}]};
 }
 async function upsertWalletObject(credentials, object) {
   const auth = new GoogleAuth({credentials, scopes: ["https://www.googleapis.com/auth/wallet_object.issuer"]});
@@ -389,6 +396,19 @@ async function upsertWalletObject(credentials, object) {
   try { await client.request({url: `${base}/${resource}`, method: "GET"}); await client.request({url: `${base}/${resource}`, method: "PUT", data: object}); return "updated"; }
   catch (error) { if (error?.response?.status !== 404) throw error; await client.request({url: base, method: "POST", data: object}); return "created"; }
 }
+exports.saveGoogleWalletTheme = onCall(async (request) => {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Sign in to customize Google Wallet.");
+  const cardId=sanitizeCardId(request.data?.cardId), themeId=safeString(request.data?.themeId,40);
+  const [cardSnap,settingsSnap]=await Promise.all([db.doc(`cards/${cardId}`).get(),db.doc("platform/publicSettings").get()]);
+  if(!cardSnap.exists) throw new HttpsError("not-found","Card not found.");
+  if(!await cardOwnerMatches(cardId,request.auth.uid)) throw new HttpsError("permission-denied","Only the authenticated owner can customize this Wallet pass.");
+  const card=cardSnap.data(), settings=settingsSnap.exists?settingsSnap.data():{};
+  if(!featureAllows(card,settings,"googleWallet")||!featureAllows(card,settings,"googleWalletThemes")) throw new HttpsError("permission-denied","Google Wallet theme customization is disabled for this card.");
+  const theme=WALLET_THEMES[themeId]; if(!theme||!theme.plans.includes(normalizePlan(card))) throw new HttpsError("permission-denied","This Wallet theme is not available for this plan.");
+  await db.doc(`cards/${cardId}`).set({googleWalletTheme:themeId,googleWalletThemeUpdatedAt:Timestamp.now()},{merge:true});
+  return {ok:true,themeId,themeName:theme.name};
+});
+
 exports.createGoogleWalletPass = onCall({secrets: [GOOGLE_WALLET_SERVICE_ACCOUNT], timeoutSeconds: 30}, async (request) => {
   const cardId = sanitizeCardId(request.data?.cardId), authz = await authorizeWallet(request, cardId), credentials = walletServiceAccount();
   const object = buildWalletObject(cardId, authz.card, authz.profile);
