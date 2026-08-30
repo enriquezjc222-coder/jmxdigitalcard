@@ -269,7 +269,7 @@ async function loadAdminMeta(){
   try{
     const [cardSnap,ownerSnap]=await Promise.all([getDoc(cardRef),getDoc(ownerRef)]);
     const c=cardSnap.exists()?cardSnap.data():{},o=ownerSnap.exists()?ownerSnap.data():{};
-    selectedWalletTheme=c.googleWalletTheme||selectedWalletTheme||"default"; selectedQrCardTheme=currentProfile.qrCardTheme||selectedQrCardTheme||"default";
+    selectedWalletTheme=c.googleWalletTheme||selectedWalletTheme||"default"; savedWalletTheme=selectedWalletTheme; selectedQrCardTheme=currentProfile.qrCardTheme||selectedQrCardTheme||"default";
     if(currentRole==="owner"){
       setVal("clientEditorEmail",o.ownerEmail||currentUser?.email||"");
       if($id("clientPlan"))$id("clientPlan").value=c.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("complimentaryBusiness"))$id("complimentaryBusiness").checked=c.complimentaryBusiness===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=(c.complimentaryBusiness||c.complimentaryPremium)?"complimentary":(c.subscription?.source||"manual");
@@ -422,7 +422,7 @@ async function loadAfterAuth(){
       pendingMedia.clear(); pendingDeletes.clear();
       setStatus("Online card loaded.");
     }
-    currentProfile=remote;selectedWalletTheme=remote.googleWalletTheme||"default";selectedQrCardTheme=remote.qrCardTheme||"default";setInputData(currentProfile);await loadAdminMeta();
+    currentProfile=remote;selectedWalletTheme=remote.googleWalletTheme||"default";savedWalletTheme=selectedWalletTheme;selectedQrCardTheme=remote.qrCardTheme||"default";setInputData(currentProfile);await loadAdminMeta();
     try{const settingsSnap=await getDoc(publicSettingsRef);platformFeatureControls=mergeFeatureControls(settingsSnap.exists()?(settingsSnap.data().featureControls||{}):{});}catch(e){console.warn("Feature controls unavailable",e);platformFeatureControls=defaultFeatureControls();}
   }catch(e){console.error(e);currentProfile=getLegacyProfile()||structuredCloneSafe(defaults);setInputData(currentProfile);setStatus(firebaseMessage(e),"error");}
   finally{setBusy(false);}
@@ -540,19 +540,36 @@ const WALLET_THEMES=[
  {id:"cosmic_pearl",name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#172554 0%,#6366f1 24%,#a78bfa 39%,#f0abfc 53%,#5eead4 68%,#f8fafc 82%,#312e81 100%)"}
 ];
 let selectedWalletTheme="default";
+let savedWalletTheme="default";
 let selectedQrCardTheme="default";
 const saveGoogleWalletThemeCall=httpsCallable(functions,"saveGoogleWalletTheme");
 function walletThemeAllowed(t){return t.plans.includes(currentCardPlan)&&featureEnabledForPlan("googleWallet")&&featureEnabledForPlan("googleWalletThemes")}
+function walletThemesExpanded(){return $id("googleWalletThemesSection")?.classList.contains("wallet-themes-expanded")===true}
+function applyWalletThemeCompactVisibility(){
+ const sec=$id("googleWalletThemesSection"),grid=$id("walletThemeGrid");if(!sec||!grid)return;
+ const expanded=walletThemesExpanded(),limit=window.matchMedia("(max-width:560px)").matches?6:9;
+ const tiles=[...grid.querySelectorAll("[data-wallet-theme]")];
+ tiles.forEach((tile,index)=>tile.classList.toggle("wallet-theme-compact-hidden",!expanded&&index>=limit));
+ grid.querySelectorAll(".wallet-theme-collection").forEach(collection=>{const visible=[...collection.querySelectorAll("[data-wallet-theme]")].some(tile=>!tile.classList.contains("wallet-theme-compact-hidden"));collection.classList.toggle("wallet-theme-collection-compact-hidden",!expanded&&!visible)});
+}
+function setWalletThemesExpanded(expanded){
+ const sec=$id("googleWalletThemesSection"),backdrop=$id("walletThemeBackdrop"),expand=$id("walletThemesExpand"),close=$id("walletThemesClose");if(!sec)return;
+ if(!expanded&&selectedWalletTheme!==savedWalletTheme){selectedWalletTheme=savedWalletTheme;updateWalletThemePreview()}
+ sec.classList.toggle("wallet-themes-expanded",expanded);
+ if(backdrop)backdrop.hidden=!expanded;if(expand){expand.hidden=expanded;expand.setAttribute("aria-expanded",String(expanded))}if(close)close.hidden=!expanded;
+ document.body.classList.toggle("wallet-themes-modal-open",expanded);applyWalletThemeCompactVisibility();
+ if(expanded)setTimeout(()=>sec.querySelector("[data-wallet-theme].selected")?.scrollIntoView({block:"nearest"}),0);
+}
 function renderWalletThemes(){
  const sec=$id("googleWalletThemesSection"),grid=$id("walletThemeGrid");if(!sec||!grid)return;
- const allowed=featureEnabledForPlan("googleWallet")&&featureEnabledForPlan("googleWalletThemes")&&currentRole==="owner";sec.hidden=!allowed;if(!allowed)return;
- const available=WALLET_THEMES.filter(walletThemeAllowed);if(!available.some(t=>t.id===selectedWalletTheme))selectedWalletTheme=available[0]?.id||"default";
- const tile=t=>`<button type="button" class="wallet-theme-tile ${t.id===selectedWalletTheme?"selected":""}" data-wallet-theme="${t.id}" aria-pressed="${t.id===selectedWalletTheme}"><span class="wallet-theme-swatch" style="background:${t.css}"></span><strong>${t.name}</strong></button>`;
+ const allowed=featureEnabledForPlan("googleWallet")&&featureEnabledForPlan("googleWalletThemes")&&currentRole==="owner";sec.hidden=!allowed;if(!allowed){setWalletThemesExpanded(false);return;}
+ const available=WALLET_THEMES.filter(walletThemeAllowed);if(!available.some(t=>t.id===selectedWalletTheme))selectedWalletTheme=available[0]?.id||"default";if(!available.some(t=>t.id===savedWalletTheme))savedWalletTheme=selectedWalletTheme;
+ let walletIndex=0;const tile=t=>{const index=walletIndex++;return `<button type="button" class="wallet-theme-tile ${t.id===selectedWalletTheme?"selected":""}" data-wallet-theme="${t.id}" data-wallet-theme-index="${index}" aria-pressed="${t.id===selectedWalletTheme}" aria-label="Preview ${t.name} Google Wallet theme"><span class="wallet-theme-swatch" style="background:${t.css}"></span><strong>${t.name}</strong></button>`};
  const classic=available.filter(t=>t.tier!=="Premium"),premium=available.filter(t=>t.tier==="Premium");
- grid.innerHTML=`<div class="wallet-theme-collection"><div class="wallet-theme-collection-title"><span>Classic Themes</span><small>${classic.length}</small></div><div class="wallet-theme-collection-grid">${classic.map(tile).join("")}</div></div>${premium.length?`<div class="wallet-theme-collection premium"><div class="wallet-theme-collection-title"><span>Premium Themes</span><small>${premium.length}</small></div><div class="wallet-theme-collection-grid">${premium.map(tile).join("")}</div></div>`:""}`;updateWalletThemePreview();
+ grid.innerHTML=`<div class="wallet-theme-collection"><div class="wallet-theme-collection-title"><span>Classic Themes</span><small>${classic.length}</small></div><div class="wallet-theme-collection-grid">${classic.map(tile).join("")}</div></div>${premium.length?`<div class="wallet-theme-collection premium"><div class="wallet-theme-collection-title"><span>Premium Themes</span><small>${premium.length}</small></div><div class="wallet-theme-collection-grid">${premium.map(tile).join("")}</div></div>`:""}`;updateWalletThemePreview();applyWalletThemeCompactVisibility();
 }
-function updateWalletThemePreview(){const t=WALLET_THEMES.find(x=>x.id===selectedWalletTheme)||WALLET_THEMES[0],card=$id("walletThemePreview");if(!card)return;card.style.background=t.css;$id("walletPreviewCompany").textContent=currentProfile.company||"JMX DIGITAL CARD";$id("walletPreviewName").textContent=currentProfile.fullName||"Card Owner";$id("walletPreviewPosition").textContent=currentProfile.position||"Digital Business Card";$id("walletThemeSelectedName").textContent=t.name;document.querySelectorAll("[data-wallet-theme]").forEach(b=>{const on=b.dataset.walletTheme===selectedWalletTheme;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
-async function saveWalletTheme(){const status=$id("walletThemeStatus"),btn=$id("saveWalletTheme");if(btn)btn.disabled=true;if(status)status.textContent="Saving theme…";try{const r=(await saveGoogleWalletThemeCall({cardId:CARD_ID,themeId:selectedWalletTheme})).data;if(status){status.textContent=`${r?.themeName||"Theme"} saved. Your existing Wallet pass will be updated when you use Add to Google Wallet.`;status.className="save-status ok";}}catch(e){console.error(e);if(status){status.textContent=e?.message||"Could not save Wallet theme.";status.className="save-status error";}}finally{if(btn)btn.disabled=false}}
+function updateWalletThemePreview(){const t=WALLET_THEMES.find(x=>x.id===selectedWalletTheme)||WALLET_THEMES[0],card=$id("walletThemePreview");if(!card)return;card.style.background=t.css;$id("walletPreviewCompany").textContent=currentProfile.company||"JMX DIGITAL CARD";$id("walletPreviewName").textContent=currentProfile.fullName||"Card Owner";$id("walletPreviewPosition").textContent=currentProfile.position||"Digital Business Card";$id("walletThemeSelectedName").textContent=t.name;const hint=$id("walletThemeSavedHint");if(hint){const saved=selectedWalletTheme===savedWalletTheme;hint.textContent=saved?"Saved theme":"Preview only — press Save Theme to keep it";hint.classList.toggle("unsaved",!saved)}document.querySelectorAll("[data-wallet-theme]").forEach(b=>{const on=b.dataset.walletTheme===selectedWalletTheme;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
+async function saveWalletTheme(){const status=$id("walletThemeStatus"),btn=$id("saveWalletTheme");if(btn)btn.disabled=true;if(status){status.textContent="Saving theme…";status.className="save-status"}try{const r=(await saveGoogleWalletThemeCall({cardId:CARD_ID,themeId:selectedWalletTheme})).data;savedWalletTheme=selectedWalletTheme;currentProfile.googleWalletTheme=selectedWalletTheme;updateWalletThemePreview();if(status){status.textContent=`${r?.themeName||"Theme"} saved successfully. Your existing Wallet pass will be updated when you use Add to Google Wallet.`;status.className="save-status ok";}}catch(e){console.error(e);if(status){status.textContent=e?.message||"Could not save Wallet theme.";status.className="save-status error";}}finally{if(btn)btn.disabled=false}}
 
 
 function renderQrCardThemes(){
@@ -638,6 +655,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   $id("qrCardThemeGrid")?.addEventListener("click",e=>{const b=e.target.closest("[data-qr-card-theme]");if(!b)return;selectedQrCardTheme=b.dataset.qrCardTheme;updateQrCardThemePreview();setStatus("QR Card Theme selected. Press Save Changes to publish it.")});
   $id("walletThemeGrid")?.addEventListener("click",e=>{const b=e.target.closest("[data-wallet-theme]");if(!b)return;selectedWalletTheme=b.dataset.walletTheme;updateWalletThemePreview()});
   $id("saveWalletTheme")?.addEventListener("click",saveWalletTheme);
+  $id("walletThemesExpand")?.addEventListener("click",()=>setWalletThemesExpanded(true));
+  $id("walletThemesClose")?.addEventListener("click",()=>setWalletThemesExpanded(false));
+  $id("walletThemeBackdrop")?.addEventListener("click",()=>setWalletThemesExpanded(false));
+  window.addEventListener("resize",applyWalletThemeCompactVisibility);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&walletThemesExpanded())setWalletThemesExpanded(false)});
   onAuthStateChanged(auth,async user=>{
     currentUser=user||null;document.body.classList.toggle("admin-authenticated",Boolean(user));
     if(!user){currentRole="none";setAuthStatus("Sign in to edit your JMX Digital Card.");$id("adminUserEmail").textContent="";return;}

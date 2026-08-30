@@ -258,16 +258,64 @@ function actionBreakdown(actions = {}) {
   return entries.map(([name, value]) => `<div class="analytics-action-row"><span>${esc(prettyActionName(name))}</span><strong>${Number(value || 0).toLocaleString()}</strong></div>`).join("");
 }
 
+function cardSearchText(card) {
+  const admin = card.admin || {};
+  const owner = card.owner || {};
+  const profile = card.profile || {};
+  const inventory = card.inventory || {};
+  const dateValues = [card.createdAt, card.updatedAt, card.soldAt, admin.createdAt, admin.updatedAt, inventory.createdAt, inventory.updatedAt]
+    .flatMap((value) => {
+      if (!value) return [];
+      const date = value?.toDate ? value.toDate() : value instanceof Date ? value : null;
+      if (!date) return [String(value)];
+      return [date.toLocaleDateString(), date.toLocaleString(), date.toISOString().slice(0, 10)];
+    });
+  return [
+    card.id, friendlyUrl(card.id), card.plan, effectivePlan(card), card.status,
+    card.subscription?.status, card.subscription?.source, card.activationStatus,
+    admin.clientName, admin.notes, admin.phone, admin.email, admin.company,
+    inventory.notes, inventory.physicalType, inventory.nfcStatus,
+    owner.ownerEmail, owner.email, owner.phone,
+    profile.fullName, profile.firstName, profile.lastName, profile.company,
+    profile.email, profile.phone, profile.phone2, profile.website,
+    ...dateValues
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function panelSearchValue(id) { return ($(id)?.value || "").trim().toLowerCase(); }
+function matchesPanelSearch(card, id) { const q = panelSearchValue(id); return !q || cardSearchText(card).includes(q); }
+function categoryForCard(card) {
+  if ((card.status || "available") === "available") return "Available";
+  if (card.status === "sold") return "Sold / Awaiting Activation";
+  const plan = effectivePlan(card);
+  return plan === "Business" ? "JMX Business Clients" : `${plan} Clients`;
+}
+
+function renderMasterSearchResults(query) {
+  const box = $("masterSearchResults");
+  if (!box) return;
+  if (!query) { box.hidden = true; box.innerHTML = ""; return; }
+  const statusFilter = $("statusFilter").value;
+  const planFilter = $("planFilter")?.value || "all";
+  const matches = cards.filter(card => cardSearchText(card).includes(query) && (statusFilter === "all" || card.status === statusFilter) && (planFilter === "all" || effectivePlan(card) === planFilter));
+  box.hidden = false;
+  box.innerHTML = `<div class="master-search-results-head"><strong>${matches.length} result${matches.length===1?"":"s"}</strong><span class="subtitle small">Searches all five inventory/client categories</span></div><div class="master-search-result-list">${matches.length ? matches.map(card => {
+    const name = card.profile?.fullName || card.admin?.clientName || card.owner?.ownerEmail || card.inventory?.notes || card.admin?.notes || card.id;
+    return `<button class="master-search-result" type="button" data-master-result="${esc(card.id)}"><span><strong>${esc(name)}</strong><small>${esc(card.id)} · ${esc(friendlyUrl(card.id))} · ${esc(effectivePlan(card))} · ${esc(card.status || "available")}</small></span><span class="master-search-category">${esc(categoryForCard(card))}</span></button>`;
+  }).join("") : '<div class="inventory-pool-empty compact">No matching card or client was found.</div>'}</div>`;
+  box.querySelectorAll("[data-master-result]").forEach(button => button.addEventListener("click", () => {
+    const card = cards.find(c => c.id === button.dataset.masterResult);
+    if (!card) return;
+    if (["available","sold"].includes(card.status || "available")) openInventoryDialog(card.id); else openClientDialog(card.id);
+  }));
+}
+
 function render() {
   const search = $("searchCards").value.trim().toLowerCase();
   const filter = $("statusFilter").value;
   const planFilter = $("planFilter")?.value || "all";
   const list = cards.filter((card) => {
-    const admin = card.admin || {};
-    const owner = card.owner || {};
-    const profile = card.profile || {};
-    const haystack = [card.id, card.plan, card.status, admin.clientName, admin.notes, owner.ownerEmail, profile.fullName, profile.company, profile.email, profile.phone].join(" ").toLowerCase();
-    return (!search || haystack.includes(search)) && (filter === "all" || card.status === filter) && (planFilter === "all" || effectivePlan(card) === planFilter);
+    return (!search || cardSearchText(card).includes(search)) && (filter === "all" || card.status === filter) && (planFilter === "all" || effectivePlan(card) === planFilter);
   });
 
   $("totalCards").textContent = cards.length;
@@ -291,50 +339,32 @@ function render() {
     const effective = effectivePlan(card);
     const note = admin.notes || inventory.notes || "Add private note";
     const created = card.createdAt?.toDate ? card.createdAt.toDate().toLocaleDateString() : "—";
+    const returnButton = card.status === "sold" ? `<button class="inventory-return-button" type="button" data-return-available="${esc(card.id)}" title="Return this unactivated card to Available"><i class="fa-solid fa-rotate-left"></i> Available</button>` : "";
     return `<div class="inventory-list-row-wrap">
       <button class="inventory-list-row" type="button" data-inventory-id="${esc(card.id)}">
-        <span class="inventory-list-main">
-          <strong>${esc(card.id)}</strong>
-          <small>${esc(friendlyUrl(card.id))}</small>
-        </span>
+        <span class="inventory-list-main"><strong>${esc(card.id)}</strong><small>${esc(friendlyUrl(card.id))}</small></span>
         <span class="inventory-list-note" title="${esc(note)}">${esc(note)}</span>
         <span class="inventory-list-plan">${esc(effective)}</span>
         <span class="inventory-list-date"><small>Created</small><strong>${esc(created)}</strong></span>
-        <span class="badge ${badgeClass(card.status)}">${esc(card.status || "available")}</span>
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
+        <span class="badge ${badgeClass(card.status)}">${esc(card.status || "available")}</span><i class="fa-solid fa-chevron-right"></i>
+      </button>${returnButton}
       <button class="inventory-note-edit" type="button" data-edit-note="${esc(card.id)}" title="Edit internal note" aria-label="Edit internal note for ${esc(card.id)}"><i class="fa-solid fa-pen"></i></button>
     </div>`;
   };
 
   const clientRowMarkup = (card) => {
-    const admin = card.admin || {};
-    const owner = card.owner || {};
-    const profile = card.profile || {};
-    const stats = card.stats || {};
-    const effective = effectivePlan(card);
-    const displayName = profile.fullName || admin.clientName || owner.ownerEmail || card.id;
-    const gift = complimentaryTier(card);
-    return `<div class="client-list-row-wrap">
-      <button class="client-list-row" type="button" data-client-id="${esc(card.id)}">
-        <span class="client-list-main"><strong>${esc(displayName)}</strong><small>${esc(card.id)} · ${esc(owner.ownerEmail || "No owner email")}</small></span>
-        <span class="client-list-plan">${esc(effective)}${gift ? `<small class="gift-inline-label"><i class="fa-solid fa-gift"></i> Gift</small>` : ""}</span>
-        <span class="client-list-stat"><strong>${Number(stats.views || 0).toLocaleString()}</strong><small>historical views</small></span>
-        <span class="client-list-stat"><strong>${sumActions(stats.actions || {}).toLocaleString()}</strong><small>tracked actions</small></span>
-        <span class="badge ${badgeClass(card.status)}">${esc(card.status || "activated")}</span>
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
-      <button class="client-manage-button" type="button" data-manage-client="${esc(card.id)}"><i class="fa-solid fa-user-gear"></i> Manage</button>
-    </div>`;
+    const admin = card.admin || {}, owner = card.owner || {}, profile = card.profile || {}, stats = card.stats || {};
+    const effective = effectivePlan(card), displayName = profile.fullName || admin.clientName || owner.ownerEmail || card.id, gift = complimentaryTier(card);
+    return `<div class="client-list-row-wrap"><button class="client-list-row" type="button" data-client-id="${esc(card.id)}"><span class="client-list-main"><strong>${esc(displayName)}</strong><small>${esc(card.id)} · ${esc(owner.ownerEmail || "No owner email")}</small></span><span class="client-list-plan">${esc(effective)}${gift ? `<small class="gift-inline-label"><i class="fa-solid fa-gift"></i> Gift</small>` : ""}</span><span class="client-list-stat"><strong>${Number(stats.views || 0).toLocaleString()}</strong><small>historical views</small></span><span class="client-list-stat"><strong>${sumActions(stats.actions || {}).toLocaleString()}</strong><small>tracked actions</small></span><span class="badge ${badgeClass(card.status)}">${esc(card.status || "activated")}</span><i class="fa-solid fa-chevron-right"></i></button><button class="client-manage-button" type="button" data-manage-client="${esc(card.id)}"><i class="fa-solid fa-user-gear"></i> Manage</button></div>`;
   };
 
   const inventoryList = list.filter(c => unclaimedStatuses.has(c.status) || !c.status);
-  const basicList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Basic");
-  const premiumList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Premium");
-  const businessList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Business");
+  const basicList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Basic").filter(c=>matchesPanelSearch(c,"basicPanelSearch"));
+  const premiumList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Premium").filter(c=>matchesPanelSearch(c,"premiumPanelSearch"));
+  const businessList = list.filter(c => clientStatuses.has(c.status) && effectivePlan(c)==="Business").filter(c=>matchesPanelSearch(c,"businessPanelSearch"));
+  const availableInventory = inventoryList.filter(c => (c.status || "available") === "available").filter(c=>matchesPanelSearch(c,"availablePanelSearch"));
+  const soldInventory = inventoryList.filter(c => c.status === "sold").filter(c=>matchesPanelSearch(c,"soldPanelSearch"));
 
-  const availableInventory = inventoryList.filter((c) => (c.status || "available") === "available");
-  const soldInventory = inventoryList.filter((c) => c.status === "sold");
   $("inventoryAvailableList").innerHTML = availableInventory.map(inventoryRowMarkup).join("");
   $("inventorySoldList").innerHTML = soldInventory.map(inventoryRowMarkup).join("");
   $("inventoryAvailableCount").textContent = availableInventory.length;
@@ -346,17 +376,14 @@ function render() {
   $("basicCardsGrid").innerHTML=basicList.map(clientRowMarkup).join("");
   $("premiumCardsGrid").innerHTML=premiumList.map(clientRowMarkup).join("");
   $("businessCardsGrid").innerHTML=businessList.map(clientRowMarkup).join("");
-  $("basicColumnCount").textContent=basicList.length;
-  $("premiumColumnCount").textContent=premiumList.length;
-  $("businessColumnCount").textContent=businessList.length;
+  $("basicColumnCount").textContent=basicList.length; $("premiumColumnCount").textContent=premiumList.length; $("businessColumnCount").textContent=businessList.length;
   $("emptyState").hidden = list.length > 0;
-  document.querySelectorAll(".inventory-list-row").forEach((row) => row.addEventListener("click", () => openInventoryDialog(row.dataset.inventoryId)));
-  document.querySelectorAll(".inventory-note-edit").forEach((button) => button.addEventListener("click", async (event) => {
-    event.stopPropagation();
-    await editInventoryNote(button.dataset.editNote);
-  }));
-  document.querySelectorAll(".client-list-row").forEach((row) => row.addEventListener("click", () => openClientDialog(row.dataset.clientId)));
-  document.querySelectorAll(".client-manage-button").forEach((button) => button.addEventListener("click", () => openClientDialog(button.dataset.manageClient)));
+  renderMasterSearchResults(search);
+  document.querySelectorAll(".inventory-list-row").forEach(row => row.addEventListener("click", () => openInventoryDialog(row.dataset.inventoryId)));
+  document.querySelectorAll(".inventory-note-edit").forEach(button => button.addEventListener("click", async event => { event.stopPropagation(); await editInventoryNote(button.dataset.editNote); }));
+  document.querySelectorAll("[data-return-available]").forEach(button => button.addEventListener("click", async event => { event.stopPropagation(); await returnSoldToAvailable(button.dataset.returnAvailable); }));
+  document.querySelectorAll(".client-list-row").forEach(row => row.addEventListener("click", () => openClientDialog(row.dataset.clientId)));
+  document.querySelectorAll(".client-manage-button").forEach(button => button.addEventListener("click", () => openClientDialog(button.dataset.manageClient)));
 }
 
 async function editInventoryNote(id) {
@@ -430,6 +457,7 @@ async function openInventoryDialog(id) {
     ${effective === "Business" ? `<button class="secondary-button" data-dialog-action="compBusiness"><i class="fa-solid fa-gift"></i> ${card.complimentaryBusiness===true?"Remove Complimentary Business":"Complimentary Business"}</button>` : ""}
     <button class="secondary-button" data-dialog-action="note"><i class="fa-solid fa-pen"></i> Edit Internal Note</button>
     ${card.status === "available" ? '<button class="secondary-button" data-dialog-action="sold"><i class="fa-solid fa-tag"></i> Mark Sold</button>' : ""}
+    ${card.status === "sold" ? '<button class="secondary-button" data-dialog-action="returnAvailable"><i class="fa-solid fa-rotate-left"></i> Return to Available</button>' : ""}
     ${card.status === "available" && !PROTECTED_CARD_IDS.has(id) ? '<button class="secondary-button" data-dialog-action="regenerate"><i class="fa-solid fa-arrows-rotate"></i> Regenerate</button><button class="danger-button" data-dialog-action="delete"><i class="fa-solid fa-trash"></i> Delete</button>' : ""}
   `;
   if (!dialog.open) dialog.showModal();
@@ -619,6 +647,7 @@ async function performCardAction(id, action, button = null) {
   if (action === "comp") await toggleComplimentary(id, card);
   if (action === "compBusiness") await toggleComplimentaryBusiness(id, card);
   if (action === "sold") await updateStatus(id, "sold");
+  if (action === "returnAvailable") await returnSoldToAvailable(id);
   if (action === "suspend") await updateStatus(id, "suspended");
   if (action === "reactivate") await updateStatus(id, "activated");
   if (action === "regenerate") await regenerate(id);
@@ -788,6 +817,25 @@ async function changePlan(id, card) {
   await setBasePlan(id, card, next);
 }
 
+async function returnSoldToAvailable(id) {
+  const card = cards.find(c => c.id === id);
+  if (!card || card.status !== "sold") return;
+  const ownerEmail = card.owner?.ownerEmail || card.profile?.email || "";
+  if (ownerEmail || card.profile?.fullName || card.status === "activated") return alert(`${id} appears to have client ownership/profile data. It was not returned to Available.`);
+  if (!confirm(`Return ${id} from Sold / Awaiting Activation to Available?\n\nThe permanent Card ID, NFC URL and existing activation code will be preserved.`)) return;
+  try {
+    const batch = writeBatch(db);
+    batch.set(doc(db,"cards",id), {status:"available",soldAt:deleteField(),updatedAt:serverTimestamp()}, {merge:true});
+    batch.set(doc(db,"inventory",id), {status:"available",soldAt:deleteField(),updatedAt:serverTimestamp()}, {merge:true});
+    await batch.commit();
+    if ($("clientDetailDialog")?.open) $("clientDetailDialog").close();
+    await loadCards();
+  } catch (error) {
+    console.error("Return sold card to available failed", error);
+    alert("Could not return this card to Available. No intentional client data was removed.");
+  }
+}
+
 async function updateStatus(id, next) {
   const payload = { status: next, updatedAt: serverTimestamp() };
   if (next === "sold") payload.soldAt = serverTimestamp();
@@ -919,9 +967,35 @@ $("newCardButton").addEventListener("click", () => { prepareDialog(); $("cardDia
 $("cardForm").addEventListener("submit", createCard);
 $("closeCardDialog").addEventListener("click", () => $("cardDialog").close());
 $("cancelCardButton").addEventListener("click", () => $("cardDialog").close());
-$("searchCards").addEventListener("input", render);
+$("searchCards").addEventListener("input", () => { if (!$("searchCards").value.trim()) render(); });
+$("searchCards").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); render(); } });
+$("masterSearchButton")?.addEventListener("click", render);
+["availablePanelSearch","soldPanelSearch","basicPanelSearch","premiumPanelSearch","businessPanelSearch"].forEach(id => $(id)?.addEventListener("input", render));
 $("statusFilter").addEventListener("change", render);
 $("planFilter")?.addEventListener("change", render);
+const inventoryPanelMap={
+  available:()=>$("inventoryAvailableList")?.closest(".inventory-list-column"),
+  sold:()=>$("inventorySoldList")?.closest(".inventory-list-column"),
+  basic:()=>$("basicCardsGrid")?.closest(".plan-column"),
+  premium:()=>$("premiumCardsGrid")?.closest(".plan-column"),
+  business:()=>$("businessCardsGrid")?.closest(".plan-column")
+};
+let expandedInventoryPanel=null, inventoryPanelBackdrop=null;
+function closeInventoryPanel(){
+  if(!expandedInventoryPanel)return;
+  expandedInventoryPanel.classList.remove("inventory-panel-expanded");
+  expandedInventoryPanel.querySelector(".compact-record-list")?.classList.remove("is-expanded");
+  expandedInventoryPanel.querySelector("[data-panel-expand]")?.setAttribute("aria-expanded","false");
+  inventoryPanelBackdrop?.remove(); inventoryPanelBackdrop=null; expandedInventoryPanel=null; document.body.classList.remove("inventory-panel-open");
+}
+function openInventoryPanel(key){
+  const panel=inventoryPanelMap[key]?.(); if(!panel)return;
+  if(expandedInventoryPanel===panel){closeInventoryPanel();return;}
+  closeInventoryPanel(); expandedInventoryPanel=panel; panel.classList.add("inventory-panel-expanded"); panel.querySelector(".compact-record-list")?.classList.add("is-expanded"); panel.querySelector("[data-panel-expand]")?.setAttribute("aria-expanded","true");
+  inventoryPanelBackdrop=document.createElement("div"); inventoryPanelBackdrop.className="inventory-panel-backdrop"; inventoryPanelBackdrop.addEventListener("click",closeInventoryPanel); document.body.appendChild(inventoryPanelBackdrop); document.body.classList.add("inventory-panel-open");
+}
+document.querySelectorAll("[data-panel-expand]").forEach(button=>button.addEventListener("click",()=>openInventoryPanel(button.dataset.panelExpand)));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&expandedInventoryPanel)closeInventoryPanel();});
 $("newCardId").addEventListener("input", updatePreview);
 $("regenerateCode").addEventListener("click", () => { $("newCardId").value = randomCode(); updatePreview(); });
 $("regenerateActivation").addEventListener("click", () => $("newActivationCode").value = activationCode());
@@ -937,7 +1011,7 @@ async function handleDialogAction(event) {
   const action = button.dataset.dialogAction;
   if(action==="saveClientChanges") return saveClientDialogChanges(id);
   await performCardAction(id, action, button);
-  if (["plan", "sold", "suspend", "reactivate", "regenerate", "delete", "release"].includes(action) && $("clientDetailDialog").open) {
+  if (["plan", "sold", "returnAvailable", "suspend", "reactivate", "regenerate", "delete", "release"].includes(action) && $("clientDetailDialog").open) {
     $("clientDetailDialog").close();
   }
 }
@@ -988,6 +1062,33 @@ function updateFeatureDependencyUI(){
   const globals={}; globalRoot.querySelectorAll("[data-feature]").forEach(row=>globals[row.dataset.feature]=row.querySelector("input").checked);
   ["basicFeatureSwitches","premiumFeatureSwitches","businessFeatureSwitches"].forEach(id=>$(id)?.querySelectorAll("[data-feature]").forEach(row=>row.classList.toggle("master-off",globals[row.dataset.feature]===false)));
 }
+function closeExpandedFeaturePanel(){
+  const expanded=document.querySelector(".feature-column.is-expanded");
+  if(!expanded)return;
+  expanded.classList.remove("is-expanded");
+  const button=expanded.querySelector("[data-feature-expand]");
+  if(button){button.setAttribute("aria-expanded","false");button.title="Expand controls";const icon=button.querySelector("i");if(icon)icon.className="fa-solid fa-expand";}
+  const backdrop=$("featureExpandBackdrop");if(backdrop)backdrop.hidden=true;
+  document.body.classList.remove("feature-panel-open");
+}
+function openExpandedFeaturePanel(column){
+  if(!column)return;
+  const alreadyOpen=column.classList.contains("is-expanded");
+  closeExpandedFeaturePanel();
+  if(alreadyOpen)return;
+  column.classList.add("is-expanded");
+  const button=column.querySelector("[data-feature-expand]");
+  if(button){button.setAttribute("aria-expanded","true");button.title="Close expanded controls";const icon=button.querySelector("i");if(icon)icon.className="fa-solid fa-xmark";}
+  const backdrop=$("featureExpandBackdrop");if(backdrop)backdrop.hidden=false;
+  document.body.classList.add("feature-panel-open");
+  column.querySelector(".feature-switch-list")?.scrollTo({top:0,behavior:"auto"});
+}
+function initFeaturePanelExpansion(){
+  document.querySelectorAll("[data-feature-expand]").forEach(button=>button.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openExpandedFeaturePanel(button.closest(".feature-column"));}));
+  $("featureExpandBackdrop")?.addEventListener("click",closeExpandedFeaturePanel);
+  document.addEventListener("keydown",event=>{if(event.key==="Escape")closeExpandedFeaturePanel();});
+}
+
 function collectFeatureControls(){
   const next=defaultFeatureControls(); next.enabled=$("featureControlsEnabled")?.checked!==false;
   [["global","globalFeatureSwitches"],["Basic","basicFeatureSwitches"],["Premium","premiumFeatureSwitches"],["Business","businessFeatureSwitches"]].forEach(([group,id])=>{
@@ -1103,10 +1204,11 @@ function initMarketing(){
   const q=$("companyQrAdmin");if(q&&window.QRCode){q.innerHTML="";new QRCode(q,{text:"https://jmxdigitalcard.com/",width:140,height:140,colorDark:"#111111",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H})}
   $("copyCompanyUrl")?.addEventListener("click",async()=>{await copyText("https://jmxdigitalcard.com/");$("copyCompanyUrl").textContent="Copied JMX URL";setTimeout(()=>$("copyCompanyUrl").innerHTML='<i class="fa-solid fa-copy"></i> Copy JMX URL',1200)});
   $("savePlatformButton")?.addEventListener("click",savePlatformSettings);
+  initFeaturePanelExpansion();
   $("saveFeatureControls")?.addEventListener("click",saveFeatureControls);
   $("saveBusinessSettings")?.addEventListener("click",saveBusinessSettings);
   $("businessKpiCard")?.addEventListener("click",()=>{if($("planFilter")){$("planFilter").value="Business";render();document.querySelector(".client-plan-board")?.scrollIntoView({behavior:"smooth",block:"start"});}});
-  $("showFeaturePanels")?.addEventListener("change",e=>{if($("featurePanels"))$("featurePanels").hidden=!e.target.checked});
+  $("showFeaturePanels")?.addEventListener("change",e=>{if($("featurePanels"))$("featurePanels").hidden=!e.target.checked;if(!e.target.checked)closeExpandedFeaturePanel();});
   $("globalFeatureSwitches")?.addEventListener("change",updateFeatureDependencyUI);
 }
 initMarketing();

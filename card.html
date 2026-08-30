@@ -1011,17 +1011,29 @@
 
                 <div class="qr-wrapper">
 
-                    <div
-                        class="qr-code"
-                        id="qrCode"
-                    ></div>
+                    <div id="publicShareThemeCard" class="public-share-theme-card" aria-label="Digital business card QR">
+                        <div class="public-share-card-shine" aria-hidden="true"></div>
+                        <div class="public-share-identity">
+                            <div class="public-share-logo-frame">
+                                <img id="publicShareLogo" alt="Business logo" hidden>
+                                <span id="publicShareLogoFallback" class="public-share-logo-fallback">JMX</span>
+                            </div>
+                            <div class="public-share-copy">
+                                <strong id="publicShareCompany">JMX DIGITAL CARD</strong>
+                                <span id="publicShareName">Card Owner</span>
+                                <small id="publicSharePosition">Digital Business Card</small>
+                            </div>
+                        </div>
+                        <div class="public-share-qr-shell" aria-label="Scan QR code">
+                            <div class="qr-code" id="qrCode"></div>
+                        </div>
+                    </div>
 
                     <p>
                         Scan this QR code to open
                         this digital business card.
                     </p>
                     <button id="downloadQrButton" type="button" class="final-cta-button" hidden><i class="fa-solid fa-download"></i> Download QR PNG</button>
-                    <div id="qrCardThemePublic" class="qr-card-theme-public" style="display:none"><div id="qrCardThemeCode" class="qr-card-theme-code"></div></div>
 
                 </div>
 
