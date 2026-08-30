@@ -208,7 +208,7 @@ function renderPublicShareCard(){
   return theme;
 }
 
-function qrShareURL(){const u=new URL(cardURL(),location.href);u.searchParams.set("src","qr");return u.href}
+function qrShareURL(){const canonical=CARD_ID==="main"?"https://jmxdigitalcard.com/":`https://jmxdigitalcard.com/c/${encodeURIComponent(CARD_ID)}`;const u=new URL(canonical);u.searchParams.set("src","qr");return u.href}
 function validQrColors(){
   const valid=h=>/^#[0-9a-f]{6}$/i.test(h||"");const dark=valid(p.qrDarkColor)?p.qrDarkColor:"#111111",light=valid(p.qrLightColor)?p.qrLightColor:"#ffffff";
   const rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];const hex=a=>"#"+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("");
@@ -217,7 +217,22 @@ function validQrColors(){
   const base=rgb(dark);for(let f=.85;f>=.2;f-=.05){const candidate=hex(base.map(v=>v*f));if(ratio(candidate,light)>=4.5)return[candidate,light]}
   return["#111111","#ffffff"];
 }
-function initQR(){const q=$id("qrCode");if(!q||typeof QRCode==="undefined")return;const theme=renderPublicShareCard();q.innerHTML="";const [dark,light]=themedQrColors(theme);new QRCode(q,{text:qrShareURL(),width:160,height:160,colorDark:dark,colorLight:light,correctLevel:QRCode.CorrectLevel.H});const btn=$id("downloadQrButton");if(btn){btn.hidden=!(effectivePublicPlan()==="Business"&&planAllows("qrDownload"));btn.onclick=()=>{const canvas=q.querySelector("canvas"),img=q.querySelector("img"),a=document.createElement("a");a.download=`JMX-${CARD_ID}-QR.png`;a.href=canvas?.toDataURL("image/png")||img?.src||"";if(a.href)a.click();trackMetric("qrDownload")}}}
+function publicQrSize(){return window.matchMedia("(max-width:390px)").matches?86:window.matchMedia("(max-width:640px)").matches?94:128}
+function buildQr(host,url,size,dark,light){host.innerHTML="";new QRCode(host,{text:url,width:size,height:size,colorDark:dark,colorLight:light,correctLevel:QRCode.CorrectLevel.H})}
+function initQR(){
+  const q=$id("qrCode");if(!q||typeof QRCode==="undefined")return;
+  const theme=renderPublicShareCard(),url=qrShareURL(),[dark,light]=themedQrColors(theme),size=publicQrSize();
+  // Generate at the exact displayed pixel size. This avoids browser resampling of the QR canvas,
+  // which can soften module edges and make the desktop code difficult for a phone camera to read.
+  buildQr(q,url,size,dark,light);
+  const btn=$id("downloadQrButton");
+  if(btn){btn.hidden=!(effectivePublicPlan()==="Business"&&planAllows("qrDownload"));btn.onclick=()=>{
+    const exportHost=document.createElement("div");exportHost.style.cssText="position:fixed;left:-10000px;top:-10000px";document.body.appendChild(exportHost);
+    buildQr(exportHost,url,512,dark,light);
+    const canvas=exportHost.querySelector("canvas"),img=exportHost.querySelector("img"),a=document.createElement("a");
+    a.download=`JMX-${CARD_ID}-QR.png`;a.href=canvas?.toDataURL("image/png")||img?.src||"";if(a.href)a.click();exportHost.remove();trackMetric("qrDownload")
+  }}
+}
 function toast(m){let e=$id("toastMessage");if(!e){e=document.createElement("div");e.id="toastMessage";e.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:11px 16px;border-radius:12px;z-index:9999";document.body.appendChild(e)}e.textContent=m;e.style.display="block";clearTimeout(window._toast);window._toast=setTimeout(()=>e.style.display="none",2200)}
 function showUnavailable(title,message){const app=document.querySelector(".digital-card-app");if(app)app.style.display="none";const box=document.createElement("main");box.className="public-status-screen";box.innerHTML=`<div class="public-status-card"><div class="public-status-icon"><i class="fa-regular fa-address-card"></i></div><h1>${title}</h1><p>${message}</p><a href="https://jmxdigitalcard.com">JMX Digital Card</a></div>`;document.body.appendChild(box);document.body.classList.remove("firebase-loading")}
 async function boot(){
