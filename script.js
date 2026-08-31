@@ -94,7 +94,8 @@ const vid=$id("featuredVideo");if(vid){if(p.videoUrl){vid.src=youtubeEmbed(p.vid
 function loadGallery(){const imgs=Array.isArray(p.galleryImages)?p.galleryImages:[];document.querySelectorAll(".gallery-item").forEach((item,i)=>{const im=item.querySelector("img");if(imgs[i]){if(im)im.src=imgs[i];item.dataset.image=imgs[i];item.style.display=""}else item.style.display="none"})}
 function planAllows(feature){
   const planName=p.complimentaryBusiness===true?"Business":(p.complimentaryPremium===true?"Premium":(p.plan||"Premium"));
-  if(["qrCardThemes"].includes(feature) && typeof p.featureOverrides?.[feature]==="boolean") return p.featureOverrides[feature];
+  // GLOBAL and PLAN permissions are authoritative. A client override can only
+  // turn an otherwise-allowed feature off; it cannot turn an admin-disabled feature on.
   if(platformFeatureControls.enabled===false){let base;if(String(planName).toLowerCase()==="business")base=true;else if(String(planName).toLowerCase()==="premium")base=!["quickCapture","leads","advancedAnalytics"].includes(feature);else base=BASIC_FEATURE_DEFAULTS.has(feature);return base&&p.featureOverrides?.[feature]!==false}
   if(platformFeatureControls.global?.[feature]===false)return false;
   const bucket=String(planName).toLowerCase()==="basic"?platformFeatureControls.Basic:String(planName).toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
@@ -199,9 +200,13 @@ function mixHex(a,b,t){const x=hexRgb(a),y=hexRgb(b);return rgbHex(x.map((v,i)=>
 function colorLuminance(h){const c=hexRgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*c[0]+.7152*c[1]+.0722*c[2]}
 function colorContrast(a,b){const x=colorLuminance(a),y=colorLuminance(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
 function selectedPublicTheme(){
-  const walletAllowed=planAllows("googleWallet")&&planAllows("googleWalletThemes");
   const qrThemeAllowed=planAllows("qrCardThemes");
-  const id=walletAllowed?(p.googleWalletTheme||"default"):(qrThemeAllowed?(p.qrCardTheme||"default"):"default");
+  const id=qrThemeAllowed?(p.qrCardTheme||"default"):"default";
+  return QR_CARD_THEMES.find(x=>x.id===id)||QR_CARD_THEMES[0];
+}
+function qrColorSourceTheme(){
+  const walletAllowed=planAllows("googleWallet")&&planAllows("googleWalletThemes");
+  const id=walletAllowed?(p.googleWalletTheme||"default"):(p.qrCardTheme||"default");
   return QR_CARD_THEMES.find(x=>x.id===id)||QR_CARD_THEMES[0];
 }
 function themedQrColors(theme){
@@ -256,7 +261,7 @@ function buildQr(host,url,size,dark,light){
 let publicQrRenderedSize=0,publicQrResizeInstalled=false;
 function initQR(){
   const q=$id("qrCode");if(!q||typeof QRCode==="undefined")return;
-  const theme=renderPublicShareCard(),url=qrShareURL(),[dark,light]=themedQrColors(theme),size=publicQrSize();
+  const theme=renderPublicShareCard(),url=qrShareURL(),[dark,light]=themedQrColors(qrColorSourceTheme()),size=publicQrSize();
   publicQrRenderedSize=size;buildQr(q,url,size,dark,light);
   if(!publicQrResizeInstalled){publicQrResizeInstalled=true;window.addEventListener("resize",()=>{const next=publicQrSize();if(next!==publicQrRenderedSize){window.clearTimeout(initQR._resizeTimer);initQR._resizeTimer=window.setTimeout(initQR,120)}})}
   const btn=$id("downloadQrButton");

@@ -5,6 +5,7 @@ const {defineSecret} = require("firebase-functions/params");
 const {GoogleAuth} = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const {getFirestore, Timestamp, FieldValue} = require("firebase-admin/firestore");
+const {getStorage} = require("firebase-admin/storage");
 
 initializeApp();
 const db = getFirestore();
@@ -41,8 +42,8 @@ function sanitizeCardId(value) {
   return raw.toUpperCase().replace(/[^A-Z0-9_-]/g, "-").slice(0, 64) || "main";
 }
 function defaultFeatureControls() {
-  const keys = ["description","saveContact","quickActions","phone","phone2","whatsapp","email","website","location","facebook","instagram","linkedin","twitter","tiktok","youtube","services","gallery","video","qr","customQR","qrDownload","finalCTA","businessLinks","catalog","customBusiness","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","brandingRemoval","advancedNetworkingInsights"];
-  const businessOnly = new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","brandingRemoval","advancedNetworkingInsights"]);
+  const keys = ["description","saveContact","quickActions","phone","phone2","whatsapp","email","website","location","facebook","instagram","linkedin","twitter","tiktok","youtube","services","gallery","video","qr","customQR","qrDownload","finalCTA","businessLinks","catalog","customBusiness","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"];
+  const businessOnly = new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);
   const global = {}, Basic = {}, Premium = {}, Business = {};
   keys.forEach((k) => { global[k] = true; Basic[k] = BASIC_FEATURE_DEFAULTS.has(k); Premium[k] = !businessOnly.has(k); Business[k] = true; });
   return {enabled: true, global, Basic, Premium, Business};
@@ -54,9 +55,8 @@ function mergeFeatureControls(raw = {}) {
 function featureAllows(card, publicSettings, key) {
   const controls = mergeFeatureControls(publicSettings?.featureControls || {});
   const plan = normalizePlan(card);
-  // Google Wallet has a tri-state client override: true/false are explicit,
-  // while a missing value inherits Global + Plan controls.
-  if (["googleWallet", "googleWalletThemes"].includes(key) && typeof card?.featureOverrides?.[key] === "boolean") return card.featureOverrides[key];
+  // GLOBAL -> PLAN -> CLIENT. A per-client value may restrict access but never
+  // bypass a platform-level or plan-level OFF setting.
   if (controls.enabled === false) {
     const baseAllowed = plan === "Business" || (plan === "Premium" && !new Set(["quickCapture","leads","advancedAnalytics"]).has(key)) || BASIC_FEATURE_DEFAULTS.has(key);
     return baseAllowed && card?.featureOverrides?.[key] !== false;
@@ -213,6 +213,52 @@ exports.cleanupExpiredBusinessLeads = onSchedule({schedule: "every 60 minutes", 
   await batch.commit();
 });
 
+exports.purgeGalleryMedia = onCall({timeoutSeconds: 540, memory: "512MiB"}, async (request) => {
+  if (!request.auth?.uid || !(await isPlatformAdmin(request.auth.uid))) throw new HttpsError("permission-denied", "JMX administrator access required.");
+  const scope = safeString(request.data?.scope, 20);
+  if (!["Global", "Basic", "Premium", "Business"].includes(scope)) throw new HttpsError("invalid-argument", "Invalid Gallery purge scope.");
+  const dryRun = request.data?.dryRun !== false;
+  if (!dryRun && request.data?.confirmation !== "PURGE_GALLERY_MEDIA") throw new HttpsError("failed-precondition", "Explicit Gallery purge confirmation is required.");
+
+  const cardsSnap = await db.collection("cards").get();
+  const targets = cardsSnap.docs.filter((cardSnap) => scope === "Global" || normalizePlan(cardSnap.data()) === scope);
+  const bucket = getStorage().bucket();
+  let cardsAffected = 0, storageObjects = 0, storageObjectsDeleted = 0, legacyMediaDocs = 0;
+
+  for (const cardSnap of targets) {
+    const cardId = cardSnap.id;
+    const profileRef = db.doc(`profiles/${cardId}`);
+    const profileSnap = await profileRef.get();
+    const profileData = profileSnap.exists ? profileSnap.data() : {};
+    const cardData = cardSnap.data() || {};
+    const manifests = [profileData.media, cardData.media].filter((m) => m && typeof m === "object");
+    const paths = new Set();
+    manifests.forEach((manifest) => Object.entries(manifest).forEach(([key, entry]) => {
+      if (key.startsWith("gallery-") && entry?.storagePath) paths.add(String(entry.storagePath));
+    }));
+    const legacySnap = await db.collection(`cards/${cardId}/media`).get();
+    const legacyGalleryDocs = legacySnap.docs.filter((d) => d.id.startsWith("gallery-"));
+    const hasGalleryRefs = manifests.some((manifest) => Object.keys(manifest).some((key) => key.startsWith("gallery-"))) || legacyGalleryDocs.length > 0 || paths.size > 0;
+    if (!hasGalleryRefs) continue;
+    cardsAffected += 1; storageObjects += paths.size; legacyMediaDocs += legacyGalleryDocs.length;
+    if (dryRun) continue;
+
+    for (const path of paths) {
+      try { await bucket.file(path).delete({ignoreNotFound: true}); storageObjectsDeleted += 1; }
+      catch (error) { console.warn("Gallery Storage delete failed", {cardId, path, message: error?.message || String(error)}); throw new HttpsError("internal", `Gallery deletion stopped for ${cardId}.`); }
+    }
+
+    const cleanManifest = (manifest) => Object.fromEntries(Object.entries((manifest && typeof manifest === "object") ? manifest : {}).filter(([key]) => !key.startsWith("gallery-")));
+    const batch = db.batch();
+    if (profileSnap.exists) batch.set(profileRef, {media: cleanManifest(profileData.media), galleryImages: FieldValue.delete(), updatedAt: Timestamp.now()}, {merge: true});
+    if (cardData.media && typeof cardData.media === "object") batch.set(cardSnap.ref, {media: cleanManifest(cardData.media), galleryImages: FieldValue.delete(), updatedAt: Timestamp.now()}, {merge: true});
+    legacyGalleryDocs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+
+  return {ok: true, dryRun, scope, cardsAffected, storageObjects, storageObjectsDeleted, legacyMediaDocs};
+});
+
 exports.aiScannerHealth = onCall(async (request) => {
   if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Sign in first.");
   const admin = await isPlatformAdmin(request.auth.uid);
@@ -349,6 +395,7 @@ exports.saveAiScannerRecord = onCall(async (request) => {
 
 
 const WALLET_THEMES = Object.freeze({
+  wallet_black:{name:"Black",hex:"#111111",plans:["Basic","Premium","Business"]}, wallet_white:{name:"White",hex:"#f8fafc",plans:["Basic","Premium","Business"]}, wallet_gray:{name:"Gray",hex:"#6b7280",plans:["Basic","Premium","Business"]}, wallet_silver:{name:"Silver",hex:"#c0c0c0",plans:["Basic","Premium","Business"]}, wallet_gold:{name:"Gold",hex:"#b8860b",plans:["Basic","Premium","Business"]}, wallet_orange:{name:"Orange",hex:"#f97316",plans:["Basic","Premium","Business"]}, wallet_red:{name:"Red",hex:"#dc2626",plans:["Basic","Premium","Business"]}, wallet_burgundy:{name:"Burgundy",hex:"#800020",plans:["Basic","Premium","Business"]}, wallet_blue:{name:"Blue",hex:"#2563eb",plans:["Basic","Premium","Business"]}, wallet_navy:{name:"Navy Blue",hex:"#172554",plans:["Basic","Premium","Business"]}, wallet_electric_blue:{name:"Electric Blue",hex:"#0284c7",plans:["Basic","Premium","Business"]}, wallet_cyan:{name:"Cyan",hex:"#06b6d4",plans:["Basic","Premium","Business"]}, wallet_green:{name:"Green",hex:"#16a34a",plans:["Basic","Premium","Business"]}, wallet_emerald:{name:"Emerald",hex:"#059669",plans:["Basic","Premium","Business"]}, wallet_teal:{name:"Teal",hex:"#0f766e",plans:["Basic","Premium","Business"]}, wallet_purple:{name:"Purple",hex:"#7c3aed",plans:["Basic","Premium","Business"]}, wallet_pink:{name:"Pink",hex:"#db2777",plans:["Basic","Premium","Business"]}, wallet_brown:{name:"Brown",hex:"#92400e",plans:["Basic","Premium","Business"]},
   default:{name:"JMX Classic",hex:"#1f2937",plans:["Basic","Premium","Business"]}, silver_uv:{name:"Silver UV",hex:"#64748b",plans:["Basic","Premium","Business"]}, black_gold:{name:"Black Gold",hex:"#171717",plans:["Premium","Business"]}, black_matte:{name:"Black Matte Glow",hex:"#111827",plans:["Basic","Premium","Business"]}, electric_blue:{name:"Electric Blue",hex:"#075985",plans:["Basic","Premium","Business"]}, deep_navy:{name:"Deep Navy",hex:"#172554",plans:["Premium","Business"]}, emerald:{name:"Emerald",hex:"#065f46",plans:["Basic","Premium","Business"]}, teal:{name:"Teal Aurora",hex:"#115e59",plans:["Premium","Business"]}, purple:{name:"Royal Purple",hex:"#581c87",plans:["Basic","Premium","Business"]}, violet:{name:"Violet Beam",hex:"#5b21b6",plans:["Premium","Business"]}, aurora:{name:"Aurora",hex:"#0f766e",plans:["Business"]}, red_matte:{name:"Red Matte Glow",hex:"#991b1b",plans:["Basic","Premium","Business"]}, red_gold:{name:"Red Gold",hex:"#9f1239",plans:["Premium","Business"]}, rose_gold:{name:"Rose Gold",hex:"#9f5f67",plans:["Premium","Business"]}, copper:{name:"Copper",hex:"#9a3412",plans:["Business"]}, carbon_red:{name:"Carbon Red",hex:"#27272a",plans:["Business"]}, gold:{name:"Liquid Gold",hex:"#854d0e",plans:["Premium","Business"]}, cyan:{name:"Electric Cyan",hex:"#0e7490",plans:["Business"]},
   platinum_prism:{name:"Platinum Prism",hex:"#6b7280",plans:["Business"]}, obsidian_chrome:{name:"Obsidian Chrome",hex:"#18181b",plans:["Business"]}, midnight_spectrum:{name:"Midnight Spectrum",hex:"#111827",plans:["Business"]}, ultraviolet_titanium:{name:"Ultraviolet Titanium",hex:"#4c1d95",plans:["Business"]}, emerald_amethyst:{name:"Emerald Amethyst",hex:"#065f46",plans:["Business"]}, sapphire_violet:{name:"Sapphire Violet",hex:"#1e3a8a",plans:["Business"]}, crimson_solar:{name:"Crimson Solar",hex:"#991b1b",plans:["Business"]}, ruby_chrome:{name:"Ruby Chrome",hex:"#9f1239",plans:["Business"]}, champagne_metal:{name:"Champagne Metal",hex:"#a16207",plans:["Business"]}, rose_platinum:{name:"Rose Platinum",hex:"#9d6b75",plans:["Business"]}, molten_copper:{name:"Molten Copper",hex:"#9a3412",plans:["Business"]}, titanium_ice:{name:"Titanium Ice",hex:"#475569",plans:["Business"]}, graphite_laser:{name:"Graphite Laser",hex:"#27272a",plans:["Business"]}, opal_shift:{name:"Opal Shift",hex:"#94a3b8",plans:["Business"]}, arctic_hologram:{name:"Arctic Hologram",hex:"#0891b2",plans:["Business"]}, black_neon_flux:{name:"Black Neon Flux",hex:"#09090b",plans:["Business"]}, scarlet_noir:{name:"Scarlet Noir",hex:"#7f1d1d",plans:["Business"]}, cosmic_pearl:{name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"]},
   neon_titanium:{name:"Neon Titanium",hex:"#334155",plans:["Business"]}, golden_prism:{name:"Golden Prism",hex:"#a16207",plans:["Business"]}, emerald_circuit:{name:"Emerald Circuit",hex:"#047857",plans:["Business"]}, sapphire_chrome:{name:"Sapphire Chrome",hex:"#1d4ed8",plans:["Business"]}, crimson_geometry:{name:"Crimson Geometry",hex:"#b91c1c",plans:["Business"]}, arctic_aurora:{name:"Arctic Aurora",hex:"#0e7490",plans:["Business"]}, violet_matrix:{name:"Violet Matrix",hex:"#6d28d9",plans:["Business"]}, copper_horizon:{name:"Copper Horizon",hex:"#b45309",plans:["Business"]}, midnight_crystal:{name:"Midnight Crystal",hex:"#1e293b",plans:["Business"]}, solar_carbon:{name:"Solar Carbon",hex:"#292524",plans:["Business"]}, electric_quartz:{name:"Electric Quartz",hex:"#0891b2",plans:["Business"]}, rose_hologram:{name:"Rose Hologram",hex:"#be185d",plans:["Business"]}, ocean_prism:{name:"Ocean Prism",hex:"#0369a1",plans:["Business"]}, obsidian_gold:{name:"Obsidian Gold",hex:"#171717",plans:["Business"]}, titanium_wave:{name:"Titanium Wave",hex:"#64748b",plans:["Business"]}, emerald_geometry:{name:"Emerald Geometry",hex:"#059669",plans:["Business"]}, scarlet_chrome:{name:"Scarlet Chrome",hex:"#be123c",plans:["Business"]}, cosmic_silver:{name:"Cosmic Silver",hex:"#64748b",plans:["Business"]}
@@ -397,17 +444,29 @@ async function upsertWalletObject(credentials, object) {
   try { await client.request({url: `${base}/${resource}`, method: "GET"}); await client.request({url: `${base}/${resource}`, method: "PUT", data: object}); return "updated"; }
   catch (error) { if (error?.response?.status !== 404) throw error; await client.request({url: base, method: "POST", data: object}); return "created"; }
 }
-exports.saveGoogleWalletTheme = onCall(async (request) => {
+exports.saveGoogleWalletTheme = onCall({secrets: [GOOGLE_WALLET_SERVICE_ACCOUNT], timeoutSeconds: 30}, async (request) => {
   if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Sign in to customize Google Wallet.");
   const cardId=sanitizeCardId(request.data?.cardId), themeId=safeString(request.data?.themeId,40);
-  const [cardSnap,settingsSnap]=await Promise.all([db.doc(`cards/${cardId}`).get(),db.doc("platform/publicSettings").get()]);
+  const [cardSnap,profileSnap,settingsSnap]=await Promise.all([db.doc(`cards/${cardId}`).get(),db.doc(`profiles/${cardId}`).get(),db.doc("platform/publicSettings").get()]);
   if(!cardSnap.exists) throw new HttpsError("not-found","Card not found.");
   if(!await cardOwnerMatches(cardId,request.auth.uid)) throw new HttpsError("permission-denied","Only the authenticated owner can customize this Wallet pass.");
-  const card=cardSnap.data(), settings=settingsSnap.exists?settingsSnap.data():{};
-  if(!featureAllows(card,settings,"googleWallet")||!featureAllows(card,settings,"googleWalletThemes")) throw new HttpsError("permission-denied","Google Wallet theme customization is disabled for this card.");
-  const theme=WALLET_THEMES[themeId]; if(!theme||!theme.plans.includes(normalizePlan(card))) throw new HttpsError("permission-denied","This Wallet theme is not available for this plan.");
-  await db.doc(`cards/${cardId}`).set({googleWalletTheme:themeId,googleWalletThemeUpdatedAt:Timestamp.now()},{merge:true});
-  return {ok:true,themeId,themeName:theme.name};
+  const card=cardSnap.data(), profile=profileSnap.exists?profileSnap.data():card, settings=settingsSnap.exists?settingsSnap.data():{};
+  if(!featureAllows(card,settings,"googleWallet")||!featureAllows(card,settings,"googleWalletThemes")) throw new HttpsError("permission-denied","Google Wallet color customization is disabled for this card.");
+  const theme=WALLET_THEMES[themeId]; if(!theme||!theme.plans.includes(normalizePlan(card))) throw new HttpsError("permission-denied","This Wallet color is not available for this plan.");
+  const now=Timestamp.now(), updatedCard={...card,googleWalletTheme:themeId};
+  await db.doc(`cards/${cardId}`).set({googleWalletTheme:themeId,googleWalletThemeUpdatedAt:now},{merge:true});
+  let walletUpdated=false;
+  if(card.googleWalletObjectId||card.googleWalletStatus==="active"){
+    try{
+      const credentials=walletServiceAccount(),object=buildWalletObject(cardId,updatedCard,profile),action=await upsertWalletObject(credentials,object);
+      await db.doc(`cards/${cardId}`).set({googleWalletObjectId:object.id,googleWalletStatus:"active",googleWalletUpdatedAt:now},{merge:true});
+      walletUpdated=action==="updated"||action==="created";
+    }catch(error){
+      console.error("Google Wallet color saved but live pass update failed",{cardId,themeId,status:error?.response?.status,message:error?.message});
+      return {ok:true,themeId,themeName:theme.name,walletUpdated:false,walletUpdateError:true};
+    }
+  }
+  return {ok:true,themeId,themeName:theme.name,walletUpdated};
 });
 
 exports.createGoogleWalletPass = onCall({secrets: [GOOGLE_WALLET_SERVICE_ACCOUNT], timeoutSeconds: 30}, async (request) => {

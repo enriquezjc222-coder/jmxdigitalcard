@@ -72,7 +72,8 @@ function complimentaryTier(card){
 function businessCountsAsActive(card){return effectivePlan(card)==="Business" && ["activated","suspended"].includes(card?.status) && card?.subscription?.status!=="canceled";}
 let featureControls = defaultFeatureControls();
 function platformAllowsForCard(card,key){
-  if(["googleWallet","googleWalletThemes","qrCardThemes"].includes(key) && typeof card?.featureOverrides?.[key]==="boolean") return card.featureOverrides[key];
+  // Hierarchy is always GLOBAL -> PLAN -> CLIENT. A client override may restrict a
+  // feature, but it can never bypass a Global or Plan OFF setting.
   if(featureControls.enabled===false){const plan=effectivePlan(card);if(plan==="Business")return true;if(plan==="Premium")return !new Set(["quickCapture","leads","advancedAnalytics"]).has(key);return BASIC_FEATURE_DEFAULTS.has(key)}
   if(featureControls.global?.[key]===false)return false;
   const plan=effectivePlan(card),bucket=plan==="Basic"?featureControls.Basic:plan==="Business"?featureControls.Business:featureControls.Premium;
@@ -1061,6 +1062,14 @@ function updateFeatureDependencyUI(){
   const globalRoot=$("globalFeatureSwitches"); if(!globalRoot)return;
   const globals={}; globalRoot.querySelectorAll("[data-feature]").forEach(row=>globals[row.dataset.feature]=row.querySelector("input").checked);
   ["basicFeatureSwitches","premiumFeatureSwitches","businessFeatureSwitches"].forEach(id=>$(id)?.querySelectorAll("[data-feature]").forEach(row=>row.classList.toggle("master-off",globals[row.dataset.feature]===false)));
+  document.querySelectorAll("[data-purge-gallery]").forEach(button=>{
+    const scope=button.dataset.purgeGallery;
+    const root=scope==="Global"?$("globalFeatureSwitches"):scope==="Basic"?$("basicFeatureSwitches"):scope==="Premium"?$("premiumFeatureSwitches"):$("businessFeatureSwitches");
+    const galleryRow=root?.querySelector('[data-feature="gallery"]');
+    const galleryOff=galleryRow?galleryRow.querySelector("input").checked===false:false;
+    button.disabled=!galleryOff;
+    button.title=galleryOff?"Permanently delete stored Gallery media for this scope after confirmation.":"Turn Gallery OFF in this scope before a purge can be requested.";
+  });
 }
 function closeExpandedFeaturePanel(){
   const expanded=document.querySelector(".feature-column.is-expanded");
@@ -1097,9 +1106,16 @@ function collectFeatureControls(){
   return next;
 }
 async function saveFeatureControls(){
-  const status=$("featureControlStatus"); featureControls=collectFeatureControls();
-  try{await setDoc(doc(db,"platform","publicSettings"),{featureControls,updatedAt:serverTimestamp()},{merge:true}); if(status){status.textContent="Feature controls saved and applied to public cards.";status.className="status ok"}}
-  catch(e){console.error(e);if(status){status.textContent="Could not save feature controls.";status.className="status error"}}
+  const status=$("featureControlStatus"),button=$("saveFeatureControls"),next=collectFeatureControls();
+  if(button)button.disabled=true;if(status){status.textContent="Saving…";status.className="status"}
+  try{
+    await setDoc(doc(db,"platform","publicSettings"),{featureControls:next,updatedAt:serverTimestamp()},{merge:true});
+    featureControls=next;
+    if(status){status.textContent="Feature controls saved successfully.";status.className="status ok"}
+  }catch(e){
+    console.error(e);
+    if(status){status.textContent="Unable to save feature controls.";status.className="status error"}
+  }finally{if(button)button.disabled=false}
 }
 
 async function loadPlatformSettings(){
@@ -1143,6 +1159,23 @@ async function savePlatformSettings(){
   try{await setDoc(doc(db,"platform","publicSettings"),payload,{merge:true});if(status){status.textContent="Platform settings saved.";status.className="status ok"}}catch(e){console.error(e);if(status){status.textContent="Could not save platform settings.";status.className="status error"}}
 }
 
+const purgeGalleryMediaCall=httpsCallable(functions,"purgeGalleryMedia");
+async function requestGalleryPurge(scope){
+  const status=$("featureControlStatus");
+  try{
+    if(status){status.textContent=`Checking ${scope} Gallery media…`;status.className="status"}
+    const preview=(await purgeGalleryMediaCall({scope,dryRun:true})).data||{};
+    const cards=Number(preview.cardsAffected||0),files=Number(preview.storageObjects||0);
+    if(!cards&&!files){if(status){status.textContent=`No stored Gallery media found for ${scope}.`;status.className="status ok"}return}
+    const warning=`This will permanently delete Gallery media for ${cards} affected card${cards===1?"":"s"} (${files} stored file${files===1?"":"s"}) in ${scope}. Profile photos, covers, logos, catalogs, Card IDs and activation codes are not touched. This cannot be undone. Continue?`;
+    if(!confirm(warning)){if(status){status.textContent="Gallery purge canceled.";status.className="status"}return}
+    const typed=prompt(`Type ${scope.toUpperCase()} to confirm permanent Gallery deletion for this scope.`);
+    if(typed!==scope.toUpperCase()){if(status){status.textContent="Gallery purge canceled: confirmation did not match.";status.className="status error"}return}
+    if(status){status.textContent=`Deleting ${scope} Gallery media…`;status.className="status"}
+    const result=(await purgeGalleryMediaCall({scope,dryRun:false,confirmation:"PURGE_GALLERY_MEDIA"})).data||{};
+    if(status){status.textContent=`Gallery purge complete: ${Number(result.cardsAffected||0)} cards processed, ${Number(result.storageObjectsDeleted||0)} stored files deleted.`;status.className="status ok"}
+  }catch(e){console.error(e);if(status){status.textContent="Gallery purge failed. No other card/profile data was intentionally removed.";status.className="status error"}}
+}
 const aiScannerHealthCall=httpsCallable(functions,"aiScannerHealth");
 const aiScannerSummaryCall=httpsCallable(functions,"getAiScannerAdminSummary");
 const saveAiScannerAdminConfigCall=httpsCallable(functions,"saveAiScannerAdminConfig");
@@ -1210,7 +1243,10 @@ function initMarketing(){
   $("businessKpiCard")?.addEventListener("click",()=>{if($("planFilter")){$("planFilter").value="Business";render();document.querySelector(".client-plan-board")?.scrollIntoView({behavior:"smooth",block:"start"});}});
   $("showFeaturePanels")?.addEventListener("change",e=>{if($("featurePanels"))$("featurePanels").hidden=!e.target.checked;if(!e.target.checked)closeExpandedFeaturePanel();});
   $("globalFeatureSwitches")?.addEventListener("change",updateFeatureDependencyUI);
+  ["basicFeatureSwitches","premiumFeatureSwitches","businessFeatureSwitches"].forEach(id=>$(id)?.addEventListener("change",updateFeatureDependencyUI));
+  document.querySelectorAll("[data-purge-gallery]").forEach(button=>button.addEventListener("click",()=>requestGalleryPurge(button.dataset.purgeGallery)));
 }
+
 initMarketing();
 initAiScannerAdmin();
 
