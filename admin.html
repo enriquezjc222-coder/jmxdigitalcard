@@ -143,9 +143,9 @@
  <div class="toggle-grid" id="visibilityGrid"></div>
 </section>
 
-<section class="admin-section">
+<section id="profileThemeSection" class="admin-section">
  <div class="section-title"><i class="fa-solid fa-palette"></i><div><small>DESIGN</small><h2>Theme Color</h2></div></div>
- <div class="theme-selector">
+ <div id="profileThemeSelector" class="theme-selector">
   <button class="admin-theme" data-theme="gold"><span class="color gold"></span>Gold</button>
   <button class="admin-theme" data-theme="blue"><span class="color blue"></span>Blue</button>
   <button class="admin-theme" data-theme="emerald"><span class="color emerald"></span>Emerald</button>
@@ -163,13 +163,13 @@
   <label class="form-group full-width switch-form"><span>Branding</span><label class="switch-row"><input id="removeJmxBranding" type="checkbox"><span class="switch-ui"></span><strong>Remove JMX Branding</strong></label></label>
  </div>
  <div id="qrCardThemesControl" class="qr-card-themes-control" hidden>
-  <button id="qrCardThemesToggle" class="qr-themes-toggle" type="button" aria-expanded="false"><i class="fa-solid fa-palette"></i> Themes <i class="fa-solid fa-chevron-down"></i></button>
+  <button id="qrCardThemesToggle" class="qr-themes-toggle" type="button" aria-expanded="false"><i class="fa-solid fa-palette"></i> Google Wallet Colors <i class="fa-solid fa-chevron-down"></i></button>
   <div id="qrCardThemesPanel" class="qr-themes-panel" hidden>
-   <p class="section-help">Choose one of 18 simple solid colors. This selection stays independent and is published only with Save Changes.</p>
-   <div class="qr-theme-layout"><div id="qrCardThemeGrid" class="wallet-theme-grid"></div><div class="wallet-preview-wrap"><div id="qrCardThemePreview" class="qr-card-theme-preview"><div class="qr-preview-code">QR</div></div><p>Selected: <strong id="qrCardThemeSelectedName">JMX Classic</strong></p></div></div>
+   <p class="section-help">Choose one of 18 simple Google Wallet colors. Preview the color instantly, then press Save Changes to keep it and update the existing Wallet pass.</p>
+   <div class="qr-theme-layout"><div id="qrCardThemeGrid" class="wallet-theme-grid"></div><div class="wallet-preview-wrap"><div id="qrCardThemePreview" class="wallet-theme-preview wallet-color-preview"><img src="google-wallet-jmx.jpg" alt="JMX Digital Card"><div class="wallet-preview-copy"><small id="simpleWalletPreviewCompany">JMX DIGITAL CARD</small><strong id="simpleWalletPreviewName">Card Owner</strong><span id="simpleWalletPreviewPosition">Digital Business Card</span></div><div class="wallet-preview-qr">QR</div></div><p>Selected: <strong id="qrCardThemeSelectedName">Black</strong></p><div class="admin-actions compact-save-actions"><button id="saveGoogleWalletColor" class="save-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button></div><div id="googleWalletColorStatus" class="save-status" aria-live="polite"></div></div></div>
   </div>
  </div>
- <p class="section-help">QR colors are saved with Save Changes and applied publicly only when Business Custom QR is allowed. If a selected pair has low contrast, JMX safely adjusts it while preserving the chosen accent as much as possible.</p>
+ <p class="section-help">QR Dark/Light Color and Remove JMX Branding remain independent from Google Wallet Colors. Each setting is saved without deleting other profile data.</p>
 </section>
 
 <section id="googleWalletSection" class="admin-section" hidden>
@@ -187,7 +187,7 @@
   <div class="wallet-theme-catalog"><div id="walletThemeGrid" class="wallet-theme-grid"></div></div>
   <div class="wallet-preview-wrap"><div id="walletThemePreview" class="wallet-theme-preview"><img src="google-wallet-jmx.jpg" alt="JMX Digital Card"><div class="wallet-preview-copy"><small id="walletPreviewCompany">JMX DIGITAL CARD</small><strong id="walletPreviewName">Card Owner</strong><span id="walletPreviewPosition">Digital Business Card</span></div><div class="wallet-preview-qr">QR</div></div><p>Selected: <strong id="walletThemeSelectedName">JMX Classic</strong></p><p id="walletThemeSavedHint" class="wallet-theme-saved-hint">Saved theme</p></div>
  </div>
- <div class="admin-actions wallet-theme-save-actions"><button id="saveWalletTheme" class="save-button" type="button" aria-label="Save selected QR Card theme"><i class="fa-solid fa-floppy-disk"></i> Save Theme</button></div>
+ <div class="admin-actions wallet-theme-save-actions"><button id="saveQrCardTheme" class="save-button" type="button" aria-label="Save selected QR Card theme"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button></div>
  <div id="walletThemeStatus" class="save-status" aria-live="polite"></div>
 </section>
 
@@ -236,11 +236,11 @@
 </section>
 
 <div class="admin-actions">
- <button id="saveProfile" class="save-button"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+ <button id="saveProfile" class="save-button"><i class="fa-solid fa-floppy-disk"></i> Save All Changes</button>
  <button id="resetProfile" class="reset-button"><i class="fa-solid fa-rotate-left"></i> Reset</button>
 </div>
 <div id="saveStatus" class="save-status" aria-live="polite"></div>
-<div class="admin-note"><strong>Online mode:</strong> Save Changes now publishes this card to Firebase. Any phone that opens the public URL or NFC sees the same saved information.</div>
+<div class="admin-note"><strong>Online mode:</strong> Save All Changes publishes all pending profile edits to Firebase. Section Save Changes buttons save only their related fields. Any phone that opens the public URL or NFC sees the same saved information.</div>
 </main>
 <script type="module" src="admin.js"></script>
 </body>

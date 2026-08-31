@@ -2344,3 +2344,6 @@ body:not(.firebase-loading) .digital-card-app {
     .public-share-qr-shell .qr-code{width:86px;height:86px}
     .public-share-qr-shell .qr-code canvas{width:86px!important;height:86px!important}
 }
+
+/* Aug 31 2026 — dynamic theme selector supports extended profile themes */
+.theme-option .theme-circle[style]{box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 4px 12px rgba(0,0,0,.14)}

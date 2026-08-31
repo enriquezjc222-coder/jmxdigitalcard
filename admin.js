@@ -89,9 +89,9 @@ let currentCardFeatureOverrides = {};
 let currentRole = "none";
 let pendingMedia = new Map();
 let pendingDeletes = new Set();
-const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr"]);
+const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr","profileThemes"]);
 const BUSINESS_ONLY_FEATURES=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);
-const FEATURE_KEYS=[...new Set([...Object.keys(VISIBILITY_LABELS),"customQR","qrDownload","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"])];
+const FEATURE_KEYS=[...new Set([...Object.keys(VISIBILITY_LABELS),"customQR","qrDownload","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","profileThemes","brandingRemoval","advancedNetworkingInsights"])];
 function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=!BUSINESS_ONLY_FEATURES.has(k);Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
 function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
 let platformFeatureControls=defaultFeatureControls();
@@ -103,7 +103,10 @@ function featureEnabledForPlan(feature){
   const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:currentCardPlan.toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
   return group?.[feature]!==false && currentCardFeatureOverrides?.[feature]!==false;
 }
-const FEATURE_INPUT_IDS={description:["description"],phone:["phone"],phone2:["phone2"],whatsapp:["whatsapp"],email:["email"],website:["website"],facebook:["facebook"],instagram:["instagram"],linkedin:["linkedin"],twitter:["twitter"],tiktok:["tiktok"],youtube:["youtube"],catalog:["catalog","catalogUpload"],customBusiness:["customBusinessLabel","customBusinessSubtitle","customBusinessUrl"],video:["videoUrl"],services:["service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon"],gallery:["galleryUpload","clearGallery"],finalCTA:["finalCtaTitle","finalCtaText","finalCtaLabel"],customQR:["qrDarkColor","qrLightColor"],brandingRemoval:["removeJmxBranding"]};
+const FEATURE_INPUT_IDS={description:["description"],phone:["phone"],phone2:["phone2"],location:["city","state"],whatsapp:["whatsapp"],email:["email"],website:["website"],facebook:["facebook"],instagram:["instagram"],linkedin:["linkedin"],twitter:["twitter"],tiktok:["tiktok"],youtube:["youtube"],catalog:["catalog","catalogUpload"],customBusiness:["customBusinessLabel","customBusinessSubtitle","customBusinessUrl"],video:["videoUrl"],services:["service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon"],gallery:["galleryUpload","clearGallery"],finalCTA:["finalCtaTitle","finalCtaText","finalCtaLabel"],customQR:["qrDarkColor","qrLightColor"],brandingRemoval:["removeJmxBranding"]};
+
+const PROFILE_THEME_DEFS=[{"id":"gold","name":"Gold","css":"linear-gradient(135deg,#745317,#b88a2b,#e7cc84)"},{"id":"blue","name":"Blue","css":"linear-gradient(135deg,#1e3a8a,#2563eb,#93c5fd)"},{"id":"emerald","name":"Emerald","css":"linear-gradient(135deg,#065f46,#059669,#6ee7b7)"},{"id":"purple","name":"Purple","css":"linear-gradient(135deg,#4c1d95,#7c3aed,#c4b5fd)"},{"id":"red","name":"Red","css":"linear-gradient(135deg,#7f1d1d,#dc2626,#fca5a5)"},{"id":"black","name":"Black","css":"linear-gradient(135deg,#050505,#171717,#a3a3a3)"},{"id":"cyan","name":"Electric Cyan","css":"linear-gradient(135deg,#155e75,#06b6d4,#a5f3fc)"},{"id":"midnight_gold","name":"Midnight Gold","css":"linear-gradient(135deg,#050505,#2a2106 55%,#d4af37)"},{"id":"silver_ice","name":"Silver Ice","css":"linear-gradient(135deg,#334155,#e2e8f0 55%,#67e8f9)"},{"id":"electric_violet","name":"Electric Violet","css":"linear-gradient(135deg,#2e1065,#7c3aed 55%,#c084fc)"},{"id":"neon_lime","name":"Neon Lime","css":"linear-gradient(135deg,#1a2e05,#65a30d 56%,#bef264)"},{"id":"ocean_teal","name":"Ocean Teal","css":"linear-gradient(135deg,#042f2e,#0f766e 50%,#2dd4bf)"},{"id":"royal_navy","name":"Royal Navy","css":"linear-gradient(135deg,#020617,#1e3a8a 55%,#3b82f6)"},{"id":"rose_champagne","name":"Rose Champagne","css":"linear-gradient(135deg,#4c1d2f,#be5f76 52%,#f9a8d4)"},{"id":"burnished_copper","name":"Burnished Copper","css":"linear-gradient(135deg,#431407,#c2410c 55%,#fb923c)"},{"id":"burgundy_gold","name":"Burgundy Gold","css":"linear-gradient(135deg,#4c0519,#9f1239 56%,#f59e0b)"},{"id":"graphite_cyan","name":"Graphite Cyan","css":"linear-gradient(135deg,#09090b,#27272a 52%,#22d3ee)"},{"id":"emerald_gold","name":"Emerald Gold","css":"linear-gradient(135deg,#022c22,#047857 52%,#d4af37)"},{"id":"ruby_neon","name":"Ruby Neon","css":"linear-gradient(135deg,#4c0519,#be123c 50%,#fb7185)"},{"id":"arctic_blue","name":"Arctic Blue","css":"linear-gradient(135deg,#082f49,#0284c7 52%,#7dd3fc)"},{"id":"amethyst_rose","name":"Amethyst Rose","css":"linear-gradient(135deg,#3b0764,#9333ea 50%,#f472b6)"},{"id":"titanium","name":"Titanium","css":"linear-gradient(135deg,#0f172a,#64748b 52%,#cbd5e1)"},{"id":"sunset_orange","name":"Sunset Orange","css":"linear-gradient(135deg,#431407,#ea580c 48%,#fbbf24)"},{"id":"aqua_purple","name":"Aqua Purple","css":"linear-gradient(135deg,#164e63,#06b6d4 46%,#7c3aed)"},{"id":"white_gold","name":"White Gold","css":"linear-gradient(135deg,#f8fafc,#fff7d6 55%,#d4af37)"},{"id":"black_chrome","name":"Black Chrome","css":"linear-gradient(135deg,#000,#3f3f46 52%,#a1a1aa)"},{"id":"cosmic_blue","name":"Cosmic Blue","css":"linear-gradient(135deg,#020617,#312e81 45%,#4f46e5 68%,#22d3ee)"}];
+function buildProfileThemeSelector(){const host=$id("profileThemeSelector");if(!host)return;host.innerHTML=PROFILE_THEME_DEFS.map(t=>`<button type="button" class="admin-theme" data-theme="${t.id}"><span class="color" style="background:${t.css}"></span>${t.name}</button>`).join("");}
 
 
 function sanitizeCardId(value){
@@ -491,6 +494,7 @@ function featureWrappers(feature){
   if(feature==="googleWallet"){const sec=$id("googleWalletSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   if(feature==="googleWalletThemes"){const sec=$id("qrCardThemesControl");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   if(feature==="qrCardThemes"){const sec=$id("googleWalletThemesSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
+  if(feature==="profileThemes"){const sec=$id("profileThemeSection");if(sec&&!nodes.includes(sec))nodes.push(sec)}
   return nodes;
 }
 function setOwnerFeatureVisibility(feature,allowed){
@@ -508,20 +512,24 @@ function applyPlanLocks(){
   document.querySelectorAll("[data-admin-feature-hidden]").forEach(el=>{el.hidden=false;delete el.dataset.adminFeatureHidden});
   document.querySelectorAll("input,textarea,select,button").forEach(el=>{if(PREMIUM_ONLY_IDS.has(el.id))el.disabled=false});
   document.querySelectorAll("[data-vis]").forEach(el=>{el.disabled=false;(el.closest(".toggle-item")||el).hidden=false});
-  if(owner){
+  const clientEditor=currentRole!=="none" && CARD_ID!=="main";
+  if(clientEditor){
     FEATURE_KEYS.forEach(feature=>setOwnerFeatureVisibility(feature,featureEnabledForPlan(feature)));
-    renderWalletThemes(); renderQrCardThemes();
+    if(owner){renderWalletThemes(); renderQrCardThemes();}
     Object.entries(FEATURE_INPUT_IDS).forEach(([feature,ids])=>ids.forEach(id=>{const el=$id(id);if(el)el.disabled=!featureEnabledForPlan(feature)}));
     const catalogUpload=$id("catalogUpload");
     if(catalogUpload){const uploadWrap=catalogUpload.closest(".form-group")||catalogUpload;const premiumOwner=String(currentCardPlan).toLowerCase()==="premium";uploadWrap.hidden=premiumOwner;catalogUpload.disabled=premiumOwner||!featureEnabledForPlan("catalog");}
     collapseEmptyEditorSections();
-  } else {
-    // Add to Google Wallet is an owner-only action; administrators control access
-    // from the main dashboard instead of receiving an owner Wallet button here.
+  }
+  if(!owner){
+    // Wallet actions and owner-only theme pickers stay owner-only. Feature availability
+    // still hides unavailable editor fields/switches for administrators previewing a client card.
     const walletSection=$id("googleWalletSection");if(walletSection)walletSection.hidden=true;
+    const walletThemes=$id("googleWalletThemesSection");if(walletThemes)walletThemes.hidden=true;
+    const walletColors=$id("qrCardThemesControl");if(walletColors)walletColors.hidden=true;
   }
   let note=$id("planAccessNote");if(!note){note=document.createElement("div");note.id="planAccessNote";note.className="admin-note";document.querySelector(".card-management-section")?.after(note)}
-  const disabled=FEATURE_KEYS.filter(k=>!featureEnabledForPlan(k)).map(k=>VISIBILITY_LABELS[k]||({customQR:"Custom QR",qrDownload:"QR Download",analytics:"Analytics",advancedAnalytics:"Advanced Analytics",quickCapture:"Quick Capture",leads:"Leads",contactNotes:"Contact Notes",meetingNotes:"Meeting Notes",followUp:"Follow-Up",csvExport:"CSV Export",vcfDownload:"VCF Download",contactMap:"Contact Map",aiScanner:"AI Scanner",autoIntroEmail:"Auto-Intro Email",appleWallet:"Apple Wallet",googleWallet:"Google Wallet",googleWalletThemes:"Google Wallet Themes",brandingRemoval:"Branding Removal",advancedNetworkingInsights:"Advanced Networking Insights"}[k])).filter(Boolean);
+  const disabled=FEATURE_KEYS.filter(k=>!featureEnabledForPlan(k)).map(k=>VISIBILITY_LABELS[k]||({customQR:"Custom QR",qrDownload:"QR Download",analytics:"Analytics",advancedAnalytics:"Advanced Analytics",quickCapture:"Quick Capture",leads:"Leads",contactNotes:"Contact Notes",meetingNotes:"Meeting Notes",followUp:"Follow-Up",csvExport:"CSV Export",vcfDownload:"VCF Download",contactMap:"Contact Map",aiScanner:"AI Scanner",autoIntroEmail:"Auto-Intro Email",appleWallet:"Apple Wallet",googleWallet:"Google Wallet",googleWalletThemes:"Google Wallet Themes",profileThemes:"Profile Theme Colors",brandingRemoval:"Branding Removal",advancedNetworkingInsights:"Advanced Networking Insights"}[k])).filter(Boolean);
   note.innerHTML=`<strong>Plan:</strong> ${currentCardPlan}. ${owner?(disabled.length?`Features disabled by JMX administration are hidden from this editor and from the public card.`:`All available ${currentCardPlan} modules are enabled by JMX administration.`):"Administrator view: all profile fields remain editable; public visibility follows the Feature Control Center."}`;
 }
 
@@ -585,7 +593,27 @@ const WALLET_THEMES=[
  {id:"titanium_wave",name:"Titanium Wave",hex:"#64748b",plans:["Business"],tier:"Premium",css:"radial-gradient(ellipse at 18% 120%,rgba(34,211,238,.32),transparent 45%),radial-gradient(ellipse at 84% -20%,rgba(196,181,253,.3),transparent 45%),linear-gradient(135deg,#1e293b,#94a3b8 48%,#334155)"},
  {id:"emerald_geometry",name:"Emerald Geometry",hex:"#059669",plans:["Business"],tier:"Premium",css:"linear-gradient(60deg,transparent 42%,rgba(167,243,208,.2) 43% 47%,transparent 48%),linear-gradient(-35deg,transparent 56%,rgba(45,212,191,.18) 57% 61%,transparent 62%),linear-gradient(130deg,#022c22,#059669 55%,#115e59)"},
  {id:"scarlet_chrome",name:"Scarlet Chrome",hex:"#be123c",plans:["Business"],tier:"Premium",css:"linear-gradient(140deg,#190307 0%,#881337 24%,#fb7185 40%,#fff1f2 50%,#e11d48 61%,#4c0519 82%,#111827 100%)"},
- {id:"cosmic_silver",name:"Cosmic Silver",hex:"#64748b",plans:["Business"],tier:"Premium",css:"radial-gradient(circle at 25% 30%,rgba(196,181,253,.42),transparent 19%),radial-gradient(circle at 72% 62%,rgba(103,232,249,.34),transparent 22%),linear-gradient(135deg,#0f172a,#64748b 48%,#e2e8f0 62%,#312e81 84%,#111827)"}
+ {id:"cosmic_silver",name:"Cosmic Silver",hex:"#64748b",plans:["Business"],tier:"Premium",css:"radial-gradient(circle at 25% 30%,rgba(196,181,253,.42),transparent 19%),radial-gradient(circle at 72% 62%,rgba(103,232,249,.34),transparent 22%),linear-gradient(135deg,#0f172a,#64748b 48%,#e2e8f0 62%,#312e81 84%,#111827)"},
+ {id:"diamond_noir",name:"Diamond Noir",hex:"#18181b",plans:["Business"],tier:"Signature II",css:"linear-gradient(35deg,transparent 35%,rgba(255,255,255,.16) 36% 42%,transparent 43%),linear-gradient(145deg,#000,#18181b 45%,#71717a 58%,#09090b 76%,#000)"},
+ {id:"golden_aurora",name:"Golden Aurora",hex:"#a16207",plans:["Business"],tier:"Signature II",css:"radial-gradient(circle at 78% 22%,rgba(254,240,138,.72),transparent 22%),linear-gradient(125deg,#2b1604,#a16207 40%,#f59e0b 60%,#422006)"},
+ {id:"laser_sapphire",name:"Laser Sapphire",hex:"#1d4ed8",plans:["Business"],tier:"Signature II",css:"linear-gradient(58deg,transparent 44%,rgba(125,211,252,.42) 45% 49%,transparent 50%),linear-gradient(130deg,#020617,#1e3a8a 40%,#2563eb 62%,#06b6d4)"},
+ {id:"emerald_prism",name:"Emerald Prism",hex:"#047857",plans:["Business"],tier:"Signature II",css:"linear-gradient(125deg,#022c22 0%,#047857 25%,#6ee7b7 42%,#e0f2fe 52%,#14b8a6 67%,#064e3b 100%)"},
+ {id:"violet_flare",name:"Violet Flare",hex:"#7c3aed",plans:["Business"],tier:"Signature II",css:"radial-gradient(circle at 75% 30%,rgba(244,114,182,.62),transparent 20%),linear-gradient(135deg,#1e1b4b,#6d28d9 48%,#a855f7 68%,#312e81)"},
+ {id:"ruby_prism",name:"Ruby Prism",hex:"#be123c",plans:["Business"],tier:"Signature II",css:"linear-gradient(130deg,#4c0519,#be123c 27%,#fb7185 43%,#fff1f2 52%,#f59e0b 67%,#4c0519)"},
+ {id:"aqua_chrome",name:"Aqua Chrome",hex:"#0e7490",plans:["Business"],tier:"Signature II",css:"linear-gradient(135deg,#083344 0%,#0891b2 26%,#cffafe 44%,#22d3ee 57%,#64748b 72%,#164e63 100%)"},
+ {id:"purple_gold_flux",name:"Purple Gold Flux",hex:"#6d28d9",plans:["Business"],tier:"Signature II",css:"linear-gradient(125deg,#2e1065,#6d28d9 34%,#c084fc 48%,#fbbf24 66%,#713f12 82%,#1e1b4b)"},
+ {id:"carbon_aurora",name:"Carbon Aurora",hex:"#27272a",plans:["Business"],tier:"Signature II",css:"radial-gradient(circle at 22% 28%,rgba(34,211,238,.38),transparent 20%),radial-gradient(circle at 78% 68%,rgba(192,132,252,.36),transparent 23%),linear-gradient(135deg,#09090b,#27272a 55%,#111827)"},
+ {id:"solar_ruby",name:"Solar Ruby",hex:"#9f1239",plans:["Business"],tier:"Signature II",css:"radial-gradient(circle at 76% 26%,rgba(253,224,71,.72),transparent 19%),linear-gradient(135deg,#4c0519,#9f1239 50%,#f43f5e 68%,#7c2d12)"},
+ {id:"ice_violet",name:"Ice Violet",hex:"#6366f1",plans:["Business"],tier:"Signature II",css:"linear-gradient(130deg,#172554,#6366f1 28%,#c7d2fe 43%,#e0f2fe 54%,#a78bfa 68%,#312e81)"},
+ {id:"bronze_laser",name:"Bronze Laser",hex:"#b45309",plans:["Business"],tier:"Signature II",css:"linear-gradient(60deg,transparent 43%,rgba(255,237,213,.34) 44% 48%,transparent 49%),linear-gradient(130deg,#431407,#92400e 40%,#d97706 63%,#7c2d12)"},
+ {id:"neon_jade",name:"Neon Jade",hex:"#10b981",plans:["Business"],tier:"Signature II",css:"linear-gradient(125deg,#022c22,#047857 36%,#10b981 53%,#a7f3d0 63%,#06b6d4 78%,#064e3b)"},
+ {id:"midnight_rose",name:"Midnight Rose",hex:"#9d174d",plans:["Business"],tier:"Signature II",css:"linear-gradient(135deg,#020617,#4c0519 35%,#9d174d 56%,#f472b6 72%,#1e1b4b)"},
+ {id:"platinum_wave",name:"Platinum Wave",hex:"#64748b",plans:["Business"],tier:"Signature II",css:"radial-gradient(ellipse at 20% 115%,rgba(255,255,255,.38),transparent 44%),radial-gradient(ellipse at 82% -18%,rgba(34,211,238,.28),transparent 43%),linear-gradient(135deg,#1e293b,#94a3b8 48%,#e2e8f0 62%,#334155)"},
+ {id:"cosmic_emerald",name:"Cosmic Emerald",hex:"#059669",plans:["Business"],tier:"Signature II",css:"radial-gradient(circle at 20% 25%,rgba(103,232,249,.32),transparent 18%),radial-gradient(circle at 78% 70%,rgba(167,139,250,.34),transparent 22%),linear-gradient(130deg,#022c22,#059669 46%,#312e81 82%)"},
+ {id:"orange_titanium",name:"Orange Titanium",hex:"#c2410c",plans:["Business"],tier:"Signature II",css:"linear-gradient(135deg,#111827,#475569 30%,#fb923c 48%,#fed7aa 58%,#c2410c 72%,#1f2937)"},
+ {id:"blue_hologram",name:"Blue Hologram",hex:"#2563eb",plans:["Business"],tier:"Signature II",css:"linear-gradient(125deg,#172554 0%,#2563eb 24%,#67e8f9 39%,#c4b5fd 54%,#f0abfc 68%,#38bdf8 84%,#1e3a8a)"},
+ {id:"golden_graphite",name:"Golden Graphite",hex:"#3f3f46",plans:["Business"],tier:"Signature II",css:"linear-gradient(45deg,transparent 42%,rgba(250,204,21,.28) 43% 48%,transparent 49%),linear-gradient(135deg,#09090b,#3f3f46 48%,#a16207 68%,#fbbf24 79%,#18181b)"},
+ {id:"aurora_pearl",name:"Aurora Pearl",hex:"#94a3b8",plans:["Business"],tier:"Signature II",css:"linear-gradient(125deg,#f8fafc 0%,#cbd5e1 20%,#a7f3d0 38%,#bfdbfe 53%,#ddd6fe 67%,#fbcfe8 82%,#94a3b8 100%)"}
 ];
 let selectedWalletTheme="default";
 let savedWalletTheme="default";
@@ -613,6 +641,7 @@ const SIMPLE_WALLET_THEMES=[
 ];
 const saveGoogleWalletThemeCall=httpsCallable(functions,"saveGoogleWalletTheme");
 function walletThemeAllowed(t){return t.plans.includes(currentCardPlan)&&featureEnabledForPlan("qrCardThemes")}
+let walletThemePlaceholder=null,walletThemeScrollY=0;
 function walletThemesExpanded(){return $id("googleWalletThemesSection")?.classList.contains("wallet-themes-expanded")===true}
 function applyWalletThemeCompactVisibility(){
  const sec=$id("googleWalletThemesSection"),grid=$id("walletThemeGrid");if(!sec||!grid)return;
@@ -622,12 +651,16 @@ function applyWalletThemeCompactVisibility(){
  grid.querySelectorAll(".wallet-theme-collection").forEach(collection=>{const visible=[...collection.querySelectorAll("[data-wallet-theme]")].some(tile=>!tile.classList.contains("wallet-theme-compact-hidden"));collection.classList.toggle("wallet-theme-collection-compact-hidden",!expanded&&!visible)});
 }
 function setWalletThemesExpanded(expanded){
- const sec=$id("googleWalletThemesSection"),backdrop=$id("walletThemeBackdrop"),expand=$id("walletThemesExpand"),close=$id("walletThemesClose");if(!sec)return;
+ const sec=$id("googleWalletThemesSection"),back=$id("walletThemeBackdrop"),open=$id("walletThemesExpand"),close=$id("walletThemesClose");if(!sec)return;
  if(!expanded&&selectedQrCardTheme!==savedQrCardTheme){selectedQrCardTheme=savedQrCardTheme;updateWalletThemePreview()}
- sec.classList.toggle("wallet-themes-expanded",expanded);
- if(backdrop)backdrop.hidden=!expanded;if(expand){expand.hidden=expanded;expand.setAttribute("aria-expanded",String(expanded))}if(close)close.hidden=!expanded;
- document.body.classList.toggle("wallet-themes-modal-open",expanded);applyWalletThemeCompactVisibility();
- if(expanded)setTimeout(()=>sec.querySelector("[data-wallet-theme].selected")?.scrollIntoView({block:"nearest"}),0);
+ if(expanded){
+   if(!walletThemePlaceholder){walletThemePlaceholder=document.createComment("wallet-theme-home");sec.parentNode?.insertBefore(walletThemePlaceholder,sec)}
+   walletThemeScrollY=window.scrollY||0;document.body.appendChild(sec);document.body.style.position="fixed";document.body.style.top=`-${walletThemeScrollY}px`;document.body.style.left="0";document.body.style.right="0";document.body.style.width="100%";
+ }else{
+   if(walletThemePlaceholder?.parentNode){walletThemePlaceholder.parentNode.insertBefore(sec,walletThemePlaceholder);walletThemePlaceholder.remove();walletThemePlaceholder=null}
+   document.body.style.position="";document.body.style.top="";document.body.style.left="";document.body.style.right="";document.body.style.width="";window.scrollTo(0,walletThemeScrollY);
+ }
+ sec.classList.toggle("wallet-themes-expanded",expanded);if(back){back.hidden=!expanded;if(expanded)document.body.appendChild(back);else if(sec.parentNode&&back.parentNode!==sec.parentNode)sec.parentNode.insertBefore(back,sec)}if(open){open.hidden=expanded;open.setAttribute("aria-expanded",String(expanded))}if(close)close.hidden=!expanded;document.body.classList.toggle("wallet-themes-modal-open",expanded);applyWalletThemeCompactVisibility();if(expanded){sec.scrollTop=0;setTimeout(()=>sec.querySelector("[data-wallet-theme].selected")?.scrollIntoView({block:"nearest"}),40)}
 }
 function renderWalletThemes(){
  const sec=$id("googleWalletThemesSection"),grid=$id("walletThemeGrid");if(!sec||!grid)return;
@@ -717,7 +750,7 @@ async function handleLeadAction(event){const btn=event.target.closest("[data-lea
 function exportLeadsCsv(){const rows=[["Name","Phone","Email","Company","Message","Date Received","Expiration Date","Days Remaining","Status","Notes","Meeting Notes","Follow-Up Date"],...currentLeads.map(l=>[l.name,l.phone,l.email,l.company,l.message,formatLeadDate(l.createdAt),formatLeadDate(l.expiresAt),daysRemaining(l.expiresAt),l.status,l.notes,l.meetingNotes,l.followUpDate])];const csv=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");downloadText(`JMX-${CARD_ID}-Leads.csv`,csv,"text/csv;charset=utf-8")}
 
 document.addEventListener("DOMContentLoaded",()=>{
-  buildVisibility();configureEditorEvents();installSectionSaveButtons();initAiScannerUi();setCardIdentity();
+  buildProfileThemeSelector();buildVisibility();configureEditorEvents();installSectionSaveButtons();initAiScannerUi();setCardIdentity();
   $id("adminGoogleLogin")?.addEventListener("click",signInWithGoogle);
   $id("adminLogin")?.addEventListener("click",signIn);
   $id("adminPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")signIn()});

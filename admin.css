@@ -70,3 +70,43 @@ body.client-owner-mode .admin-only-section,body.client-owner-mode .admin-only-li
 
 /* Aug 30 2026 — Simple QR palette + expanded QR Card theme catalog */
 .qr-simple-theme-swatch:after{display:none!important}.qr-simple-theme-swatch{border:1px solid rgba(148,163,184,.45)}.qr-simple-theme-tile{min-width:0}.qr-themes-panel{max-height:min(72vh,760px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}.qr-themes-panel .wallet-theme-collection-title{color:#e5e7eb}.qr-themes-panel .wallet-theme-collection-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:700px){.qr-themes-panel .wallet-theme-collection-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:420px){.qr-themes-panel{padding:10px}.qr-themes-panel .wallet-theme-collection-grid{grid-template-columns:1fr 1fr;gap:8px}.qr-simple-theme-tile{padding:7px}}
+
+/* =========================================================
+   WALLET COLOR + QR CARD THEME SAVE/RESPONSIVE FIX — AUG 30 2026
+   ========================================================= */
+.section-save-actions{margin-top:16px;padding-top:12px;border-top:1px solid rgba(148,163,184,.18)}
+.section-save-actions .save-button{min-width:190px}
+.compact-save-actions{margin-top:12px;justify-content:center}
+.compact-save-actions .save-button{width:100%;justify-content:center}
+.wallet-color-preview{min-height:150px;color:#fff}
+.wallet-color-preview .wallet-preview-copy{text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.wallet-themes-expanded{background:#f8fafc!important;color:#111827!important}
+.wallet-themes-expanded .section-title h2,.wallet-themes-expanded .section-title small,.wallet-themes-expanded>.section-help{color:#111827!important}
+.wallet-themes-expanded .wallet-theme-catalog{background:#0b1020;border-radius:16px;padding:14px!important}
+.wallet-themes-expanded .wallet-theme-collection-title{color:#e5e7eb!important}
+.wallet-themes-expanded .wallet-preview-wrap>p{color:#475569!important}
+.wallet-themes-expanded .wallet-theme-preview{min-height:170px;background-color:#111827}
+.wallet-themes-expanded .wallet-theme-tile{display:block!important;visibility:visible!important;opacity:1!important;min-height:92px}
+.wallet-themes-expanded .wallet-theme-swatch{display:block!important;visibility:visible!important;opacity:1!important}
+@media(max-width:560px){
+  .section-save-actions{position:relative;z-index:1}
+  .section-save-actions .save-button{width:100%;min-width:0;justify-content:center}
+  .wallet-theme-backdrop{backdrop-filter:none!important;background:rgba(2,6,23,.78)!important}
+  .wallet-themes-expanded{inset:8px!important;height:auto!important;max-height:calc(100dvh - 16px)!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px!important;background:#f8fafc!important;contain:none!important;transform:none!important}
+  .wallet-themes-expanded .section-title{position:sticky;top:-12px;z-index:20;padding:10px 44px 8px 0;margin:-4px 0 6px;background:#f8fafc}
+  .wallet-themes-expanded .wallet-themes-close{position:absolute!important;right:0;top:10px;z-index:22}
+  .wallet-themes-expanded .wallet-theme-layout{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:visible!important;padding-bottom:0!important;gap:12px!important}
+  .wallet-themes-expanded .wallet-preview-wrap{order:0!important;width:100%!important;max-width:none!important;margin:0!important;flex:0 0 auto;position:static!important}
+  .wallet-themes-expanded .wallet-theme-preview{width:100%!important;min-height:150px!important;max-height:none!important;transform:translateZ(0)}
+  .wallet-themes-expanded .wallet-theme-catalog{order:1!important;width:100%!important;height:auto!important;overflow:visible!important;padding:10px!important;background:#0b1020!important;border-radius:14px}
+  .wallet-themes-expanded .wallet-theme-collection-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .wallet-themes-expanded .wallet-theme-tile{min-width:0!important;min-height:82px!important;padding:7px!important;background:#111827!important;color:#fff!important;transform:none!important}
+  .wallet-themes-expanded .wallet-theme-swatch{height:50px!important;margin-bottom:5px!important;transform:translateZ(0)}
+  .wallet-themes-expanded .wallet-theme-save-actions{position:static!important;z-index:10!important;width:100%!important;background:#f8fafc!important;padding:10px 0 0!important;margin-top:0!important}
+  .wallet-themes-expanded #walletThemeStatus{background:#f8fafc;color:#111827;padding:4px 0;z-index:10}
+}
+.wallet-color-preview.wallet-color-light .wallet-preview-copy{color:#111827;text-shadow:0 1px 3px rgba(255,255,255,.75)}
+.wallet-color-preview.wallet-color-light .wallet-preview-copy small,.wallet-color-preview.wallet-color-light .wallet-preview-copy strong,.wallet-color-preview.wallet-color-light .wallet-preview-copy span{color:#111827}
+
+/* Aug 31 2026 — expanded profile theme catalog */
+#profileThemeSelector{grid-template-columns:repeat(4,minmax(0,1fr));max-height:520px;overflow:auto;padding-right:4px}.admin-theme .color{width:100%;max-width:58px;height:24px;border-radius:999px}@media(max-width:800px){#profileThemeSelector{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:600px){#profileThemeSelector{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none;overflow:visible}}
