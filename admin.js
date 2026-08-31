@@ -537,11 +537,50 @@ const WALLET_THEMES=[
  {id:"arctic_hologram",name:"Arctic Hologram",hex:"#0891b2",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#0c4a6e 0%,#22d3ee 25%,#a5f3fc 38%,#c4b5fd 54%,#f0abfc 67%,#34d399 82%,#164e63 100%)"},
  {id:"black_neon_flux",name:"Black Neon Flux",hex:"#09090b",plans:["Business"],tier:"Premium",css:"linear-gradient(120deg,#000 0%,#09090b 38%,#06b6d4 49%,#8b5cf6 58%,#22c55e 68%,#09090b 79%,#000 100%)"},
  {id:"scarlet_noir",name:"Scarlet Noir",hex:"#7f1d1d",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#09090b 0%,#450a0a 34%,#b91c1c 52%,#fb7185 62%,#f59e0b 73%,#18181b 100%)"},
- {id:"cosmic_pearl",name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#172554 0%,#6366f1 24%,#a78bfa 39%,#f0abfc 53%,#5eead4 68%,#f8fafc 82%,#312e81 100%)"}
+ {id:"cosmic_pearl",name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#172554 0%,#6366f1 24%,#a78bfa 39%,#f0abfc 53%,#5eead4 68%,#f8fafc 82%,#312e81 100%)"},
+ // Signature Collection — 18 additional QR-card designs. Additive IDs keep all prior selections compatible.
+ {id:"neon_titanium",name:"Neon Titanium",hex:"#334155",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#020617 0%,#334155 28%,#94a3b8 42%,#22d3ee 54%,#a78bfa 68%,#111827 100%)"},
+ {id:"golden_prism",name:"Golden Prism",hex:"#a16207",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#2b1604 0%,#92400e 24%,#f59e0b 42%,#fef3c7 52%,#d97706 68%,#422006 100%)"},
+ {id:"emerald_circuit",name:"Emerald Circuit",hex:"#047857",plans:["Business"],tier:"Premium",css:"repeating-linear-gradient(135deg,rgba(110,231,183,.16) 0 2px,transparent 2px 18px),linear-gradient(120deg,#022c22,#047857 48%,#10b981 70%,#064e3b)"},
+ {id:"sapphire_chrome",name:"Sapphire Chrome",hex:"#1d4ed8",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#020617 0%,#1e3a8a 24%,#60a5fa 42%,#e0f2fe 51%,#2563eb 63%,#312e81 82%,#0f172a 100%)"},
+ {id:"crimson_geometry",name:"Crimson Geometry",hex:"#b91c1c",plans:["Business"],tier:"Premium",css:"linear-gradient(30deg,transparent 40%,rgba(254,202,202,.18) 41% 44%,transparent 45%),linear-gradient(150deg,#180405,#7f1d1d 44%,#ef4444 65%,#3f0707)"},
+ {id:"arctic_aurora",name:"Arctic Aurora",hex:"#0e7490",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#082f49 0%,#06b6d4 26%,#cffafe 43%,#a5b4fc 58%,#34d399 76%,#164e63 100%)"},
+ {id:"violet_matrix",name:"Violet Matrix",hex:"#6d28d9",plans:["Business"],tier:"Premium",css:"repeating-linear-gradient(90deg,rgba(216,180,254,.13) 0 1px,transparent 1px 14px),repeating-linear-gradient(0deg,rgba(129,140,248,.1) 0 1px,transparent 1px 14px),linear-gradient(135deg,#1e1b4b,#6d28d9 58%,#312e81)"},
+ {id:"copper_horizon",name:"Copper Horizon",hex:"#b45309",plans:["Business"],tier:"Premium",css:"linear-gradient(180deg,transparent 48%,rgba(255,237,213,.25) 49% 52%,transparent 53%),linear-gradient(120deg,#431407,#b45309 42%,#fb923c 62%,#7c2d12)"},
+ {id:"midnight_crystal",name:"Midnight Crystal",hex:"#1e293b",plans:["Business"],tier:"Premium",css:"linear-gradient(35deg,transparent 36%,rgba(148,163,184,.17) 37% 45%,transparent 46%),linear-gradient(145deg,#020617,#0f172a 38%,#334155 60%,#111827)"},
+ {id:"solar_carbon",name:"Solar Carbon",hex:"#292524",plans:["Business"],tier:"Premium",css:"radial-gradient(circle at 76% 30%,rgba(251,191,36,.62),transparent 18%),linear-gradient(135deg,#09090b,#292524 58%,#78350f 78%,#111827)"},
+ {id:"electric_quartz",name:"Electric Quartz",hex:"#0891b2",plans:["Business"],tier:"Premium",css:"linear-gradient(58deg,transparent 38%,rgba(255,255,255,.24) 39% 43%,transparent 44%),linear-gradient(132deg,#164e63,#0891b2 34%,#67e8f9 50%,#8b5cf6 70%,#172554)"},
+ {id:"rose_hologram",name:"Rose Hologram",hex:"#be185d",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#500724,#be185d 24%,#f9a8d4 40%,#c4b5fd 55%,#67e8f9 69%,#fbcfe8 84%,#831843)"},
+ {id:"ocean_prism",name:"Ocean Prism",hex:"#0369a1",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#082f49 0%,#0369a1 24%,#22d3ee 43%,#dbeafe 54%,#2563eb 68%,#312e81 84%,#0c4a6e 100%)"},
+ {id:"obsidian_gold",name:"Obsidian Gold",hex:"#171717",plans:["Business"],tier:"Premium",css:"linear-gradient(42deg,transparent 44%,rgba(250,204,21,.26) 45% 49%,transparent 50%),linear-gradient(135deg,#000,#171717 48%,#713f12 65%,#d4af37 78%,#09090b)"},
+ {id:"titanium_wave",name:"Titanium Wave",hex:"#64748b",plans:["Business"],tier:"Premium",css:"radial-gradient(ellipse at 18% 120%,rgba(34,211,238,.32),transparent 45%),radial-gradient(ellipse at 84% -20%,rgba(196,181,253,.3),transparent 45%),linear-gradient(135deg,#1e293b,#94a3b8 48%,#334155)"},
+ {id:"emerald_geometry",name:"Emerald Geometry",hex:"#059669",plans:["Business"],tier:"Premium",css:"linear-gradient(60deg,transparent 42%,rgba(167,243,208,.2) 43% 47%,transparent 48%),linear-gradient(-35deg,transparent 56%,rgba(45,212,191,.18) 57% 61%,transparent 62%),linear-gradient(130deg,#022c22,#059669 55%,#115e59)"},
+ {id:"scarlet_chrome",name:"Scarlet Chrome",hex:"#be123c",plans:["Business"],tier:"Premium",css:"linear-gradient(140deg,#190307 0%,#881337 24%,#fb7185 40%,#fff1f2 50%,#e11d48 61%,#4c0519 82%,#111827 100%)"},
+ {id:"cosmic_silver",name:"Cosmic Silver",hex:"#64748b",plans:["Business"],tier:"Premium",css:"radial-gradient(circle at 25% 30%,rgba(196,181,253,.42),transparent 19%),radial-gradient(circle at 72% 62%,rgba(103,232,249,.34),transparent 22%),linear-gradient(135deg,#0f172a,#64748b 48%,#e2e8f0 62%,#312e81 84%,#111827)"}
 ];
 let selectedWalletTheme="default";
 let savedWalletTheme="default";
 let selectedQrCardTheme="default";
+const SIMPLE_QR_THEMES=[
+ {id:"default",name:"Black",hex:"#111111",css:"#111111"},
+ {id:"silver_uv",name:"White",hex:"#ffffff",css:"#ffffff"},
+ {id:"black_gold",name:"Gray",hex:"#6b7280",css:"#6b7280"},
+ {id:"black_matte",name:"Silver",hex:"#c0c0c0",css:"#c0c0c0"},
+ {id:"electric_blue",name:"Gold",hex:"#b8860b",css:"#b8860b"},
+ {id:"deep_navy",name:"Orange",hex:"#f97316",css:"#f97316"},
+ {id:"emerald",name:"Red",hex:"#dc2626",css:"#dc2626"},
+ {id:"teal",name:"Burgundy",hex:"#800020",css:"#800020"},
+ {id:"purple",name:"Blue",hex:"#2563eb",css:"#2563eb"},
+ {id:"violet",name:"Navy Blue",hex:"#172554",css:"#172554"},
+ {id:"aurora",name:"Electric Blue",hex:"#0284c7",css:"#0284c7"},
+ {id:"red_matte",name:"Cyan",hex:"#06b6d4",css:"#06b6d4"},
+ {id:"red_gold",name:"Green",hex:"#16a34a",css:"#16a34a"},
+ {id:"rose_gold",name:"Emerald",hex:"#059669",css:"#059669"},
+ {id:"copper",name:"Teal",hex:"#0f766e",css:"#0f766e"},
+ {id:"carbon_red",name:"Purple",hex:"#7c3aed",css:"#7c3aed"},
+ {id:"gold",name:"Pink",hex:"#db2777",css:"#db2777"},
+ {id:"cyan",name:"Brown",hex:"#92400e",css:"#92400e"}
+];
 const saveGoogleWalletThemeCall=httpsCallable(functions,"saveGoogleWalletTheme");
 function walletThemeAllowed(t){return t.plans.includes(currentCardPlan)&&featureEnabledForPlan("googleWallet")&&featureEnabledForPlan("googleWalletThemes")}
 function walletThemesExpanded(){return $id("googleWalletThemesSection")?.classList.contains("wallet-themes-expanded")===true}
@@ -564,23 +603,27 @@ function renderWalletThemes(){
  const sec=$id("googleWalletThemesSection"),grid=$id("walletThemeGrid");if(!sec||!grid)return;
  const allowed=featureEnabledForPlan("googleWallet")&&featureEnabledForPlan("googleWalletThemes")&&currentRole==="owner";sec.hidden=!allowed;if(!allowed){setWalletThemesExpanded(false);return;}
  const available=WALLET_THEMES.filter(walletThemeAllowed);if(!available.some(t=>t.id===selectedWalletTheme))selectedWalletTheme=available[0]?.id||"default";if(!available.some(t=>t.id===savedWalletTheme))savedWalletTheme=selectedWalletTheme;
- let walletIndex=0;const tile=t=>{const index=walletIndex++;return `<button type="button" class="wallet-theme-tile ${t.id===selectedWalletTheme?"selected":""}" data-wallet-theme="${t.id}" data-wallet-theme-index="${index}" aria-pressed="${t.id===selectedWalletTheme}" aria-label="Preview ${t.name} Google Wallet theme"><span class="wallet-theme-swatch" style="background:${t.css}"></span><strong>${t.name}</strong></button>`};
+ let walletIndex=0;const tile=t=>{const index=walletIndex++;return `<button type="button" class="wallet-theme-tile ${t.id===selectedWalletTheme?"selected":""}" data-wallet-theme="${t.id}" data-wallet-theme-index="${index}" aria-pressed="${t.id===selectedWalletTheme}" aria-label="Preview ${t.name} QR Card theme"><span class="wallet-theme-swatch" style="background:${t.css}"></span><strong>${t.name}</strong></button>`};
  const classic=available.filter(t=>t.tier!=="Premium"),premium=available.filter(t=>t.tier==="Premium");
  grid.innerHTML=`<div class="wallet-theme-collection"><div class="wallet-theme-collection-title"><span>Classic Themes</span><small>${classic.length}</small></div><div class="wallet-theme-collection-grid">${classic.map(tile).join("")}</div></div>${premium.length?`<div class="wallet-theme-collection premium"><div class="wallet-theme-collection-title"><span>Premium Themes</span><small>${premium.length}</small></div><div class="wallet-theme-collection-grid">${premium.map(tile).join("")}</div></div>`:""}`;updateWalletThemePreview();applyWalletThemeCompactVisibility();
 }
 function updateWalletThemePreview(){const t=WALLET_THEMES.find(x=>x.id===selectedWalletTheme)||WALLET_THEMES[0],card=$id("walletThemePreview");if(!card)return;card.style.background=t.css;$id("walletPreviewCompany").textContent=currentProfile.company||"JMX DIGITAL CARD";$id("walletPreviewName").textContent=currentProfile.fullName||"Card Owner";$id("walletPreviewPosition").textContent=currentProfile.position||"Digital Business Card";$id("walletThemeSelectedName").textContent=t.name;const hint=$id("walletThemeSavedHint");if(hint){const saved=selectedWalletTheme===savedWalletTheme;hint.textContent=saved?"Saved theme":"Preview only — press Save Theme to keep it";hint.classList.toggle("unsaved",!saved)}document.querySelectorAll("[data-wallet-theme]").forEach(b=>{const on=b.dataset.walletTheme===selectedWalletTheme;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
-async function saveWalletTheme(){const status=$id("walletThemeStatus"),btn=$id("saveWalletTheme");if(btn)btn.disabled=true;if(status){status.textContent="Saving theme…";status.className="save-status"}try{const r=(await saveGoogleWalletThemeCall({cardId:CARD_ID,themeId:selectedWalletTheme})).data;savedWalletTheme=selectedWalletTheme;currentProfile.googleWalletTheme=selectedWalletTheme;updateWalletThemePreview();if(status){status.textContent=`${r?.themeName||"Theme"} saved successfully. Your existing Wallet pass will be updated when you use Add to Google Wallet.`;status.className="save-status ok";}}catch(e){console.error(e);if(status){status.textContent=e?.message||"Could not save Wallet theme.";status.className="save-status error";}}finally{if(btn)btn.disabled=false}}
+async function saveWalletTheme(){const status=$id("walletThemeStatus"),btn=$id("saveWalletTheme");if(btn)btn.disabled=true;if(status){status.textContent="Saving theme…";status.className="save-status"}try{const r=(await saveGoogleWalletThemeCall({cardId:CARD_ID,themeId:selectedWalletTheme})).data;savedWalletTheme=selectedWalletTheme;currentProfile.googleWalletTheme=selectedWalletTheme;updateWalletThemePreview();if(status){status.textContent=`${r?.themeName||"Theme"} saved successfully. The public QR card preview will use this theme; Google Wallet continues using its compatible base color.`;status.className="save-status ok";}}catch(e){console.error(e);if(status){status.textContent=e?.message||"Could not save QR Card theme.";status.className="save-status error";}}finally{if(btn)btn.disabled=false}}
 
 
+function simpleQrThemeForSelection(id){
+ const direct=SIMPLE_QR_THEMES.find(t=>t.id===id); if(direct)return direct;
+ const legacy=WALLET_THEMES.find(t=>t.id===id); if(!legacy)return SIMPLE_QR_THEMES[0];
+ const hex=String(legacy.hex||"").toLowerCase(); return SIMPLE_QR_THEMES.find(t=>String(t.hex).toLowerCase()===hex)||SIMPLE_QR_THEMES[0];
+}
 function renderQrCardThemes(){
  const box=$id("qrCardThemesControl"),grid=$id("qrCardThemeGrid"); if(!box||!grid)return;
  const allowed=featureEnabledForPlan("qrCardThemes")&&currentRole==="owner"; box.hidden=!allowed; if(!allowed)return;
- if(!WALLET_THEMES.some(t=>t.id===selectedQrCardTheme))selectedQrCardTheme="default";
- const tile=t=>`<button type="button" class="wallet-theme-tile ${t.id===selectedQrCardTheme?"selected":""}" data-qr-card-theme="${t.id}" aria-pressed="${t.id===selectedQrCardTheme}"><span class="wallet-theme-swatch" style="background:${t.css}"></span><strong>${t.name}</strong></button>`;
- const classic=WALLET_THEMES.filter(t=>t.tier!=="Premium"),premium=WALLET_THEMES.filter(t=>t.tier==="Premium");
- grid.innerHTML=`<div class="wallet-theme-collection"><div class="wallet-theme-collection-title"><span>Classic Themes</span><small>${classic.length}</small></div><div class="wallet-theme-collection-grid">${classic.map(tile).join("")}</div></div><div class="wallet-theme-collection premium"><div class="wallet-theme-collection-title"><span>Premium Themes</span><small>${premium.length}</small></div><div class="wallet-theme-collection-grid">${premium.map(tile).join("")}</div></div>`; updateQrCardThemePreview();
+ const preview=simpleQrThemeForSelection(selectedQrCardTheme);
+ const tile=t=>`<button type="button" class="wallet-theme-tile qr-simple-theme-tile ${t.id===preview.id?"selected":""}" data-qr-card-theme="${t.id}" aria-pressed="${t.id===preview.id}" aria-label="Preview ${t.name} color"><span class="wallet-theme-swatch qr-simple-theme-swatch" style="background:${t.css}"></span><strong>${t.name}</strong></button>`;
+ grid.innerHTML=`<div class="wallet-theme-collection simple-colors"><div class="wallet-theme-collection-title"><span>Simple Colors</span><small>${SIMPLE_QR_THEMES.length}</small></div><div class="wallet-theme-collection-grid">${SIMPLE_QR_THEMES.map(tile).join("")}</div></div>`; updateQrCardThemePreview();
 }
-function updateQrCardThemePreview(){const t=WALLET_THEMES.find(x=>x.id===selectedQrCardTheme)||WALLET_THEMES[0],card=$id("qrCardThemePreview");if(!card)return;card.style.background=t.css;$id("qrCardThemeSelectedName").textContent=t.name;document.querySelectorAll("[data-qr-card-theme]").forEach(b=>{const on=b.dataset.qrCardTheme===selectedQrCardTheme;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
+function updateQrCardThemePreview(){const t=simpleQrThemeForSelection(selectedQrCardTheme),card=$id("qrCardThemePreview");if(!card)return;card.style.background=t.css;$id("qrCardThemeSelectedName").textContent=t.name;document.querySelectorAll("[data-qr-card-theme]").forEach(b=>{const on=b.dataset.qrCardTheme===t.id;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
 
 const createGoogleWalletPassCall=httpsCallable(functions,"createGoogleWalletPass");
 async function addToGoogleWallet(){

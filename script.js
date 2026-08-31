@@ -172,7 +172,25 @@ const QR_CARD_THEMES=[
  {id:"arctic_hologram",name:"Arctic Hologram",hex:"#0891b2",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#0c4a6e 0%,#22d3ee 25%,#a5f3fc 38%,#c4b5fd 54%,#f0abfc 67%,#34d399 82%,#164e63 100%)"},
  {id:"black_neon_flux",name:"Black Neon Flux",hex:"#09090b",plans:["Business"],tier:"Premium",css:"linear-gradient(120deg,#000 0%,#09090b 38%,#06b6d4 49%,#8b5cf6 58%,#22c55e 68%,#09090b 79%,#000 100%)"},
  {id:"scarlet_noir",name:"Scarlet Noir",hex:"#7f1d1d",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#09090b 0%,#450a0a 34%,#b91c1c 52%,#fb7185 62%,#f59e0b 73%,#18181b 100%)"},
- {id:"cosmic_pearl",name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#172554 0%,#6366f1 24%,#a78bfa 39%,#f0abfc 53%,#5eead4 68%,#f8fafc 82%,#312e81 100%)"}
+ {id:"cosmic_pearl",name:"Cosmic Pearl",hex:"#6366f1",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#172554 0%,#6366f1 24%,#a78bfa 39%,#f0abfc 53%,#5eead4 68%,#f8fafc 82%,#312e81 100%)"},
+ {id:"neon_titanium",name:"Neon Titanium",hex:"#334155",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#020617 0%,#334155 28%,#94a3b8 42%,#22d3ee 54%,#a78bfa 68%,#111827 100%)"},
+ {id:"golden_prism",name:"Golden Prism",hex:"#a16207",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#2b1604 0%,#92400e 24%,#f59e0b 42%,#fef3c7 52%,#d97706 68%,#422006 100%)"},
+ {id:"emerald_circuit",name:"Emerald Circuit",hex:"#047857",plans:["Business"],tier:"Premium",css:"repeating-linear-gradient(135deg,rgba(110,231,183,.16) 0 2px,transparent 2px 18px),linear-gradient(120deg,#022c22,#047857 48%,#10b981 70%,#064e3b)"},
+ {id:"sapphire_chrome",name:"Sapphire Chrome",hex:"#1d4ed8",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#020617 0%,#1e3a8a 24%,#60a5fa 42%,#e0f2fe 51%,#2563eb 63%,#312e81 82%,#0f172a 100%)"},
+ {id:"crimson_geometry",name:"Crimson Geometry",hex:"#b91c1c",plans:["Business"],tier:"Premium",css:"linear-gradient(30deg,transparent 40%,rgba(254,202,202,.18) 41% 44%,transparent 45%),linear-gradient(150deg,#180405,#7f1d1d 44%,#ef4444 65%,#3f0707)"},
+ {id:"arctic_aurora",name:"Arctic Aurora",hex:"#0e7490",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#082f49 0%,#06b6d4 26%,#cffafe 43%,#a5b4fc 58%,#34d399 76%,#164e63 100%)"},
+ {id:"violet_matrix",name:"Violet Matrix",hex:"#6d28d9",plans:["Business"],tier:"Premium",css:"repeating-linear-gradient(90deg,rgba(216,180,254,.13) 0 1px,transparent 1px 14px),repeating-linear-gradient(0deg,rgba(129,140,248,.1) 0 1px,transparent 1px 14px),linear-gradient(135deg,#1e1b4b,#6d28d9 58%,#312e81)"},
+ {id:"copper_horizon",name:"Copper Horizon",hex:"#b45309",plans:["Business"],tier:"Premium",css:"linear-gradient(180deg,transparent 48%,rgba(255,237,213,.25) 49% 52%,transparent 53%),linear-gradient(120deg,#431407,#b45309 42%,#fb923c 62%,#7c2d12)"},
+ {id:"midnight_crystal",name:"Midnight Crystal",hex:"#1e293b",plans:["Business"],tier:"Premium",css:"linear-gradient(35deg,transparent 36%,rgba(148,163,184,.17) 37% 45%,transparent 46%),linear-gradient(145deg,#020617,#0f172a 38%,#334155 60%,#111827)"},
+ {id:"solar_carbon",name:"Solar Carbon",hex:"#292524",plans:["Business"],tier:"Premium",css:"radial-gradient(circle at 76% 30%,rgba(251,191,36,.62),transparent 18%),linear-gradient(135deg,#09090b,#292524 58%,#78350f 78%,#111827)"},
+ {id:"electric_quartz",name:"Electric Quartz",hex:"#0891b2",plans:["Business"],tier:"Premium",css:"linear-gradient(58deg,transparent 38%,rgba(255,255,255,.24) 39% 43%,transparent 44%),linear-gradient(132deg,#164e63,#0891b2 34%,#67e8f9 50%,#8b5cf6 70%,#172554)"},
+ {id:"rose_hologram",name:"Rose Hologram",hex:"#be185d",plans:["Business"],tier:"Premium",css:"linear-gradient(125deg,#500724,#be185d 24%,#f9a8d4 40%,#c4b5fd 55%,#67e8f9 69%,#fbcfe8 84%,#831843)"},
+ {id:"ocean_prism",name:"Ocean Prism",hex:"#0369a1",plans:["Business"],tier:"Premium",css:"linear-gradient(135deg,#082f49 0%,#0369a1 24%,#22d3ee 43%,#dbeafe 54%,#2563eb 68%,#312e81 84%,#0c4a6e 100%)"},
+ {id:"obsidian_gold",name:"Obsidian Gold",hex:"#171717",plans:["Business"],tier:"Premium",css:"linear-gradient(42deg,transparent 44%,rgba(250,204,21,.26) 45% 49%,transparent 50%),linear-gradient(135deg,#000,#171717 48%,#713f12 65%,#d4af37 78%,#09090b)"},
+ {id:"titanium_wave",name:"Titanium Wave",hex:"#64748b",plans:["Business"],tier:"Premium",css:"radial-gradient(ellipse at 18% 120%,rgba(34,211,238,.32),transparent 45%),radial-gradient(ellipse at 84% -20%,rgba(196,181,253,.3),transparent 45%),linear-gradient(135deg,#1e293b,#94a3b8 48%,#334155)"},
+ {id:"emerald_geometry",name:"Emerald Geometry",hex:"#059669",plans:["Business"],tier:"Premium",css:"linear-gradient(60deg,transparent 42%,rgba(167,243,208,.2) 43% 47%,transparent 48%),linear-gradient(-35deg,transparent 56%,rgba(45,212,191,.18) 57% 61%,transparent 62%),linear-gradient(130deg,#022c22,#059669 55%,#115e59)"},
+ {id:"scarlet_chrome",name:"Scarlet Chrome",hex:"#be123c",plans:["Business"],tier:"Premium",css:"linear-gradient(140deg,#190307 0%,#881337 24%,#fb7185 40%,#fff1f2 50%,#e11d48 61%,#4c0519 82%,#111827 100%)"},
+ {id:"cosmic_silver",name:"Cosmic Silver",hex:"#64748b",plans:["Business"],tier:"Premium",css:"radial-gradient(circle at 25% 30%,rgba(196,181,253,.42),transparent 19%),radial-gradient(circle at 72% 62%,rgba(103,232,249,.34),transparent 22%),linear-gradient(135deg,#0f172a,#64748b 48%,#e2e8f0 62%,#312e81 84%,#111827)"}
 ];
 
 function hexRgb(h){const v=String(h||"").replace("#","");return v.length===6?[parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16)]:[31,41,55]}
@@ -218,19 +236,35 @@ function validQrColors(){
   return["#111111","#ffffff"];
 }
 function publicQrSize(){return window.matchMedia("(max-width:390px)").matches?86:window.matchMedia("(max-width:640px)").matches?94:128}
-function buildQr(host,url,size,dark,light){host.innerHTML="";new QRCode(host,{text:url,width:size,height:size,colorDark:dark,colorLight:light,correctLevel:QRCode.CorrectLevel.H})}
+function buildQr(host,url,size,dark,light){
+  host.innerHTML="";
+  // Use qrcode.js only to calculate the QR matrix, then rasterize that matrix ourselves.
+  // This prevents desktop/tablet CSS or the library's fallback <img> from resampling/replacing
+  // the modules. The URL alone determines the matrix; viewport size only changes raster size.
+  const scratch=document.createElement("div");
+  const qr=new QRCode(scratch,{text:url,width:size,height:size,colorDark:dark,colorLight:light,correctLevel:QRCode.CorrectLevel.H});
+  const model=qr?._oQRCode,count=model?.getModuleCount?.();
+  if(!model||!count){host.append(...scratch.childNodes);return qr}
+  const quiet=4,total=count+quiet*2,canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{alpha:false});
+  canvas.width=size;canvas.height=size;ctx.imageSmoothingEnabled=false;ctx.fillStyle=light;ctx.fillRect(0,0,size,size);ctx.fillStyle=dark;
+  for(let row=0;row<count;row++)for(let col=0;col<count;col++)if(model.isDark(row,col)){
+    const x1=Math.round((col+quiet)*size/total),x2=Math.round((col+quiet+1)*size/total),y1=Math.round((row+quiet)*size/total),y2=Math.round((row+quiet+1)*size/total);
+    ctx.fillRect(x1,y1,Math.max(1,x2-x1),Math.max(1,y2-y1));
+  }
+  canvas.style.display="block";canvas.style.width=`${size}px`;canvas.style.height=`${size}px`;canvas.style.imageRendering="pixelated";canvas.setAttribute("aria-label",`QR code for ${url}`);canvas.dataset.qrUrl=url;canvas.dataset.qrModules=String(count);host.replaceChildren(canvas);return qr;
+}
+let publicQrRenderedSize=0,publicQrResizeInstalled=false;
 function initQR(){
   const q=$id("qrCode");if(!q||typeof QRCode==="undefined")return;
   const theme=renderPublicShareCard(),url=qrShareURL(),[dark,light]=themedQrColors(theme),size=publicQrSize();
-  // Generate at the exact displayed pixel size. This avoids browser resampling of the QR canvas,
-  // which can soften module edges and make the desktop code difficult for a phone camera to read.
-  buildQr(q,url,size,dark,light);
+  publicQrRenderedSize=size;buildQr(q,url,size,dark,light);
+  if(!publicQrResizeInstalled){publicQrResizeInstalled=true;window.addEventListener("resize",()=>{const next=publicQrSize();if(next!==publicQrRenderedSize){window.clearTimeout(initQR._resizeTimer);initQR._resizeTimer=window.setTimeout(initQR,120)}})}
   const btn=$id("downloadQrButton");
   if(btn){btn.hidden=!(effectivePublicPlan()==="Business"&&planAllows("qrDownload"));btn.onclick=()=>{
     const exportHost=document.createElement("div");exportHost.style.cssText="position:fixed;left:-10000px;top:-10000px";document.body.appendChild(exportHost);
     buildQr(exportHost,url,512,dark,light);
-    const canvas=exportHost.querySelector("canvas"),img=exportHost.querySelector("img"),a=document.createElement("a");
-    a.download=`JMX-${CARD_ID}-QR.png`;a.href=canvas?.toDataURL("image/png")||img?.src||"";if(a.href)a.click();exportHost.remove();trackMetric("qrDownload")
+    const canvas=exportHost.querySelector("canvas"),a=document.createElement("a");
+    a.download=`JMX-${CARD_ID}-QR.png`;a.href=canvas?.toDataURL("image/png")||"";if(a.href)a.click();exportHost.remove();trackMetric("qrDownload")
   }}
 }
 function toast(m){let e=$id("toastMessage");if(!e){e=document.createElement("div");e.id="toastMessage";e.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:11px 16px;border-radius:12px;z-index:9999";document.body.appendChild(e)}e.textContent=m;e.style.display="block";clearTimeout(window._toast);window._toast=setTimeout(()=>e.style.display="none",2200)}
