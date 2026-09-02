@@ -10,6 +10,8 @@
 (function () {
   const path = location.pathname;
 
+  if (/^\/(login|my-card)\/?$/i.test(path)) { location.replace("/login.html"); return; }
+
   const cardMatch = path.match(/^\/c\/([A-Za-z0-9_-]+)\/?$/);
   if (cardMatch) {
     location.replace(

@@ -182,7 +182,7 @@ Advanced Analytics"></textarea></label>
 <section class="panel nfc-device-center" id="nfcDeviceCenter">
   <div class="toolbar">
     <div><p class="eyebrow">OFFICIAL JMX NFC DEVICES</p><h2>NFC Devices & Batches</h2><p class="subtitle small">Second creation method. Existing URL cards remain unchanged; Device ID products can be assigned in batches to the same client profile.</p></div>
-    <button id="newNfcBatchButton" class="primary-button" type="button"><i class="fa-solid fa-layer-group"></i> Create NFC Batch</button>
+    <div class="panel-head-actions"><button id="newNfcDeviceButton" class="primary-button" type="button"><i class="fa-solid fa-bolt"></i> Create NFC Device</button><button id="newNfcBatchButton" class="secondary-button" type="button"><i class="fa-solid fa-layer-group"></i> Create NFC Batch</button></div>
   </div>
   <div class="nfc-device-stats stats-grid compact-business-stats">
     <article class="stat-card"><span>Total Devices</span><strong id="nfcDeviceTotal">0</strong></article>
@@ -277,6 +277,21 @@ Advanced Analytics"></textarea></label>
   <div class="url-preview"><span>Legacy/Public profile compatibility URL</span><strong id="nfcProfileUrlPreview">—</strong><small>The Official JMX NFC device will use /d/DEVICE-ID instead of writing this profile URL to the chip.</small></div>
   <p id="nfcProfileStatus" class="status"></p>
   <div class="dialog-actions"><button id="cancelNfcProfileButton" type="button" class="secondary-button">Cancel</button><button id="createNfcProfileButton" type="submit" class="primary-button">Create Profile</button></div>
+ </form>
+</dialog>
+
+
+<dialog id="nfcQuickDeviceDialog" class="card-dialog nfc-batch-dialog">
+ <form id="nfcQuickDeviceForm">
+  <div class="dialog-header"><div><p class="eyebrow">QUICK DEVICE CREATION</p><h2>Create NFC Device</h2><p class="subtitle small">Choose the physical product and plan. Customer information is added later by the customer after activation.</p></div><button id="closeNfcQuickDeviceDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+  <div class="form-grid">
+   <label><span>Device Type / Material</span><select id="nfcQuickDeviceType"><option value="card-pvc">NFC PVC Card</option><option value="card-metal">NFC Metal Card</option><option value="sticker">NFC Sticker</option><option value="keychain">NFC Keychain</option><option value="bracelet">NFC Bracelet</option><option value="ring">NFC Ring</option><option value="plate">NFC Plate</option><option value="tag">NFC Tag</option><option value="other">Other / Custom</option></select></label>
+   <label><span>Plan</span><select id="nfcQuickDevicePlan"><option value="Basic">JMX Basic</option><option value="Premium">JMX Premium</option><option value="Business">JMX Business</option></select></label>
+   <label class="full"><span>Private Admin Note (optional)</span><textarea id="nfcQuickDeviceNotes" rows="3" maxlength="1000" placeholder="Example: My sister, Customer from Chicago show, black card..."></textarea></label>
+  </div>
+  <div class="url-preview"><span>Generated automatically after Create</span><strong>Device ID · Activation Code · NFC URL</strong><small>No customer name, email or phone is required at this stage.</small></div>
+  <p id="nfcQuickDeviceStatus" class="status"></p>
+  <div class="dialog-actions"><button id="cancelNfcQuickDeviceButton" type="button" class="secondary-button">Cancel</button><button id="createNfcQuickDeviceButton" type="submit" class="primary-button">Create Device</button></div>
  </form>
 </dialog>
 

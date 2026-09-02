@@ -47,6 +47,7 @@ async function load(currentUser) {
     const [card,stats]=await Promise.all([getDoc(doc(db,"cards",d.id)),getDoc(doc(db,"cardStats",d.id))]);
     cards.push({ id:d.id,...(card.exists()?card.data():{}),stats:stats.exists()?stats.data():{} });
   }
+  if(cards.length===1){ location.replace(`admin.html?card=${encodeURIComponent(cards[0].id)}`); return; }
   $("cardList").innerHTML = cards.length ? cards.map((card) => {const plan=card.complimentaryBusiness===true?"Business":(card.complimentaryPremium===true?"Premium":(card.plan||"Basic"));const actions=Object.values(card.stats?.actions||{}).reduce((sum,v)=>sum+Number(v||0),0);const analytics=["Premium","Business"].includes(plan)?` • ${Number(card.stats?.views||0).toLocaleString()} historical views • ${actions.toLocaleString()} tracked actions`:"";return `<a class="owner-card" href="admin.html?card=${encodeURIComponent(card.id)}"><strong>${card.id}</strong><span>${plan} • ${card.status || "activated"}${analytics}</span><i class="fa-solid fa-chevron-right"></i></a>`}).join("") : '<p class="muted">No activated cards are linked to this account.</p>';
   $("loginForm").hidden = true;
   $("cards").hidden = false;
