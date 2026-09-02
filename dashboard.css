@@ -449,3 +449,20 @@ body.feature-panel-open{overflow:hidden}
 .nfc-plan-clients-head,.nfc-device-inventory-head{margin-top:18px}.nfc-plan-clients-head h3,.nfc-device-inventory-head h3{margin:2px 0 0}.nfc-plan-client-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;margin-top:10px}.nfc-plan-client-box{border-top:3px solid #d6be78}.nfc-client-plan-record .nfc-client-plan-meta{font-weight:700;color:#80621c}.nfc-client-open-pill{font-size:.68rem;font-weight:900;letter-spacing:.06em;border-radius:99px;padding:5px 8px;background:#f4f1e8;color:#6f5519;white-space:nowrap}.nfc-client-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}.nfc-client-overview article{border:1px solid var(--border);border-radius:10px;padding:9px;background:#fff}.nfc-client-overview span{display:block;color:var(--muted);font-size:.72rem}.nfc-client-overview strong{font-size:.95rem}.nfc-plan-client-box.is-expanded{position:fixed;z-index:10030;inset:4vh 4vw;width:auto;height:92vh;padding:18px;background:#fff;box-shadow:0 30px 90px rgba(15,23,42,.3);overflow:hidden;display:flex;flex-direction:column}.nfc-plan-client-box.is-expanded .nfc-compact-list{overflow-y:auto;min-height:0;flex:1;padding-right:5px}.nfc-plan-client-box.is-expanded .nfc-record:nth-child(n+7){display:grid}
 @media(max-width:980px){.nfc-plan-client-board{grid-template-columns:1fr}.nfc-client-overview{grid-template-columns:1fr 1fr 1fr}}
 @media(max-width:800px){.nfc-plan-client-box.is-expanded{inset:1vh 2vw;height:98dvh;padding:13px}.nfc-client-overview{grid-template-columns:1fr}.nfc-plan-clients-head,.nfc-device-inventory-head{margin-top:14px}}
+
+/* ===== Sep 2026 incremental Device-ID profile creation / lifecycle ===== */
+.nfc-plan-clients-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.nfc-plan-clients-head .primary-button{white-space:nowrap}
+.nfc-profile-dialog .url-preview small{display:block;margin-top:6px;opacity:.72;font-size:.78rem;line-height:1.35}
+.nfc-client-section-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.nfc-client-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.nfc-client-overview{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.nfc-client-overview article strong{overflow-wrap:anywhere}
+@media (max-width:700px){
+  .nfc-plan-clients-head{align-items:stretch}
+  .nfc-plan-clients-head .primary-button{width:100%;justify-content:center}
+  .nfc-client-quick-actions{display:grid;grid-template-columns:1fr}
+  .nfc-client-quick-actions button{width:100%;justify-content:center}
+  .nfc-client-section-title{align-items:center}
+  .nfc-profile-dialog{width:min(96vw,720px);max-height:94dvh}
+}

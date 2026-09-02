@@ -199,6 +199,7 @@ Advanced Analytics"></textarea></label>
 
   <div class="nfc-plan-clients-head">
     <div><p class="eyebrow">CLIENTS BY PLAN</p><h3>Official NFC Clients</h3><p class="subtitle small">Clients stay separated by Basic, Premium and JMX Business. Open any client to manage that client's batches, device types and individual Device IDs.</p></div>
+    <button id="newNfcProfileButton" class="primary-button" type="button"><i class="fa-solid fa-user-plus"></i> Create New Profile</button>
   </div>
   <div class="nfc-plan-client-board" id="nfcPlanClientBoard">
     <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-basic">
@@ -258,6 +259,26 @@ Advanced Analytics"></textarea></label>
   </div>
 </dialog>
 
+
+<dialog id="nfcProfileDialog" class="card-dialog nfc-profile-dialog">
+ <form id="nfcProfileForm">
+  <div class="dialog-header"><div><p class="eyebrow">NEW JMX DIGITAL PROFILE</p><h2>Create New Profile</h2><p class="subtitle small">Creates the digital profile first. Official JMX NFC devices can then be assigned by permanent Device ID.</p></div><button id="closeNfcProfileDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+  <div class="form-grid">
+   <label><span>Customer Name *</span><input id="nfcProfileName" maxlength="120" required placeholder="Juan Perez"></label>
+   <label><span>Company</span><input id="nfcProfileCompany" maxlength="140" placeholder="ABC Remodeling"></label>
+   <label><span>Email</span><input id="nfcProfileEmail" type="email" maxlength="180" placeholder="customer@example.com"></label>
+   <label><span>Phone</span><input id="nfcProfilePhone" maxlength="50" placeholder="(000) 000-0000"></label>
+   <label><span>Plan</span><select id="nfcProfilePlan"><option value="Basic">JMX Basic</option><option value="Premium">JMX Premium</option><option value="Business">JMX Business</option></select></label>
+   <label><span>Card ID</span><div class="inline-field"><input id="nfcProfileCardId" readonly><button id="regenerateNfcProfileCardId" class="mini" type="button">Random</button></div></label>
+   <label class="full"><span>Profile ID (internal)</span><input id="nfcProfileInternalId" readonly></label>
+   <label class="full"><span>Creation Method</span><input value="Official JMX Device-ID Profile" readonly></label>
+   <label class="full"><span>Admin Notes</span><textarea id="nfcProfileNotes" rows="3" maxlength="1000" placeholder="Private JMX administrative note"></textarea></label>
+  </div>
+  <div class="url-preview"><span>Legacy/Public profile compatibility URL</span><strong id="nfcProfileUrlPreview">—</strong><small>The Official JMX NFC device will use /d/DEVICE-ID instead of writing this profile URL to the chip.</small></div>
+  <p id="nfcProfileStatus" class="status"></p>
+  <div class="dialog-actions"><button id="cancelNfcProfileButton" type="button" class="secondary-button">Cancel</button><button id="createNfcProfileButton" type="submit" class="primary-button">Create Profile</button></div>
+ </form>
+</dialog>
 
 <dialog id="nfcBatchDialog" class="card-dialog nfc-batch-dialog">
  <form id="nfcBatchForm">
