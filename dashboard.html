@@ -178,6 +178,55 @@ Advanced Analytics"></textarea></label>
   </div>
   <div id="emptyState" class="empty-state" hidden><i class="fa-solid fa-wifi"></i><h3>No NFC cards match these filters</h3><p>Clear the filters or create a new permanent NFC URL.</p></div>
 </section>
+
+<section class="panel nfc-device-center" id="nfcDeviceCenter">
+  <div class="toolbar">
+    <div><p class="eyebrow">OFFICIAL JMX NFC DEVICES</p><h2>NFC Devices & Batches</h2><p class="subtitle small">Second creation method. Existing URL cards remain unchanged; Device ID products can be assigned in batches to the same client profile.</p></div>
+    <button id="newNfcBatchButton" class="primary-button" type="button"><i class="fa-solid fa-layer-group"></i> Create NFC Batch</button>
+  </div>
+  <div class="nfc-device-stats stats-grid compact-business-stats">
+    <article class="stat-card"><span>Total Devices</span><strong id="nfcDeviceTotal">0</strong></article>
+    <article class="stat-card"><span>Available</span><strong id="nfcDeviceAvailable">0</strong></article>
+    <article class="stat-card"><span>Active</span><strong id="nfcDeviceActive">0</strong></article>
+    <article class="stat-card"><span>Disabled</span><strong id="nfcDeviceDisabled">0</strong></article>
+    <article class="stat-card"><span>Batches</span><strong id="nfcBatchTotal">0</strong></article>
+  </div>
+  <details class="nfc-settings-details"><summary><strong>NFC Device Controls</strong><span> Global + Basic + Premium + JMX Business</span></summary><div class="nfc-settings-inner"><label class="switch-row"><input id="nfcSystemEnabled" type="checkbox" checked><span class="switch-ui"></span><strong>NFC Device-ID System Enabled</strong></label><div id="nfcSettingsMatrix" class="nfc-settings-matrix"></div><div class="feature-save-row"><button id="saveNfcDeviceSettings" class="primary-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save NFC Controls</button><p id="nfcSettingsStatus" class="status"></p></div></div></details>
+  <div class="filter-row nfc-global-search-row">
+    <div class="master-search-wrap"><input id="nfcGlobalSearch" type="search" enterkeyhint="search" placeholder="Search customer, email, phone, Card ID, Device ID, Batch ID or activation code"><button id="nfcGlobalSearchButton" class="master-search-button" type="button" aria-label="Search NFC devices"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+  </div>
+  <div id="nfcGlobalResults" class="master-search-results" hidden></div>
+
+  <div class="nfc-plan-clients-head">
+    <div><p class="eyebrow">CLIENTS BY PLAN</p><h3>Official NFC Clients</h3><p class="subtitle small">Clients stay separated by Basic, Premium and JMX Business. Open any client to manage that client's batches, device types and individual Device IDs.</p></div>
+  </div>
+  <div class="nfc-plan-client-board" id="nfcPlanClientBoard">
+    <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-basic">
+      <div class="nfc-device-box-head"><div><p class="eyebrow">BASIC</p><h3>Basic Clients</h3></div><div class="panel-head-actions"><strong id="nfcBasicClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-basic" aria-label="Expand Basic NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="panel-search"><input id="nfcBasicClientsSearch" type="search" enterkeyhint="search" placeholder="Search Basic clients"></div>
+      <div id="nfcBasicClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
+    </section>
+    <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-premium">
+      <div class="nfc-device-box-head"><div><p class="eyebrow">PREMIUM</p><h3>Premium Clients</h3></div><div class="panel-head-actions"><strong id="nfcPremiumClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-premium" aria-label="Expand Premium NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="panel-search"><input id="nfcPremiumClientsSearch" type="search" enterkeyhint="search" placeholder="Search Premium clients"></div>
+      <div id="nfcPremiumClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
+    </section>
+    <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-business">
+      <div class="nfc-device-box-head"><div><p class="eyebrow">JMX BUSINESS</p><h3>JMX Business Clients</h3></div><div class="panel-head-actions"><strong id="nfcBusinessClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-business" aria-label="Expand JMX Business NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="panel-search"><input id="nfcBusinessClientsSearch" type="search" enterkeyhint="search" placeholder="Search JMX Business clients"></div>
+      <div id="nfcBusinessClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
+    </section>
+  </div>
+
+  <div class="nfc-device-inventory-head"><div><p class="eyebrow">DEVICE INVENTORY</p><h3>Batches & Devices by Type</h3><p class="subtitle small">Inventory view remains separate from the client-by-plan view above.</p></div></div>
+  <div class="nfc-device-board" id="nfcDeviceBoard">
+    <section class="nfc-device-box" data-nfc-box="batches"><div class="nfc-device-box-head"><div><p class="eyebrow">BATCHES</p><h3>NFC Batches</h3></div><div class="panel-head-actions"><strong id="nfcBatchesCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="batches" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div><div class="panel-search"><input id="nfcBatchesSearch" type="search" placeholder="Search batches"></div><div id="nfcBatchesList" class="nfc-compact-list"></div></section>
+    <section class="nfc-device-box" data-nfc-box="cards"><div class="nfc-device-box-head"><div><p class="eyebrow">DEVICE TYPE</p><h3>NFC Cards</h3></div><div class="panel-head-actions"><strong id="nfcCardsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="cards" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div><div class="panel-search"><input id="nfcCardsSearch" type="search" placeholder="Search NFC cards"></div><div id="nfcCardsList" class="nfc-compact-list"></div></section>
+    <section class="nfc-device-box" data-nfc-box="stickers"><div class="nfc-device-box-head"><div><p class="eyebrow">DEVICE TYPE</p><h3>NFC Stickers</h3></div><div class="panel-head-actions"><strong id="nfcStickersCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="stickers" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div><div class="panel-search"><input id="nfcStickersSearch" type="search" placeholder="Search stickers"></div><div id="nfcStickersList" class="nfc-compact-list"></div></section>
+    <section class="nfc-device-box" data-nfc-box="other"><div class="nfc-device-box-head"><div><p class="eyebrow">OTHER TYPES</p><h3>Keychains, Bracelets, Rings & More</h3></div><div class="panel-head-actions"><strong id="nfcOtherCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="other" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div><div class="panel-search"><input id="nfcOtherSearch" type="search" placeholder="Search other NFC devices"></div><div id="nfcOtherList" class="nfc-compact-list"></div></section>
+  </div>
+</section>
+
 </div>
 </main>
 <dialog id="cardDialog" class="card-dialog">
@@ -208,6 +257,44 @@ Advanced Analytics"></textarea></label>
     <div id="clientDetailActions" class="client-detail-actions"></div>
   </div>
 </dialog>
+
+
+<dialog id="nfcBatchDialog" class="card-dialog nfc-batch-dialog">
+ <form id="nfcBatchForm">
+  <div class="dialog-header"><div><p class="eyebrow">NEW DEVICE-ID INVENTORY</p><h2>Create NFC Batch</h2></div><button id="closeNfcBatchDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+  <div class="form-grid">
+   <label><span>Device Type</span><select id="nfcBatchType"><option value="card">NFC Card</option><option value="sticker" selected>NFC Sticker</option><option value="keychain">NFC Keychain</option><option value="bracelet">NFC Bracelet</option><option value="ring">NFC Ring</option><option value="plate">NFC Plate</option><option value="tag">NFC Tag</option><option value="other">Other / Custom</option></select></label>
+   <label><span>Quantity</span><input id="nfcBatchQuantity" type="number" min="1" max="5000" value="10" required></label>
+   <label class="full"><span>Assign to Card / Profile (optional)</span><select id="nfcBatchCardId"><option value="">Keep Available / Unassigned</option></select></label>
+   <label><span>Batch ID</span><div class="inline-field"><input id="nfcBatchId" readonly><button id="regenerateBatchId" class="mini" type="button">Random</button></div></label>
+   <label><span>Batch Activation Code</span><div class="inline-field"><input id="nfcBatchActivationCode" readonly><button id="regenerateBatchActivation" class="mini" type="button">Random</button></div></label>
+   <label class="full"><span>Internal Notes</span><textarea id="nfcBatchNotes" rows="3" placeholder="Order, supplier, customer or production notes"></textarea></label>
+  </div>
+  <div class="url-preview"><span>Device URL pattern</span><strong>https://jmxdigitalcard.com/d/DEVICE-ID</strong></div>
+  <p id="nfcBatchStatus" class="status"></p>
+  <div class="dialog-actions"><button id="cancelNfcBatchButton" type="button" class="secondary-button">Cancel</button><button id="createNfcBatchButton" type="submit" class="primary-button">Create Batch</button></div>
+ </form>
+</dialog>
+
+<dialog id="nfcEncoderDialog" class="card-dialog nfc-encoder-dialog">
+ <div class="dialog-header"><div><p class="eyebrow">NFC PRODUCTION</p><h2 id="nfcEncoderTitle">Program / Encode Batch</h2><p id="nfcEncoderSubtitle" class="subtitle small"></p></div><button id="closeNfcEncoderDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+ <div class="nfc-encoder-progress"><div><strong id="nfcEncoderProgressText">0 / 0</strong><span id="nfcEncoderProgressLabel">devices encoded</span></div><progress id="nfcEncoderProgress" value="0" max="1"></progress></div>
+ <section class="nfc-encoder-current">
+  <div class="nfc-encoder-device-number"><span>CURRENT DEVICE</span><strong id="nfcEncoderDeviceNumber">Device 001</strong></div>
+  <div class="detail-list">
+   <div><span>Device ID</span><strong id="nfcEncoderDeviceId">—</strong></div>
+   <div><span>Batch ID</span><strong id="nfcEncoderBatchId">—</strong></div>
+   <div><span>Device Type</span><strong id="nfcEncoderDeviceType">—</strong></div>
+   <div><span>Status</span><strong id="nfcEncoderDeviceStatus">—</strong></div>
+  </div>
+  <label class="form-group full"><span>NFC Resolver URL — write this URL to this physical device</span><div class="inline-field"><input id="nfcEncoderUrl" readonly><button id="copyNfcEncoderUrl" class="mini" type="button">Copy NFC URL</button></div></label>
+  <p class="subtitle small nfc-encoder-hardware-note"><strong>Manual / compatible mode:</strong> copy this URL into NFC Tools or your NFC writer software. This page does not pretend to write to unsupported USB hardware.</p>
+ </section>
+ <div id="nfcEncoderStatus" class="status" aria-live="polite"></div>
+ <div class="dialog-actions nfc-encoder-actions"><button id="nfcEncoderPrevious" type="button" class="secondary-button">Previous</button><button id="nfcEncoderVerify" type="button" class="secondary-button">Verify</button><button id="nfcEncoderMarkError" type="button" class="secondary-button">Encoding Error</button><button id="nfcEncoderMarkNext" type="button" class="primary-button">Mark Encoded & Next</button></div>
+</dialog>
+
+<dialog id="nfcDeviceDialog" class="client-detail-dialog"><div class="client-detail-shell"><div class="dialog-header client-detail-header"><div><p class="eyebrow">NFC DEVICE DETAILS</p><h2 id="nfcDeviceDialogTitle">Device</h2><p id="nfcDeviceDialogSubtitle" class="subtitle small"></p></div><button id="closeNfcDeviceDialog" type="button" class="icon-button" aria-label="Close">×</button></div><div id="nfcDeviceDialogBody"></div><div id="nfcDeviceDialogActions" class="client-detail-actions"></div></div></dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="module" src="dashboard.js"></script>

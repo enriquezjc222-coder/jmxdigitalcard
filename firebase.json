@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/d/**",
+        "destination": "/device.html"
+      },
+      {
         "source": "/c/**",
         "destination": "/card.html"
       }

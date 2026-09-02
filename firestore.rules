@@ -60,6 +60,10 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
+    match /platform/nfcDeviceSettings {
+      allow read, create, update, delete: if isAdmin();
+    }
+
     match /cards/{cardId} {
       allow get: if true;
       allow list: if isAdmin();
@@ -199,6 +203,24 @@ service cloud.firestore {
     match /aiScannerTotals/{cardId} {
       allow read: if isAdmin() || isOwner(cardId);
       allow create, update, delete: if false;
+    }
+
+    // Official JMX NFC Device-ID inventory. Direct Firestore access is admin-only.
+    // Public device resolution and batch activation are validated through trusted Cloud Functions.
+    match /nfcDevices/{deviceId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /nfcBatches/{batchId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /nfcDevicePublic/{deviceId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /nfcDeviceEvents/{eventId} {
+      allow read, create, update, delete: if isAdmin();
     }
 
     // Legacy collection retained during migration.

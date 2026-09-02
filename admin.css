@@ -110,3 +110,12 @@ body.client-owner-mode .admin-only-section,body.client-owner-mode .admin-only-li
 
 /* Aug 31 2026 — expanded profile theme catalog */
 #profileThemeSelector{grid-template-columns:repeat(4,minmax(0,1fr));max-height:520px;overflow:auto;padding-right:4px}.admin-theme .color{width:100%;max-width:58px;height:24px;border-radius:999px}@media(max-width:800px){#profileThemeSelector{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:600px){#profileThemeSelector{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none;overflow:visible}}
+
+/* Sep 1 2026 — mobile QR theme modal: never let Save Changes cover theme tiles */
+@media(max-width:700px){
+  .wallet-themes-expanded .wallet-theme-save-actions{display:none!important}
+  .wallet-themes-expanded #walletThemeStatus{display:none!important}
+  .wallet-themes-expanded{padding-bottom:max(12px,env(safe-area-inset-bottom))!important}
+  .wallet-themes-expanded .wallet-theme-layout{padding-bottom:max(8px,env(safe-area-inset-bottom))!important}
+  .wallet-themes-expanded .wallet-theme-catalog{padding-bottom:max(14px,env(safe-area-inset-bottom))!important}
+}

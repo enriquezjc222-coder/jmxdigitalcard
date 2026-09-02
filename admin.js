@@ -39,6 +39,31 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+// Local Live Server preview mode. This only changes the UI on localhost/127.0.0.1.
+// It does NOT bypass Firebase Security Rules and it is never enabled on jmxdigitalcard.com.
+const JMX_LOCAL_PREVIEW = false; // Production build: local authentication bypass disabled.
+function enableLocalAdminPreview(){
+  if(!JMX_LOCAL_PREVIEW) return false;
+  currentRole = "admin";
+  currentUser = { uid: "local-preview", email: "LOCAL PREVIEW" };
+  document.body.classList.add("admin-authenticated", "jmx-local-preview");
+  document.body.classList.remove("client-owner-mode");
+  const gate = $id("authGate");
+  if(gate){
+    gate.innerHTML = `<div class="section-title"><i class="fa-solid fa-laptop-code"></i><div><small>LOCAL DEVELOPMENT</small><h2>Local Admin Preview</h2></div></div><p class="section-help"><strong>Live Server preview is active.</strong> Google sign-in is skipped only on localhost / 127.0.0.1. Firebase-protected reads and writes still require real authentication, and the published site remains protected.</p><div class="auth-status ok">LOCAL PREVIEW — production security unchanged</div>`;
+  }
+  const email = $id("adminUserEmail"); if(email) email.textContent = "LOCAL PREVIEW";
+  currentProfile = getLegacyProfile() || structuredCloneSafe(defaults);
+  setInputData(currentProfile);
+  platformFeatureControls = defaultFeatureControls();
+  applyPlanLocks();
+  document.querySelectorAll('[data-section-save],#saveProfile,#resetProfile,#saveGoogleWalletColor,#saveQrCardTheme,#addGoogleWallet,#exportLeadsCsv').forEach(el=>{
+    if(el){ el.disabled=true; el.title="Disabled in Local Preview — sign in to Firebase to save real data"; }
+  });
+  setStatus("Local Preview: layout and controls are visible. Firebase saves are disabled until you sign in on an authorized environment.","working");
+  return true;
+}
 const storage = getStorage(app);
 const functions = getFunctions(app);
 
@@ -652,7 +677,6 @@ function applyWalletThemeCompactVisibility(){
 }
 function setWalletThemesExpanded(expanded){
  const sec=$id("googleWalletThemesSection"),back=$id("walletThemeBackdrop"),open=$id("walletThemesExpand"),close=$id("walletThemesClose");if(!sec)return;
- if(!expanded&&selectedQrCardTheme!==savedQrCardTheme){selectedQrCardTheme=savedQrCardTheme;updateWalletThemePreview()}
  if(expanded){
    if(!walletThemePlaceholder){walletThemePlaceholder=document.createComment("wallet-theme-home");sec.parentNode?.insertBefore(walletThemePlaceholder,sec)}
    walletThemeScrollY=window.scrollY||0;document.body.appendChild(sec);document.body.style.position="fixed";document.body.style.top=`-${walletThemeScrollY}px`;document.body.style.left="0";document.body.style.right="0";document.body.style.width="100%";
@@ -670,7 +694,7 @@ function renderWalletThemes(){
  const classic=available.filter(t=>t.tier!=="Premium"),premium=available.filter(t=>t.tier==="Premium");
  grid.innerHTML=`<div class="wallet-theme-collection"><div class="wallet-theme-collection-title"><span>Classic Themes</span><small>${classic.length}</small></div><div class="wallet-theme-collection-grid">${classic.map(tile).join("")}</div></div>${premium.length?`<div class="wallet-theme-collection premium"><div class="wallet-theme-collection-title"><span>Premium Themes</span><small>${premium.length}</small></div><div class="wallet-theme-collection-grid">${premium.map(tile).join("")}</div></div>`:""}`;updateWalletThemePreview();applyWalletThemeCompactVisibility();
 }
-function updateWalletThemePreview(){const t=WALLET_THEMES.find(x=>x.id===selectedQrCardTheme)||WALLET_THEMES[0],card=$id("walletThemePreview");if(!card)return;card.style.background=t.css;$id("walletPreviewCompany").textContent=currentProfile.company||"JMX DIGITAL CARD";$id("walletPreviewName").textContent=currentProfile.fullName||"Card Owner";$id("walletPreviewPosition").textContent=currentProfile.position||"Digital Business Card";$id("walletThemeSelectedName").textContent=t.name;const hint=$id("walletThemeSavedHint");if(hint){const saved=selectedQrCardTheme===savedQrCardTheme;hint.textContent=saved?"Saved theme":"Preview only — press Save Changes to keep it";hint.classList.toggle("unsaved",!saved)}document.querySelectorAll("[data-wallet-theme]").forEach(b=>{const on=b.dataset.walletTheme===selectedQrCardTheme;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
+function updateWalletThemePreview(){const t=WALLET_THEMES.find(x=>x.id===selectedQrCardTheme)||WALLET_THEMES[0],card=$id("walletThemePreview");if(!card)return;card.style.background=t.css;$id("walletPreviewCompany").textContent=currentProfile.company||"JMX DIGITAL CARD";$id("walletPreviewName").textContent=currentProfile.fullName||"Card Owner";$id("walletPreviewPosition").textContent=currentProfile.position||"Digital Business Card";$id("walletThemeSelectedName").textContent=t.name;const hint=$id("walletThemeSavedHint");if(hint){const saved=selectedQrCardTheme===savedQrCardTheme;hint.textContent=saved?"Saved theme":"Preview selected — close this window, then press Save Changes in the editor";hint.classList.toggle("unsaved",!saved)}document.querySelectorAll("[data-wallet-theme]").forEach(b=>{const on=b.dataset.walletTheme===selectedQrCardTheme;b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on))})}
 async function saveQrCardTheme(){const status=$id("walletThemeStatus"),btn=$id("saveQrCardTheme");if(btn)btn.disabled=true;if(status){status.textContent="Saving QR Card theme…";status.className="save-status"}try{await setDoc(profileRef,{qrCardTheme:selectedQrCardTheme,updatedAt:serverTimestamp()},{merge:true});savedQrCardTheme=selectedQrCardTheme;currentProfile.qrCardTheme=selectedQrCardTheme;updateWalletThemePreview();if(status){status.textContent="QR Card theme saved successfully. It is now used by the public card.";status.className="save-status ok";}}catch(e){console.error(e);if(status){status.textContent=firebaseMessage(e);status.className="save-status error";}}finally{if(btn)btn.disabled=false}}
 
 function simpleWalletThemeForSelection(id){
@@ -768,6 +792,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   $id("walletThemeBackdrop")?.addEventListener("click",()=>setWalletThemesExpanded(false));
   window.addEventListener("resize",applyWalletThemeCompactVisibility);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&walletThemesExpanded())setWalletThemesExpanded(false)});
+  if(enableLocalAdminPreview()) return;
   onAuthStateChanged(auth,async user=>{
     currentUser=user||null;document.body.classList.toggle("admin-authenticated",Boolean(user));
     if(!user){currentRole="none";setAuthStatus("Sign in to edit your JMX Digital Card.");$id("adminUserEmail").textContent="";return;}

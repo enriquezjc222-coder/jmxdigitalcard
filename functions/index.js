@@ -488,3 +488,40 @@ exports.createGoogleWalletPass = onCall({secrets: [GOOGLE_WALLET_SERVICE_ACCOUNT
     throw new HttpsError("internal", "Google Wallet could not create or update this pass.");
   }
 });
+
+// ===== Official JMX NFC Device-ID backend — Sep 2026 =====
+function nfcDeviceType(value){const v=safeString(value,30).toLowerCase();return ["card","sticker","keychain","bracelet","ring","plate","tag","other"].includes(v)?v:"other"}
+async function nfcAdminUid(){const s=await db.doc("platform/config").get();return s.exists?s.data().adminUid||"":""}
+async function assertNfcAdmin(request){if(!request.auth?.uid)throw new HttpsError("unauthenticated","Administrator sign-in required.");if(request.auth.uid!==await nfcAdminUid())throw new HttpsError("permission-denied","JMX administrator access required.")}
+async function nfcControlAllows(card,deviceType){
+  const cfgSnap=await db.doc("platform/nfcDeviceSettings").get(),cfg=cfgSnap.exists?cfgSnap.data():{};
+  if(cfg.enabled===false)return false;
+  if(cfg.global?.[deviceType]===false)return false;
+  const plan=normalizePlan(card),bucket=cfg[plan]||{};if(bucket[deviceType]===false)return false;
+  if(card?.nfcDeviceControls?.[deviceType]===false)return false;
+  return true;
+}
+exports.resolveNfcDevice=onCall({timeoutSeconds:15},async request=>{
+  const deviceId=safeString(request.data?.deviceId,80).toUpperCase().replace(/[^A-Z0-9_-]/g,"");if(!deviceId)throw new HttpsError("invalid-argument","Device ID is required.");
+  const deviceSnap=await db.doc(`nfcDevices/${deviceId}`).get();if(!deviceSnap.exists)throw new HttpsError("not-found","This NFC device is not registered with JMX Digital Card.");const device=deviceSnap.data();
+  if(device.enabled===false||device.status!=="active")throw new HttpsError("failed-precondition",device.status==="pending"?"This NFC device is waiting for activation.":"This NFC device is currently disabled.");
+  if(!device.cardId)throw new HttpsError("failed-precondition","This NFC device is not assigned to a profile.");
+  const [batchSnap,cardSnap]=await Promise.all([db.doc(`nfcBatches/${device.batchId}`).get(),db.doc(`cards/${device.cardId}`).get()]);if(!cardSnap.exists)throw new HttpsError("not-found","The linked JMX profile no longer exists.");const card=cardSnap.data();
+  if(batchSnap.exists&&batchSnap.data().enabled===false)throw new HttpsError("failed-precondition","This NFC batch is disabled.");if(!await nfcControlAllows(card,nfcDeviceType(device.deviceType)))throw new HttpsError("permission-denied","This NFC device type is disabled for this profile or plan.");
+  return {ok:true,deviceId,cardId:device.cardId,deviceType:nfcDeviceType(device.deviceType)};
+});
+exports.recordNfcTap=onCall({timeoutSeconds:15},async request=>{
+  const deviceId=safeString(request.data?.deviceId,80).toUpperCase().replace(/[^A-Z0-9_-]/g,"");if(!deviceId)return {ok:false};const ref=db.doc(`nfcDevices/${deviceId}`);
+  try{const pre=await ref.get();if(!pre.exists)return {ok:false};const pd=pre.data();if(pd.enabled===false||pd.status!=="active"||!pd.cardId)return {ok:false};const [cardSnap,batchSnap]=await Promise.all([db.doc(`cards/${pd.cardId}`).get(),pd.batchId?db.doc(`nfcBatches/${pd.batchId}`).get():Promise.resolve(null)]);if(!cardSnap.exists||batchSnap?.exists&&batchSnap.data().enabled===false||!await nfcControlAllows(cardSnap.data(),nfcDeviceType(pd.deviceType)))return {ok:false};await db.runTransaction(async tx=>{const s=await tx.get(ref);if(!s.exists)return;const d=s.data();if(d.enabled===false||d.status!=="active")return;const now=Timestamp.now();tx.set(ref,{tapCount:Number(d.tapCount||0)+1,firstTapAt:d.firstTapAt||now,lastTapAt:now,updatedAt:now},{merge:true});if(d.batchId)tx.set(db.doc(`nfcBatches/${d.batchId}`),{tapCount:FieldValue.increment(1),lastTapAt:now,updatedAt:now},{merge:true})});return {ok:true}}catch(e){console.warn("recordNfcTap skipped",deviceId,e?.message);return {ok:false}}
+});
+exports.activateNfcBatch=onCall({timeoutSeconds:60},async request=>{
+  if(!request.auth?.uid)throw new HttpsError("unauthenticated","Sign in before activating this NFC batch.");const activationCode=safeString(request.data?.activationCode,80).toUpperCase();if(!activationCode)throw new HttpsError("invalid-argument","Batch Activation Code is required.");
+  const q=await db.collection("nfcBatches").where("activationCode","==",activationCode).limit(2).get();if(q.empty)throw new HttpsError("not-found","Batch Activation Code is invalid.");if(q.size!==1)throw new HttpsError("failed-precondition","Activation code collision detected. Contact JMX support.");const batchDoc=q.docs[0],batch=batchDoc.data();if(batch.activationCodeStatus==="revoked"||batch.activationCodeStatus==="expired")throw new HttpsError("failed-precondition","This activation code is no longer valid.");if(batch.activationCodeStatus==="used")throw new HttpsError("already-exists","This batch has already been activated.");if(!batch.cardId)throw new HttpsError("failed-precondition","JMX must assign this batch to a customer profile before activation.");
+  const owner=await db.doc(`cardOwners/${batch.cardId}`).get();if(!owner.exists||owner.data().ownerUid!==request.auth.uid)throw new HttpsError("permission-denied","This signed-in account is not the owner of the profile assigned to this batch.");
+  const devices=await db.collection("nfcDevices").where("batchId","==",batchDoc.id).get();if(devices.empty)throw new HttpsError("failed-precondition","This batch contains no devices.");const now=Timestamp.now();for(let i=0;i<devices.docs.length;i+=400){const wb=db.batch();devices.docs.slice(i,i+400).forEach(d=>wb.set(d.ref,{cardId:batch.cardId,status:"active",enabled:true,activatedAt:now,updatedAt:now},{merge:true}));await wb.commit()}
+  await batchDoc.ref.set({status:"active",enabled:true,activationCodeStatus:"used",activatedAt:now,activatedByUid:request.auth.uid,updatedAt:now},{merge:true});
+  await db.collection("nfcDeviceEvents").add({event:"Batch Activated",batchId:batchDoc.id,cardId:batch.cardId,ownerUid:request.auth.uid,deviceCount:devices.size,createdAt:now});
+  return {ok:true,batchId:batchDoc.id,cardId:batch.cardId,deviceCount:devices.size};
+});
+exports.setNfcDeviceSettings=onCall({timeoutSeconds:30},async request=>{await assertNfcAdmin(request);const raw=request.data?.settings||{},types=["card","sticker","keychain","bracelet","ring","plate","tag","other"],cleanBucket=b=>Object.fromEntries(types.map(t=>[t,b?.[t]!==false]));const settings={enabled:raw.enabled!==false,global:cleanBucket(raw.global),Basic:cleanBucket(raw.Basic),Premium:cleanBucket(raw.Premium),Business:cleanBucket(raw.Business),updatedAt:Timestamp.now()};await db.doc("platform/nfcDeviceSettings").set(settings,{merge:true});return {ok:true,settings}});
+exports.getNfcDeviceSettings=onCall({timeoutSeconds:15},async request=>{await assertNfcAdmin(request);const s=await db.doc("platform/nfcDeviceSettings").get();return {ok:true,settings:s.exists?s.data():{}}});
