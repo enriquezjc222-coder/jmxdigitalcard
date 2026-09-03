@@ -40,30 +40,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Local Live Server preview mode. This only changes the UI on localhost/127.0.0.1.
-// It does NOT bypass Firebase Security Rules and it is never enabled on jmxdigitalcard.com.
-const JMX_LOCAL_PREVIEW = false; // Production build: local authentication bypass disabled.
-function enableLocalAdminPreview(){
-  if(!JMX_LOCAL_PREVIEW) return false;
-  currentRole = "admin";
-  currentUser = { uid: "local-preview", email: "LOCAL PREVIEW" };
-  document.body.classList.add("admin-authenticated", "jmx-local-preview");
-  document.body.classList.remove("client-owner-mode");
-  const gate = $id("authGate");
-  if(gate){
-    gate.innerHTML = `<div class="section-title"><i class="fa-solid fa-laptop-code"></i><div><small>LOCAL DEVELOPMENT</small><h2>Local Admin Preview</h2></div></div><p class="section-help"><strong>Live Server preview is active.</strong> Google sign-in is skipped only on localhost / 127.0.0.1. Firebase-protected reads and writes still require real authentication, and the published site remains protected.</p><div class="auth-status ok">LOCAL PREVIEW — production security unchanged</div>`;
-  }
-  const email = $id("adminUserEmail"); if(email) email.textContent = "LOCAL PREVIEW";
-  currentProfile = getLegacyProfile() || structuredCloneSafe(defaults);
-  setInputData(currentProfile);
-  platformFeatureControls = defaultFeatureControls();
-  applyPlanLocks();
-  document.querySelectorAll('[data-section-save],#saveProfile,#resetProfile,#saveGoogleWalletColor,#saveQrCardTheme,#addGoogleWallet,#exportLeadsCsv').forEach(el=>{
-    if(el){ el.disabled=true; el.title="Disabled in Local Preview — sign in to Firebase to save real data"; }
-  });
-  setStatus("Local Preview: layout and controls are visible. Firebase saves are disabled until you sign in on an authorized environment.","working");
-  return true;
-}
 const storage = getStorage(app);
 const functions = getFunctions(app);
 
@@ -121,12 +97,11 @@ function defaultFeatureControls(){const global={},Basic={},Premium={},Business={
 function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
 let platformFeatureControls=defaultFeatureControls();
 function featureEnabledForPlan(feature){
-  // Availability hierarchy: GLOBAL -> PLAN -> CLIENT. Client overrides can only
-  // restrict an allowed feature; they never bypass a Global or Plan OFF setting.
-  if(platformFeatureControls.enabled===false){const base=["premium","business"].includes(currentCardPlan.toLowerCase())||BASIC_FEATURE_DEFAULTS.has(feature);return base&&currentCardFeatureOverrides?.[feature]!==false}
   if(platformFeatureControls.global?.[feature]===false)return false;
+  const override=currentCardFeatureOverrides?.[feature];if(override===true)return true;if(override===false)return false;
+  if(platformFeatureControls.enabled===false){return ["premium","business"].includes(currentCardPlan.toLowerCase())||BASIC_FEATURE_DEFAULTS.has(feature)}
   const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:currentCardPlan.toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
-  return group?.[feature]!==false && currentCardFeatureOverrides?.[feature]!==false;
+  return group?.[feature]!==false;
 }
 const FEATURE_INPUT_IDS={description:["description"],phone:["phone"],phone2:["phone2"],location:["city","state"],whatsapp:["whatsapp"],email:["email"],website:["website"],facebook:["facebook"],instagram:["instagram"],linkedin:["linkedin"],twitter:["twitter"],tiktok:["tiktok"],youtube:["youtube"],catalog:["catalog","catalogUpload"],customBusiness:["customBusinessLabel","customBusinessSubtitle","customBusinessUrl"],video:["videoUrl"],services:["service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon"],gallery:["galleryUpload","clearGallery"],finalCTA:["finalCtaTitle","finalCtaText","finalCtaLabel"],customQR:["qrDarkColor","qrLightColor"],brandingRemoval:["removeJmxBranding"]};
 
@@ -792,7 +767,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   $id("walletThemeBackdrop")?.addEventListener("click",()=>setWalletThemesExpanded(false));
   window.addEventListener("resize",applyWalletThemeCompactVisibility);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&walletThemesExpanded())setWalletThemesExpanded(false)});
-  if(enableLocalAdminPreview()) return;
   onAuthStateChanged(auth,async user=>{
     currentUser=user||null;document.body.classList.toggle("admin-authenticated",Boolean(user));
     if(!user){currentRole="none";setAuthStatus("Sign in to edit your JMX Digital Card.");$id("adminUserEmail").textContent="";return;}

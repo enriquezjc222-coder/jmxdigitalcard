@@ -16,41 +16,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Local Live Server preview mode. UI-only: never enabled on the published domain.
-// Firebase Security Rules remain authoritative, so this is not an authentication bypass.
-const JMX_LOCAL_PREVIEW = false; // Production build: local authentication bypass disabled.
-function localPreviewCard(id,name,plan,status="activated",deviceCount=0){
-  return {id,plan,status,profile:{fullName:name,company:name,email:`${id.toLowerCase()}@preview.local`,phone:"(000) 000-0000"},admin:{clientName:name,notes:"Local Preview sample"},owner:{ownerEmail:`${id.toLowerCase()}@preview.local`},_localPreview:true,deviceCount};
-}
-function enableLocalDashboardPreview(){
-  if(!JMX_LOCAL_PREVIEW) return false;
-  user={uid:"local-preview",email:"LOCAL PREVIEW"};
-  document.body.classList.add("jmx-local-preview");
-  if($("loginGate")){
-    $("loginGate").hidden=false;
-    $("loginGate").innerHTML='<div class="panel-title"><i class="fa-solid fa-laptop-code"></i><div><small>LOCAL DEVELOPMENT</small><h2>Local Admin Preview</h2></div></div><p><strong>Live Server preview is active.</strong> Google sign-in is skipped only on localhost / 127.0.0.1. The published JMX Digital Card dashboard still requires the authorized Firebase administrator.</p><p class="status ok">LOCAL PREVIEW — Firebase writes disabled</p>';
-  }
-  if($("dashboardContent")) $("dashboardContent").hidden=false;
-  if($("logoutButton")) $("logoutButton").hidden=true;
-  cards=[
-    localPreviewCard("PREV-B01","Basic Preview Client","Basic"),
-    localPreviewCard("PREV-B02","Basic Sample Two","Basic"),
-    localPreviewCard("PREV-P01","Premium Preview Client","Premium"),
-    localPreviewCard("PREV-P02","Premium Sample Two","Premium"),
-    localPreviewCard("PREV-J01","JMX Business Preview","Business"),
-    localPreviewCard("PREV-J02","Business Sample Two","Business")
-  ];
-  featureControls=defaultFeatureControls();
-  try{renderFeatureControls();}catch(e){console.warn("Local preview feature controls",e)}
-  try{render();}catch(e){console.warn("Local preview dashboard render",e)}
-  try{renderNfcCenter();}catch(e){console.warn("Local preview NFC render",e)}
-  try{renderNfcSettings();}catch(e){console.warn("Local preview NFC settings",e)}
-  // Keep navigation/expand/search usable, but block operations that would mutate Firebase.
-  const writeIds=["savePlatformButton","saveFeatureControls","saveBusinessSettings","saveAiScannerSettings","createInventoryButton","generateActivationButton","saveNfcSettings","assignNfcBatch"];
-  writeIds.forEach(id=>{const el=$(id);if(el){el.disabled=true;el.title="Disabled in Local Preview — sign in to Firebase to save real data";}});
-  document.querySelectorAll('button[data-purge-gallery],button[data-dialog-action="saveClientChanges"],button[data-nfc-action="save"],button[data-nfc-action="delete"]').forEach(el=>{el.disabled=true;el.title="Disabled in Local Preview";});
-  return true;
-}
 const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app);
@@ -115,7 +80,13 @@ function platformAllowsForCard(card,key){
   const plan=effectivePlan(card),bucket=plan==="Basic"?featureControls.Basic:plan==="Business"?featureControls.Business:featureControls.Premium;
   return bucket?.[key]!==false;
 }
-function clientAllowsFeature(card,key){return platformAllowsForCard(card,key)&&card?.featureOverrides?.[key]!==false}
+function clientAllowsFeature(card,key){
+  if(featureControls.global?.[key]===false)return false;
+  const override=card?.featureOverrides?.[key];
+  if(override===true)return true;
+  if(override===false)return false;
+  return platformAllowsForCard(card,key);
+}
 
 
 function esc(value) {
@@ -517,6 +488,7 @@ async function openClientDialog(id, preserveDraft=false) {
   const stats = card.stats || {};
   const effective = effectivePlan(viewCard);
   const totalActions = stats.actions || {};
+  const linkedNfcCards=(typeof nfcDevices!=="undefined"?nfcDevices:[]).filter(d=>d.cardId===id&&d.deviceType==="card");
   const dialog = $("clientDetailDialog");
   dialog.dataset.cardId = id;
   dialog.dataset.detailType = "client";
@@ -564,7 +536,7 @@ async function openClientDialog(id, preserveDraft=false) {
       </section>
       <section class="detail-panel client-feature-control-panel">
         <h3>Client Feature Overrides</h3>
-        <p class="subtitle small">ON permits the feature for this client when Global and Plan controls also allow it. OFF hides it from the public card and owner editor without deleting saved data. Press Save Changes to apply.</p>
+        <p class="subtitle small">ON grants the feature to this client even when the plan normally does not include it. Global OFF remains the platform safety gate. OFF hides it only for this client. Press Save Changes to apply.</p>
         <div class="feature-switch-list client-feature-switches">
           ${FEATURE_DEFS.map(([key,label])=>{
             const pending=EXTERNAL_PENDING_FEATURES.has(key);
@@ -574,8 +546,8 @@ async function openClientDialog(id, preserveDraft=false) {
               const value=raw===true?"on":raw===false?"off":"inherit";
               return `<label class="feature-switch-row wallet-override-row"><span><strong>${esc(label)}</strong><small>${key==="googleWallet"?"Owner-only Wallet access":key==="googleWalletThemes"?"Owner-only Wallet theme customization":"Owner QR card theme customization"}. Inherit currently resolves to ${inherited?"ON":"OFF"}; explicit ON/OFF overrides Global and Plan for this client.</small></span><select class="client-feature-select" data-client-feature-select="${esc(key)}" aria-label="${esc(label)} override"><option value="inherit" ${value==="inherit"?"selected":""}>INHERIT</option><option value="on" ${value==="on"?"selected":""}>ON</option><option value="off" ${value==="off"?"selected":""}>OFF</option></select></label>`;
             }
-            const platformOn=platformAllowsForCard(viewCard,key),clientOn=viewCard.featureOverrides?.[key]!==false;
-            return `<label class="feature-switch-row ${platformOn?"":"master-off"} ${pending?"integration-pending":""}"><span><strong>${esc(label)}</strong><small>${pending?"External integration pending — access setting is stored but no live module is simulated":(platformOn?"Client-specific access":"Disabled by Global/Plan control")}</small></span><input type="checkbox" data-client-feature="${esc(key)}" ${clientOn?"checked":""} ${platformOn&&!pending?"":"disabled"}><i class="switch-ui" aria-hidden="true"></i></label>`
+            const inherited=platformAllowsForCard(viewCard,key),raw=viewCard.featureOverrides?.[key],clientOn=raw===true?true:raw===false?false:inherited,globalOn=featureControls.global?.[key]!==false;
+            return `<label class="feature-switch-row ${globalOn?"":"master-off"} ${pending?"integration-pending":""}"><span><strong>${esc(label)}</strong><small>${pending?"External integration pending — setting can be stored for this client":(raw===true?"CLIENT OVERRIDE ON":raw===false?"CLIENT OVERRIDE OFF":`Inherited from ${effectivePlan(viewCard)}: ${inherited?"ON":"OFF"}`)}</small></span><input type="checkbox" data-client-feature="${esc(key)}" ${clientOn?"checked":""} ${globalOn&&!pending?"":"disabled"}><i class="switch-ui" aria-hidden="true"></i></label>`
           }).join("")}
         </div>
       </section>
@@ -591,6 +563,7 @@ async function openClientDialog(id, preserveDraft=false) {
           <input data-ai-client-limit-count type="number" min="1" max="100000" value="${Number(viewCard.aiScannerMonthlyLimit?.count||50)}" ${viewCard.aiScannerMonthlyLimit?.mode==="number"?"":"disabled"}>
         </div>
       </section>
+      ${linkedNfcCards.length?`<section class="detail-panel nfc-client-linked-panel"><h3>NFC Card</h3><div class="detail-list">${linkedNfcCards.map(d=>`<div><span>Physical card</span><strong>${esc(d.material||"NFC Card")} · ${esc((d.status||"linked").toUpperCase())}</strong></div>`).join("")}</div><div class="dialog-actions">${linkedNfcCards.map(d=>`<button type="button" class="secondary-button" data-open-linked-nfc="${esc(d.deviceId)}">View Card</button>`).join("")}</div><details><summary>Advanced Details</summary>${linkedNfcCards.map(d=>`<p class="break-anywhere"><strong>Internal ID:</strong> ${esc(d.deviceId)}<br><strong>Batch:</strong> ${esc(d.batchId||"—")}</p>`).join("")}</details></section>`:""}
       <section class="detail-panel analytics-panel">
         <h3>Analytics</h3>
         <p class="subtitle small">Profile-view history is preserved and frozen after August 25, 2026. New analytics prioritize real customer actions to reduce Firestore operations.</p>
@@ -611,7 +584,7 @@ async function openClientDialog(id, preserveDraft=false) {
     <button class="secondary-button" data-dialog-action="edit"><i class="fa-solid fa-pen"></i> Edit Profile</button>
     ${card.status === "activated" ? '<button class="secondary-button" data-dialog-action="suspend">Suspend</button>' : ''}
     ${card.status === "suspended" ? '<button class="secondary-button" data-dialog-action="reactivate">Reactivate</button>' : ''}
-    ${PROTECTED_CARD_IDS.has(id) ? '<span class="protected-note"><i class="fa-solid fa-lock"></i> Protected card: release/delete disabled</span>' : '<button class="danger-button" data-dialog-action="release"><i class="fa-solid fa-rotate-left"></i> Release / Reset for Reuse</button>'}
+    ${linkedNfcCards.length?'<button class="secondary-button" data-nfc-client-action="return">Return NFC Card to Inventory</button><button class="danger-button" data-nfc-client-action="delete">Delete NFC Client/Card</button>':(PROTECTED_CARD_IDS.has(id) ? '<span class="protected-note"><i class="fa-solid fa-lock"></i> Protected card: release/delete disabled</span>' : '<button class="danger-button" data-dialog-action="release"><i class="fa-solid fa-rotate-left"></i> Release / Reset for Reuse</button>')}
   `;
   if (!dialog.open) dialog.showModal();
   setDialogSaveState();
@@ -1053,6 +1026,8 @@ async function handleDialogAction(event) {
   }
 }
 $("clientDetailActions")?.addEventListener("click", handleDialogAction);
+$("clientDetailActions")?.addEventListener("click",e=>{const b=e.target.closest("[data-nfc-client-action]");if(!b)return;const id=$("clientDetailDialog").dataset.cardId;if(b.dataset.nfcClientAction==="return")returnNfcClientCardToInventory(id);if(b.dataset.nfcClientAction==="delete")deleteNfcClientCard(id)});
+$("clientDetailBody")?.addEventListener("click",e=>{const b=e.target.closest("[data-open-linked-nfc]");if(b){$("clientDetailDialog")?.close();openNfcDeviceDialog(b.dataset.openLinkedNfc)}});
 $("clientDetailBody")?.addEventListener("click", handleDialogAction);
 $("clientDetailBody")?.addEventListener("click", async (event)=>{
   const planButton=event.target.closest("[data-draft-base-plan]");if(!planButton)return;
@@ -1286,7 +1261,7 @@ function initMarketing(){
 initMarketing();
 initAiScannerAdmin();
 
-if(!enableLocalDashboardPreview()) onAuthStateChanged(auth, async (currentUser) => {
+onAuthStateChanged(auth, async (currentUser) => {
   user = currentUser || null;
   $("loginGate").hidden = Boolean(currentUser);
   $("dashboardContent").hidden = !currentUser;
@@ -1312,7 +1287,7 @@ let nfcEncoderIndex=0;
 let expandedNfcBox=null;
 let nfcBackdrop=null;
 const NFC_TYPE_LABELS={card:"NFC Card",sticker:"NFC Sticker",keychain:"NFC Keychain",bracelet:"NFC Bracelet",ring:"NFC Ring",plate:"NFC Plate",tag:"NFC Tag",other:"Other / Custom"};
-const NFC_QUICK_TYPES={"card-pvc":{deviceType:"card",material:"PVC"},"card-metal":{deviceType:"card",material:"Metal"},sticker:{deviceType:"sticker",material:"Sticker"},keychain:{deviceType:"keychain",material:"Keychain"},bracelet:{deviceType:"bracelet",material:"Bracelet"},ring:{deviceType:"ring",material:"Ring"},plate:{deviceType:"plate",material:"Plate"},tag:{deviceType:"tag",material:"Tag"},other:{deviceType:"other",material:"Custom"}};
+const NFC_QUICK_TYPES={"card-pvc":{deviceType:"card",material:"PVC"},"card-metal":{deviceType:"card",material:"Metal"}};
 function nfcRandom(prefix,length=12){return `${prefix}-${randomCode(length)}`}
 function nfcStatusClass(s){return s==="active"?"":s==="available"?"available":"disabled"}
 function nfcDeviceUrl(id){return `https://jmxdigitalcard.com/d/${encodeURIComponent(id)}`}
@@ -1329,16 +1304,17 @@ async function loadNfcData(){
 function nfcClientSearchText(card){return [cardSearchText(card),effectivePlan(card),card.admin?.notes,card.inventory?.notes].filter(Boolean).join(" ").toLowerCase()}
 function nfcClientPlanMarkup(items){
   return items.map(card=>{
-    const devices=nfcDevices.filter(d=>d.cardId===card.id),batches=nfcBatches.filter(b=>b.cardId===card.id);
+    const devices=nfcDevices.filter(d=>d.cardId===card.id);
     const name=card.profile?.fullName||card.admin?.clientName||card.owner?.ownerEmail||card.id;
     const company=card.profile?.company&&card.profile.company!==name?card.profile.company:"";
-    const enabledTypes=Object.entries(card.nfcDeviceControls||{}).filter(([,v])=>v!==false).length;
-    return `<button class="nfc-record nfc-client-plan-record" type="button" data-nfc-client="${esc(card.id)}"><span><strong>${esc(name)}</strong><small>${esc(card.id)}${company?` · ${esc(company)}`:""}</small><small class="nfc-client-plan-meta">${devices.length} device${devices.length===1?"":"s"} · ${batches.length} batch${batches.length===1?"":"es"}</small></span><span class="nfc-client-open-pill">OPEN</span></button>`;
+    const phone=card.profile?.phone||"",email=card.profile?.email||card.owner?.ownerEmail||"";
+    return `<button class="nfc-record nfc-client-plan-record" type="button" data-nfc-client="${esc(card.id)}"><span><strong>${esc(name)}</strong><small>${company?esc(company)+" · ":""}${esc(phone||email||effectivePlan(card))}</small><small class="nfc-client-plan-meta">NFC Card: ${devices.some(d=>d.status==="active")?"Active":devices.some(d=>["suspended","disabled"].includes(d.status))?"Suspended":"Linked"}</small></span><span class="nfc-client-open-pill">OPEN</span></button>`;
   }).join("");
 }
 function renderNfcPlanClients(){
   if(!$("nfcPlanClientBoard"))return;
-  const activeCards=cards.filter(c=>["activated","suspended"].includes(c.status));
+  const officialCardIds=new Set(nfcDevices.filter(d=>d.cardId).map(d=>d.cardId));
+  const activeCards=cards.filter(c=>officialCardIds.has(c.id)&&["activated","suspended"].includes(c.status));
   const buckets={Basic:activeCards.filter(c=>effectivePlan(c)==="Basic"),Premium:activeCards.filter(c=>effectivePlan(c)==="Premium"),Business:activeCards.filter(c=>effectivePlan(c)==="Business")};
   const configs=[
     ["Basic","nfcBasicClientsCount","nfcBasicClientsSearch","nfcBasicClientsList"],
@@ -1361,26 +1337,24 @@ function nfcListMarkup(items,isBatch=false){
     return `<button class="nfc-record" type="button" data-${isBatch?"nfc-batch":"nfc-device"}="${esc(id)}"><span><strong>${esc(id)}</strong><small>${esc(type)} · ${esc(sub)}</small></span><span class="nfc-device-status-pill ${nfcStatusClass(item.status)}">${esc(item.status||"available")}</span></button>`;
   }).join("");
 }
+function nfcSimpleCardMarkup(items,state){
+  return items.slice(0,6).map(d=>{const batch=nfcBatches.find(b=>b.batchId===d.batchId)||{},note=d.notes||batch.notes||"NFC Card",plan=d.plan||batch.plan||"Basic";return `<div class="nfc-record nfc-simple-card-record"><button type="button" class="nfc-simple-card-main" data-nfc-device="${esc(d.deviceId)}"><span><strong>${esc(note)}</strong><small>${esc(plan)} · ${state==="sold"?"NOT ACTIVATED":"Available"}</small></span></button><div class="nfc-simple-card-actions">${state==="available"?`<button class="mini" type="button" data-mark-nfc-sold="${esc(d.deviceId)}">Mark as Sold</button>`:""}<button class="mini" type="button" data-nfc-device="${esc(d.deviceId)}">View</button></div></div>`}).join("")||'<div class="inventory-pool-empty compact">No cards in this section.</div>';
+}
 function renderNfcCenter(){
   if(!$("nfcDeviceCenter"))return;
-  $("nfcDeviceTotal").textContent=nfcDevices.length;
-  $("nfcDeviceAvailable").textContent=nfcDevices.filter(x=>x.status==="available").length;
-  $("nfcDeviceActive").textContent=nfcDevices.filter(x=>x.status==="active").length;
-  $("nfcDeviceDisabled").textContent=nfcDevices.filter(x=>x.status==="disabled").length;
-  $("nfcBatchTotal").textContent=nfcBatches.length;
-  const groups={cards:nfcDevices.filter(x=>x.deviceType==="card"),stickers:nfcDevices.filter(x=>x.deviceType==="sticker"),other:nfcDevices.filter(x=>!["card","sticker"].includes(x.deviceType))};
-  const searches={cards:$("nfcCardsSearch")?.value.trim().toLowerCase()||"",stickers:$("nfcStickersSearch")?.value.trim().toLowerCase()||"",other:$("nfcOtherSearch")?.value.trim().toLowerCase()||"",batches:$("nfcBatchesSearch")?.value.trim().toLowerCase()||""};
-  const filtered={cards:groups.cards.filter(x=>!searches.cards||nfcRecordSearchText(x).includes(searches.cards)),stickers:groups.stickers.filter(x=>!searches.stickers||nfcRecordSearchText(x).includes(searches.stickers)),other:groups.other.filter(x=>!searches.other||nfcRecordSearchText(x).includes(searches.other)),batches:nfcBatches.filter(x=>!searches.batches||nfcBatchSearchText(x).includes(searches.batches))};
-  $("nfcCardsCount").textContent=groups.cards.length;$("nfcStickersCount").textContent=groups.stickers.length;$("nfcOtherCount").textContent=groups.other.length;$("nfcBatchesCount").textContent=nfcBatches.length;
-  $("nfcCardsList").innerHTML=nfcListMarkup(filtered.cards);$("nfcStickersList").innerHTML=nfcListMarkup(filtered.stickers);$("nfcOtherList").innerHTML=nfcListMarkup(filtered.other);$("nfcBatchesList").innerHTML=nfcListMarkup(filtered.batches,true);
-  document.querySelectorAll("[data-nfc-device]").forEach(b=>b.onclick=()=>openNfcDeviceDialog(b.dataset.nfcDevice));
-  document.querySelectorAll("[data-nfc-batch]").forEach(b=>b.onclick=()=>openNfcBatchDetails(b.dataset.nfcBatch));
-  renderNfcPlanClients();
-  renderNfcGlobalSearch();
+  const cardsOnly=nfcDevices.filter(x=>x.deviceType==="card");
+  const available=cardsOnly.filter(x=>["available","pending"].includes(x.status)&&!x.cardId),sold=cardsOnly.filter(x=>x.status==="sold"&&!x.cardId);
+  $("nfcDeviceTotal").textContent=cardsOnly.length;$("nfcDeviceAvailable").textContent=available.length;$("nfcDeviceActive").textContent=cardsOnly.filter(x=>x.status==="active").length;$("nfcDeviceDisabled").textContent=cardsOnly.filter(x=>["disabled","suspended","lost","stolen","retired","archived"].includes(x.status)).length;$("nfcBatchTotal").textContent=nfcBatches.length;
+  const aq=$("nfcAvailableCardsSearch")?.value.trim().toLowerCase()||"",sq=$("nfcSoldCardsSearch")?.value.trim().toLowerCase()||"";
+  $("nfcAvailableCardsCount").textContent=available.length;$("nfcSoldCardsCount").textContent=sold.length;
+  $("nfcAvailableCardsList").innerHTML=nfcSimpleCardMarkup(available.filter(x=>!aq||nfcRecordSearchText(x).includes(aq)),"available");$("nfcSoldCardsList").innerHTML=nfcSimpleCardMarkup(sold.filter(x=>!sq||nfcRecordSearchText(x).includes(sq)),"sold");
+  document.querySelectorAll("[data-nfc-device]").forEach(b=>b.onclick=()=>openNfcDeviceDialog(b.dataset.nfcDevice));document.querySelectorAll("[data-mark-nfc-sold]").forEach(b=>b.onclick=()=>markNfcCardSold(b.dataset.markNfcSold));
+  renderNfcPlanClients();renderNfcGlobalSearch();
 }
+async function markNfcCardSold(deviceId){const d=nfcDevices.find(x=>x.deviceId===deviceId);if(!d)return;if(!confirm("Mark this NFC card as SOLD and waiting for customer activation?"))return;const wb=writeBatch(db),now=serverTimestamp();wb.set(doc(db,"nfcDevices",deviceId),{status:"sold",lifecycleStatus:"sold",soldAt:now,updatedAt:now},{merge:true});wb.set(doc(db,"nfcDevicePublic",deviceId),{status:"sold",updatedAt:now},{merge:true});if(d.batchId)wb.set(doc(db,"nfcBatches",d.batchId),{status:"sold",soldAt:now,updatedAt:now},{merge:true});await wb.commit();await loadNfcData();}
 function renderNfcGlobalSearch(){
   const q=$("nfcGlobalSearch")?.value.trim().toLowerCase()||"",box=$("nfcGlobalResults");if(!box)return;if(!q){box.hidden=true;box.innerHTML="";return}
-  const dm=nfcDevices.filter(x=>nfcRecordSearchText(x).includes(q)).slice(0,10),bm=nfcBatches.filter(x=>nfcBatchSearchText(x).includes(q)).slice(0,10),cm=cards.filter(x=>cardSearchText(x).includes(q)).slice(0,10);
+  const dm=nfcDevices.filter(x=>nfcRecordSearchText(x).includes(q)).slice(0,10),bm=nfcBatches.filter(x=>nfcBatchSearchText(x).includes(q)).slice(0,10),officialIds=new Set(nfcDevices.filter(d=>d.cardId).map(d=>d.cardId)),cm=cards.filter(x=>officialIds.has(x.id)&&cardSearchText(x).includes(q)).slice(0,10);
   const results=[...cm.map(c=>({kind:"client",id:c.id,title:c.profile?.fullName||c.admin?.clientName||c.owner?.ownerEmail||c.id,sub:`${c.id} · ${effectivePlan(c)} · ${c.status||""}`})),...bm.map(b=>({kind:"batch",id:b.batchId,title:b.batchId,sub:`${NFC_TYPE_LABELS[b.deviceType]||b.deviceType} · ${b.activationCode||""} · ${b.cardId||"Unassigned"}`})),...dm.map(d=>({kind:"device",id:d.deviceId,title:d.deviceId,sub:`${NFC_TYPE_LABELS[d.deviceType]||d.deviceType} · ${d.batchId||""} · ${d.cardId||"Unassigned"}`}))].slice(0,20);
   box.hidden=false;box.innerHTML=`<div class="master-search-results-head"><strong>${results.length} result${results.length===1?"":"s"}</strong><span class="subtitle small">Clients + Device IDs + Batch IDs + activation codes</span></div><div class="master-search-result-list">${results.length?results.map(r=>`<button class="master-search-result" type="button" data-nfc-search-kind="${r.kind}" data-nfc-search-id="${esc(r.id)}"><span><strong>${esc(r.title)}</strong><small>${esc(r.sub)}</small></span><span class="master-search-category">${r.kind.toUpperCase()}</span></button>`).join(""):'<div class="inventory-pool-empty compact">No matching client, batch or device.</div>'}</div>`;
   box.querySelectorAll("[data-nfc-search-kind]").forEach(b=>b.onclick=()=>{if(b.dataset.nfcSearchKind==="client")openClientDialog(b.dataset.nfcSearchId);else if(b.dataset.nfcSearchKind==="batch")openNfcBatchDetails(b.dataset.nfcSearchId);else openNfcDeviceDialog(b.dataset.nfcSearchId)});
@@ -1394,15 +1368,14 @@ function openNfcQuickDeviceCreate(){
 }
 async function createNfcQuickDevice(e){
   e.preventDefault();
-  const choice=NFC_QUICK_TYPES[$("nfcQuickDeviceType")?.value]||NFC_QUICK_TYPES.other,plan=$("nfcQuickDevicePlan")?.value||"Basic",notes=$("nfcQuickDeviceNotes")?.value.trim()||"",statusEl=$("nfcQuickDeviceStatus"),button=$("createNfcQuickDeviceButton");
+  const choice=NFC_QUICK_TYPES[$("nfcQuickDeviceType")?.value]||NFC_QUICK_TYPES["card-pvc"],plan=$("nfcQuickDevicePlan")?.value||"Basic",notes=$("nfcQuickDeviceNotes")?.value.trim()||"",statusEl=$("nfcQuickDeviceStatus"),button=$("createNfcQuickDeviceButton");
   const deviceId=nfcRandom("JMX",14),batchId=nfcRandom("BATCH",8),activationCode=nfcRandom("ACT",8);button.disabled=true;button.textContent="Creating…";statusEl.textContent="Creating Device ID and activation code…";
   try{
-    if(JMX_LOCAL_PREVIEW){nfcBatches.push({batchId,activationCode,deviceType:choice.deviceType,material:choice.material,quantity:1,plan,cardId:null,status:"pending",enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",_localPreview:true});nfcDevices.push({deviceId,batchId,deviceType:choice.deviceType,material:choice.material,plan,deviceNumber:1,cardId:null,status:"pending",lifecycleStatus:"pending",enabled:true,tapCount:0,encodingStatus:"not-encoded",notes,_localPreview:true});renderNfcCenter();}
-    else{
+  {
       const wb=writeBatch(db),now=serverTimestamp();
-      wb.set(doc(db,"nfcBatches",batchId),{batchId,activationCode,activationMode:"individual-device",deviceType:choice.deviceType,material:choice.material,quantity:1,plan,cardId:null,status:"pending",enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",encodedCount:0,createdBy:user?.uid||"",createdAt:now,updatedAt:now});
-      wb.set(doc(db,"nfcDevices",deviceId),{deviceId,batchId,activationCodeRef:batchId,deviceType:choice.deviceType,material:choice.material,plan,deviceNumber:1,cardId:null,status:"pending",lifecycleStatus:"pending",enabled:true,deviceEnabled:true,tapCount:0,encodingStatus:"not-encoded",notes,createdAt:now,updatedAt:now});
-      wb.set(doc(db,"nfcDevicePublic",deviceId),{deviceId,batchId,deviceType:choice.deviceType,material:choice.material,plan,status:"pending",enabled:true,updatedAt:now});await wb.commit();await loadNfcData();
+      wb.set(doc(db,"nfcBatches",batchId),{batchId,activationCode,activationMode:"individual-device",deviceType:choice.deviceType,material:choice.material,quantity:1,plan,cardId:null,status:"available",enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",encodedCount:0,createdBy:user?.uid||"",createdAt:now,updatedAt:now});
+      wb.set(doc(db,"nfcDevices",deviceId),{deviceId,batchId,activationCodeRef:batchId,deviceType:choice.deviceType,material:choice.material,plan,deviceNumber:1,cardId:null,status:"available",lifecycleStatus:"available",enabled:true,deviceEnabled:true,tapCount:0,encodingStatus:"not-encoded",notes,createdAt:now,updatedAt:now});
+      wb.set(doc(db,"nfcDevicePublic",deviceId),{deviceId,batchId,deviceType:choice.deviceType,material:choice.material,plan,status:"available",enabled:true,updatedAt:now});await wb.commit();await loadNfcData();
     }
     statusEl.innerHTML=`Created <strong>${esc(deviceId)}</strong> · Activation Code <strong>${esc(activationCode)}</strong>`;
     await copyText(nfcDeviceUrl(deviceId));
@@ -1411,19 +1384,13 @@ async function createNfcQuickDevice(e){
   finally{button.disabled=false;button.textContent="Create Device"}
 }
 async function createNfcBatch(e){
-  e.preventDefault();const quantity=Math.max(1,Math.min(5000,Number($("nfcBatchQuantity").value||1))),deviceType=$("nfcBatchType").value,batchId=$("nfcBatchId").value,activationCode=$("nfcBatchActivationCode").value,cardId=$("nfcBatchCardId").value,notes=$("nfcBatchNotes").value.trim(),statusEl=$("nfcBatchStatus");statusEl.textContent=`Creating ${quantity} devices…`;
+  e.preventDefault();const quantity=Math.max(1,Math.min(5000,Number($("nfcBatchQuantity").value||1))),deviceType="card",batchId=$("nfcBatchId").value,activationCode=$("nfcBatchActivationCode").value,cardId=null,plan=$("nfcBatchPlan")?.value||"Basic",notes=$("nfcBatchNotes").value.trim(),statusEl=$("nfcBatchStatus");statusEl.textContent=`Creating ${quantity} devices…`;
   const deviceIds=[];for(let i=0;i<quantity;i++)deviceIds.push(nfcRandom("JMX",14));const initialStatus=cardId?"pending":"available";
-  if(JMX_LOCAL_PREVIEW){
-    if(nfcBatches.some(b=>b.batchId===batchId)){statusEl.textContent="Batch ID already exists. Generate another.";return}
-    nfcBatches.push({batchId,activationCode,deviceType,quantity,cardId:cardId||null,status:initialStatus,enabled:true,notes,activationCodeStatus:"unused",tapCount:0,_localPreview:true});
-    deviceIds.forEach((deviceId,i)=>nfcDevices.push({deviceId,batchId,deviceType,deviceNumber:i+1,cardId:cardId||null,status:initialStatus,enabled:true,tapCount:0,encodingStatus:"not-encoded",notes:"",_localPreview:true}));
-    renderNfcCenter();statusEl.textContent=`LOCAL PREVIEW: created ${quantity} simulated devices. No Firebase data was changed.`;setTimeout(()=>{$("nfcBatchDialog")?.close();openNfcBatchEncoder(batchId)},500);return;
-  }
   if((await getDoc(doc(db,"nfcBatches",batchId))).exists()){statusEl.textContent="Batch ID already exists. Generate another.";return}
   const now=serverTimestamp();
   try{
-    await setDoc(doc(db,"nfcBatches",batchId),{batchId,activationCode,deviceType,quantity,cardId:cardId||null,status:initialStatus,enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",encodedCount:0,createdBy:user?.uid||"",createdAt:now,updatedAt:now});
-    for(let start=0;start<deviceIds.length;start+=180){const wb=writeBatch(db);for(const [offset,deviceId] of deviceIds.slice(start,start+180).entries()){const deviceNumber=start+offset+1;wb.set(doc(db,"nfcDevices",deviceId),{deviceId,batchId,deviceType,deviceNumber,cardId:cardId||null,status:initialStatus,enabled:true,tapCount:0,encodingStatus:"not-encoded",notes:"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});wb.set(doc(db,"nfcDevicePublic",deviceId),{deviceId,batchId,deviceType,cardId:cardId||null,status:initialStatus,enabled:true,updatedAt:serverTimestamp()})}await wb.commit()}
+    await setDoc(doc(db,"nfcBatches",batchId),{batchId,activationCode,deviceType,quantity,plan,cardId:null,status:initialStatus,enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",encodedCount:0,createdBy:user?.uid||"",createdAt:now,updatedAt:now});
+    for(let start=0;start<deviceIds.length;start+=180){const wb=writeBatch(db);for(const [offset,deviceId] of deviceIds.slice(start,start+180).entries()){const deviceNumber=start+offset+1;wb.set(doc(db,"nfcDevices",deviceId),{deviceId,batchId,deviceType,deviceNumber,plan,cardId:null,status:initialStatus,enabled:true,tapCount:0,encodingStatus:"not-encoded",notes:"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});wb.set(doc(db,"nfcDevicePublic",deviceId),{deviceId,batchId,deviceType,plan,cardId:null,status:initialStatus,enabled:true,updatedAt:serverTimestamp()})}await wb.commit()}
     statusEl.textContent=`Created ${quantity} ${NFC_TYPE_LABELS[deviceType]||deviceType}(s). Activation code: ${activationCode}`;await copyText(activationCode);setTimeout(()=>{$("nfcBatchDialog")?.close();openNfcBatchEncoder(batchId)},700);await loadNfcData();
   }catch(err){console.error(err);statusEl.textContent="Could not create the batch: "+(err?.message||"unknown error")}
 }
@@ -1472,7 +1439,6 @@ async function replaceNfcDevice(deviceId){
 }
 async function setClientNfcTypeEnabled(cardId,type,enabled){
   const card=cards.find(c=>c.id===cardId);const controls={...(card?.nfcDeviceControls||{}),[type]:enabled};
-  if(JMX_LOCAL_PREVIEW){if(card)card.nfcDeviceControls=controls;renderNfcCenter();return}
   await setDoc(doc(db,"cards",cardId),{nfcDeviceControls:controls,updatedAt:serverTimestamp()},{merge:true});
   await setDoc(doc(db,"nfcDeviceEvents",`${Date.now()}-${cardId}-${type}`),{event:"Client NFC Type Control Changed",cardId,deviceType:type,enabled,adminUid:user?.uid||"",createdAt:serverTimestamp()});
   await loadCards();await loadNfcData();
@@ -1492,7 +1458,6 @@ function renderNfcEncoder(){
 function openNfcBatchEncoder(batchId){const items=nfcBatchDevices(batchId);if(!items.length)return alert("This batch contains no devices.");nfcEncoderBatchId=batchId;const firstPending=items.findIndex(d=>!nfcEncodingDone(d));nfcEncoderIndex=firstPending>=0?firstPending:0;renderNfcEncoder();$("nfcEncoderDialog")?.showModal()}
 async function updateNfcEncoding(deviceId,encodingStatus){
   const d=nfcDevices.find(x=>x.deviceId===deviceId);if(!d)return;const stamp=new Date().toISOString();
-  if(JMX_LOCAL_PREVIEW){d.encodingStatus=encodingStatus;d.encodedAt=["encoded","verified"].includes(encodingStatus)?stamp:d.encodedAt;d.encodedBy="local-preview";renderNfcEncoder();return}
   const payload={encodingStatus,encodedBy:user?.uid||"",updatedAt:serverTimestamp()};if(["encoded","verified"].includes(encodingStatus))payload.encodedAt=serverTimestamp();await setDoc(doc(db,"nfcDevices",deviceId),payload,{merge:true});
   await setDoc(doc(db,"nfcDeviceEvents",`${Date.now()}-${deviceId}-encoding`),{event:`Encoding ${encodingStatus}`,deviceId,batchId:d.batchId||null,adminUid:user?.uid||"",createdAt:serverTimestamp()});
   d.encodingStatus=encodingStatus;if(["encoded","verified"].includes(encodingStatus))d.encodedAt=stamp;
@@ -1511,17 +1476,19 @@ function profileLifecycle(card){
   return card?.status||"active";
 }
 function clientNfcSection(card){
-  const ds=nfcDevices.filter(d=>d.cardId===card.id),bs=nfcBatches.filter(b=>b.cardId===card.id),counts={};
-  Object.keys(NFC_TYPE_LABELS).forEach(k=>counts[k]=ds.filter(d=>d.deviceType===k).length);
-  const types=Object.keys(NFC_TYPE_LABELS).filter(k=>counts[k]>0||["card","sticker","keychain","bracelet","ring","plate"].includes(k));
-  return `<section class="detail-panel"><div class="nfc-client-section-title"><div><h3>Official JMX NFC Devices</h3><p class="subtitle small">Device-ID resolver layer. Existing URL, QR and Google Wallet remain compatible and separate.</p></div><span class="nfc-device-status-pill ${nfcStatusClass(profileLifecycle(card))}">${esc(profileLifecycle(card).toUpperCase())}</span></div>
-  <div class="nfc-client-overview"><article><span>Plan</span><strong>${esc(effectivePlan(card)==="Business"?"JMX Business":effectivePlan(card))}</strong></article><article><span>Profile ID</span><strong>${esc(card.profileId||card.admin?.profileId||"Legacy profile")}</strong></article><article><span>Total Devices</span><strong>${ds.length}</strong></article><article><span>NFC Batches</span><strong>${bs.length}</strong></article></div>
-  <div class="nfc-client-quick-actions"><button type="button" class="primary-button" data-client-create-batch><i class="fa-solid fa-plus"></i> Add NFC Devices</button><button type="button" class="secondary-button" data-client-assign-batch><i class="fa-solid fa-link"></i> Assign Existing Batch</button>${profileLifecycle(card)==="active"?'<button type="button" class="secondary-button" data-profile-lifecycle="suspended">Suspend Profile</button>':'<button type="button" class="secondary-button" data-profile-lifecycle="active">Reactivate Profile</button>'}<button type="button" class="secondary-button" data-profile-lifecycle="archived">Archive Profile</button></div>
-  <div class="nfc-client-device-summary">${types.map(t=>`<article><span>${esc(NFC_TYPE_LABELS[t])}</span><strong>${counts[t]||0}</strong></article>`).join("")}</div>
-  <h4>Client NFC Master Control</h4><div class="nfc-control-grid"><button type="button" class="nfc-control-button ${card.nfcDevicesEnabled===false?"off":""}" data-client-nfc-master data-client-nfc-master-state="${card.nfcDevicesEnabled===false?"off":"on"}"><span>All Official NFC Devices</span><strong>${card.nfcDevicesEnabled===false?"OFF":"ON"}</strong></button></div>
-  <h4>Device Type Controls — This Client Only</h4><div class="nfc-control-grid">${types.map(t=>{const on=card.nfcDeviceControls?.[t]!==false;return `<button type="button" class="nfc-control-button ${on?"":"off"}" data-client-nfc-type="${t}" data-client-nfc-state="${on?"on":"off"}"><span>${esc(NFC_TYPE_LABELS[t])}</span><strong>${on?"ON":"OFF"}</strong></button>`}).join("")}</div>
-  <h4>NFC Batches</h4><div class="nfc-device-mini-list">${bs.length?bs.map(b=>{const amount=nfcDevices.filter(d=>d.batchId===b.batchId).length;return `<div class="nfc-device-mini-row"><span><strong>${esc(b.batchId)}</strong><small>${amount} ${esc(NFC_TYPE_LABELS[b.deviceType]||b.deviceType||"devices")} · ${esc(b.status||"available")}</small></span><span class="nfc-device-status-pill ${nfcStatusClass(b.status)}">${b.enabled===false?"OFF":"ON"}</span><button type="button" class="mini-button" data-client-open-batch="${esc(b.batchId)}">Open / Control</button></div>`}).join(""):'<p class="subtitle small">No NFC batches assigned yet.</p>'}</div>
-  <h4>Individual Devices</h4><div class="nfc-device-mini-list">${ds.slice(0,40).map(d=>`<div class="nfc-device-mini-row"><span><strong>${esc(d.deviceId)}</strong><small>${esc(NFC_TYPE_LABELS[d.deviceType]||d.deviceType)} · ${esc(d.batchId||"")}</small></span><span class="nfc-device-status-pill ${nfcStatusClass(d.lifecycleStatus||d.status)}">${esc(d.lifecycleStatus||d.status||"")}</span><button type="button" class="mini-button" data-client-open-device="${esc(d.deviceId)}">Open</button></div>`).join("")||'<p class="subtitle small">No Device-ID products assigned yet.</p>'}</div>
+  // Production UI is intentionally card-only. Legacy non-card Device-ID records are preserved in Firestore
+  // for compatibility/history, but they are not surfaced in the administrator interface.
+  const ds=nfcDevices.filter(d=>d.cardId===card.id&&d.deviceType==="card");
+  const bs=nfcBatches.filter(b=>b.cardId===card.id&&(b.deviceType||"card")==="card");
+  const cardControlOn=card.nfcDeviceControls?.card!==false;
+  return `<section class="detail-panel"><div class="nfc-client-section-title"><div><h3>Official JMX NFC Cards</h3><p class="subtitle small">Card-only Device-ID resolver layer. Existing URL cards, QR and Google Wallet remain compatible and separate.</p></div><span class="nfc-device-status-pill ${nfcStatusClass(profileLifecycle(card))}">${esc(profileLifecycle(card).toUpperCase())}</span></div>
+  <div class="nfc-client-overview"><article><span>Plan</span><strong>${esc(effectivePlan(card)==="Business"?"JMX Business":effectivePlan(card))}</strong></article><article><span>Profile ID</span><strong>${esc(card.profileId||card.admin?.profileId||"Legacy profile")}</strong></article><article><span>Total NFC Cards</span><strong>${ds.length}</strong></article><article><span>Card Batches</span><strong>${bs.length}</strong></article></div>
+  <div class="nfc-client-quick-actions"><button type="button" class="primary-button" data-client-create-batch><i class="fa-solid fa-plus"></i> Add NFC Cards</button><button type="button" class="secondary-button" data-client-assign-batch><i class="fa-solid fa-link"></i> Assign Existing Batch</button>${profileLifecycle(card)==="active"?'<button type="button" class="secondary-button" data-profile-lifecycle="suspended">Suspend Profile</button>':'<button type="button" class="secondary-button" data-profile-lifecycle="active">Reactivate Profile</button>'}<button type="button" class="secondary-button" data-profile-lifecycle="archived">Archive Profile</button></div>
+  <div class="nfc-client-device-summary"><article><span>NFC Cards</span><strong>${ds.length}</strong></article></div>
+  <h4>Client NFC Master Control</h4><div class="nfc-control-grid"><button type="button" class="nfc-control-button ${card.nfcDevicesEnabled===false?"off":""}" data-client-nfc-master data-client-nfc-master-state="${card.nfcDevicesEnabled===false?"off":"on"}"><span>All Official NFC Cards</span><strong>${card.nfcDevicesEnabled===false?"OFF":"ON"}</strong></button></div>
+  <h4>NFC Card Control — This Client Only</h4><div class="nfc-control-grid"><button type="button" class="nfc-control-button ${cardControlOn?"":"off"}" data-client-nfc-type="card" data-client-nfc-state="${cardControlOn?"on":"off"}"><span>NFC Cards</span><strong>${cardControlOn?"ON":"OFF"}</strong></button></div>
+  <h4>NFC Card Batches</h4><div class="nfc-device-mini-list">${bs.length?bs.map(b=>{const amount=nfcDevices.filter(d=>d.batchId===b.batchId&&d.deviceType==="card").length;return `<div class="nfc-device-mini-row"><span><strong>${esc(b.batchId)}</strong><small>${amount} NFC card${amount===1?"":"s"} · ${esc(b.status||"available")}</small></span><span class="nfc-device-status-pill ${nfcStatusClass(b.status)}">${b.enabled===false?"OFF":"ON"}</span><button type="button" class="mini-button" data-client-open-batch="${esc(b.batchId)}">Open / Control</button></div>`}).join(""):'<p class="subtitle small">No NFC card batches assigned yet.</p>'}</div>
+  <h4>Individual NFC Cards</h4><div class="nfc-device-mini-list">${ds.slice(0,40).map(d=>`<div class="nfc-device-mini-row"><span><strong>${esc(d.deviceId)}</strong><small>NFC Card · ${esc(d.batchId||"")}</small></span><span class="nfc-device-status-pill ${nfcStatusClass(d.lifecycleStatus||d.status)}">${esc(d.lifecycleStatus||d.status||"")}</span><button type="button" class="mini-button" data-client-open-device="${esc(d.deviceId)}">Open</button></div>`).join("")||'<p class="subtitle small">No NFC cards assigned yet.</p>'}</div>
   <div class="detail-wide inventory-note-detail"><span>Admin note</span><strong>${esc(card.admin?.notes||card.inventory?.notes||"—")}</strong><button class="inline-edit-note" type="button" data-client-admin-note><i class="fa-solid fa-pen"></i> Edit note</button></div></section>`
 }
 async function setProfileLifecycle(cardId,next){
@@ -1536,7 +1503,7 @@ async function setProfileLifecycle(cardId,next){
   await wb.commit();await loadCards();await loadNfcData();
 }
 function openAssignBatchChooser(cardId){
-  const available=nfcBatches.filter(b=>!b.cardId||b.cardId===cardId);
+  const available=nfcBatches.filter(b=>(b.deviceType||"card")==="card"&&(!b.cardId||b.cardId===cardId));
   const dialog=$("nfcDeviceDialog");$("nfcDeviceDialogTitle").textContent="Assign Existing Batch";$("nfcDeviceDialogSubtitle").textContent=`Select an unassigned batch for ${cardId}`;
   $("nfcDeviceDialogBody").innerHTML=`<div class="client-detail-grid"><section class="detail-panel"><label class="form-group"><span>Available NFC Batch</span><select id="nfcClientBatchChooser"><option value="">Choose batch</option>${available.map(b=>`<option value="${esc(b.batchId)}">${esc(b.batchId)} — ${esc(NFC_TYPE_LABELS[b.deviceType]||b.deviceType)} — ${Number(b.quantity||0)} devices</option>`).join("")}</select></label><p class="subtitle small">Existing Device IDs are preserved. Assignment changes only which profile the resolver opens.</p></section></div>`;
   $("nfcDeviceDialogActions").innerHTML='<button class="primary-button" data-confirm-client-batch>Assign Batch</button><button class="secondary-button" data-cancel-client-batch>Cancel</button>';dialog.showModal();
@@ -1556,7 +1523,7 @@ async function createNfcProfile(e){
   if(!fullName)return status.textContent="Customer Name is required.";if(!cardId||!profileId)return status.textContent="Card ID / Profile ID is missing.";
   button.disabled=true;button.textContent="Creating…";status.textContent="Creating digital profile and internal identifiers…";
   try{
-    if((await getDoc(doc(db,"cards",cardId))).exists())throw new Error("Card ID already exists. Press Random and try again.");
+if((await getDoc(doc(db,"cards",cardId))).exists())throw new Error("Card ID already exists. Press Random and try again.");
     const wb=writeBatch(db);const profile=blankProfile();profile.fullName=fullName;profile.company=company;profile.email=email;profile.phone=phone;profile.phoneRaw=phone;profile.profileId=profileId;
     wb.set(doc(db,"cards",cardId),{inventoryVersion:2,status:"activated",profileStatus:"active",profileId,creationMethod:"official-device-id-profile",plan,complimentaryPremium:false,complimentaryBusiness:false,subscription:{status:"none",source:"manual"},nfcStatus:"not-programmed",requiresActivationCode:false,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
     wb.set(doc(db,"profiles",cardId),profile);
@@ -1577,8 +1544,8 @@ async function setNfcDeviceLifecycle(deviceId,next){
 }
 async function openNfcDeviceDialog(deviceId){
   const d=nfcDevices.find(x=>x.deviceId===deviceId);if(!d)return;const batch=nfcBatches.find(x=>x.batchId===d.batchId),card=cards.find(x=>x.id===d.cardId),dialog=$("nfcDeviceDialog"),life=String(d.lifecycleStatus||d.status||"available").toLowerCase();
-  $("nfcDeviceDialogTitle").textContent=deviceId;$("nfcDeviceDialogSubtitle").textContent=`${NFC_TYPE_LABELS[d.deviceType]||d.deviceType}${d.material?` · ${d.material}`:""} · ${life}`;
-  $("nfcDeviceDialogBody").innerHTML=`<div class="client-detail-grid"><section class="detail-panel"><h3>Device</h3><div class="detail-list"><div><span>Device ID</span><strong class="nfc-copy-code">${esc(deviceId)}</strong></div><div><span>NFC Resolver URL</span><strong>${esc(nfcDeviceUrl(deviceId))}</strong></div><div><span>Activation Code</span><strong class="nfc-copy-code">${esc(batch?.activationCode||"—")}</strong></div><div><span>Plan</span><strong>${esc(card?effectivePlan(card):(d.plan||batch?.plan||"Basic"))}</strong></div><div><span>Lifecycle Status</span><strong>${esc(life.toUpperCase())}</strong></div><div><span>Encoding</span><strong>${esc(d.encodingStatus||"not-encoded")}</strong></div><div><span>Batch</span><strong>${esc(d.batchId||"—")}</strong></div><div><span>Client / Profile</span><strong>${esc(card?.profile?.fullName||card?.admin?.clientName||d.cardId||"Unassigned — customer activates later")}</strong></div><div><span>Private Admin Note</span><strong>${esc(d.notes||batch?.notes||"—")}</strong></div><div><span>Total taps</span><strong>${Number(d.tapCount||0).toLocaleString()}</strong></div></div><div id="nfcDeliveryKitQr" class="nfc-delivery-qr" hidden></div></section></div>`;
+  $("nfcDeviceDialogTitle").textContent=card?.profile?.fullName||d.notes||batch?.notes||"NFC Card";$("nfcDeviceDialogSubtitle").textContent=`${d.material||"NFC Card"} · ${life}`;
+  $("nfcDeviceDialogBody").innerHTML=`<div class="client-detail-grid"><section class="detail-panel"><h3>NFC Card</h3><div class="detail-list"><div><span>Plan</span><strong>${esc(card?effectivePlan(card):(d.plan||batch?.plan||"Basic"))}</strong></div><div><span>Status</span><strong>${esc(life.toUpperCase())}</strong></div><div><span>Client</span><strong>${esc(card?.profile?.fullName||card?.admin?.clientName||"Unassigned — customer activates later")}</strong></div><div><span>Private Note</span><strong>${esc(d.notes||batch?.notes||"—")}</strong></div><div><span>Total taps</span><strong>${Number(d.tapCount||0).toLocaleString()}</strong></div></div><details class="nfc-advanced-details"><summary>Advanced Details</summary><div class="detail-list"><div><span>Internal Device ID</span><strong class="break-anywhere">${esc(deviceId)}</strong></div><div><span>Resolver URL</span><strong class="break-anywhere">${esc(nfcDeviceUrl(deviceId))}</strong></div><div><span>Activation Code</span><strong>${esc(batch?.activationCode||"—")}</strong></div><div><span>Batch</span><strong>${esc(d.batchId||"—")}</strong></div><div><span>Encoding</span><strong>${esc(d.encodingStatus||"not-encoded")}</strong></div></div></details><div id="nfcDeliveryKitQr" class="nfc-delivery-qr" hidden></div></section></div>`;
   const canReactivate=["suspended","disabled"].includes(life),canSuspend=["active","pending","available"].includes(life);
   $("nfcDeviceDialogActions").innerHTML=`<button class="primary-button" data-nfc-copy-url>Copy NFC URL</button><button class="secondary-button" data-delivery-kit>Delivery Kit</button>${canReactivate?'<button class="secondary-button" data-device-life="active">Reactivate</button>':""}${canSuspend?'<button class="secondary-button" data-device-life="suspended">Suspend</button>':""}${!["lost","stolen","replaced","retired","archived"].includes(life)?'<button class="danger-button" data-device-life="lost">Lost</button><button class="danger-button" data-device-life="stolen">Stolen</button>':""}${!["replaced","retired","archived"].includes(life)?'<button class="secondary-button" data-replace-device>Replace Device</button><button class="secondary-button" data-device-life="retired">Retire</button>':""}${life!=="archived"?'<button class="secondary-button" data-device-life="archived">Archive</button>':""}${batch?`<button class="secondary-button" data-open-batch="${esc(batch.batchId)}">Open Batch</button>`:""}`;
   dialog.showModal();
@@ -1587,21 +1554,193 @@ async function openNfcDeviceDialog(deviceId){
   dialog.querySelectorAll("[data-device-life]").forEach(b=>b.onclick=async()=>{await setNfcDeviceLifecycle(deviceId,b.dataset.deviceLife);dialog.close()});dialog.querySelector("[data-open-batch]")?.addEventListener("click",()=>{dialog.close();openNfcBatchDetails(batch.batchId)});dialog.querySelector("[data-replace-device]")?.addEventListener("click",async()=>{dialog.close();await replaceNfcDevice(deviceId)})
 }
 
+const returnNfcCardToInventoryCall=httpsCallable(functions,"returnNfcCardToInventory");
+const deleteNfcClientCardCall=httpsCallable(functions,"deleteNfcClientCard");
+async function returnNfcClientCardToInventory(cardId){
+  const linked=nfcDevices.filter(d=>d.cardId===cardId&&d.deviceType==="card");
+  if(!linked.length)return alert("No hay una tarjeta NFC vinculada a este cliente.");
+  if(linked.length!==1)return alert("Este cliente tiene más de una tarjeta NFC vinculada. Revise los detalles antes de devolver una tarjeta al inventario.");
+  if(!confirm("¿Devolver esta tarjeta NFC al inventario Disponible? Se eliminará la vinculación con el cliente."))return;
+  if(!confirm("CONFIRMACIÓN FINAL: el código de activación anterior dejará de funcionar y se generará uno nuevo. ¿Continuar?"))return;
+  try{
+    const result=(await returnNfcCardToInventoryCall({cardId,deviceId:linked[0].deviceId})).data;
+    await loadNfcData();
+    $("clientDetailDialog")?.close();
+    alert(`Tarjeta devuelta a Disponible. Nuevo código de activación: ${result?.activationCode||"generado"}`);
+  }catch(e){console.error(e);alert(e?.message||"No se pudo devolver la tarjeta al inventario.");}
+}
+async function deleteNfcClientCard(cardId){
+  const linked=nfcDevices.filter(d=>d.cardId===cardId&&d.deviceType==="card");
+  if(!linked.length)return alert("No hay una tarjeta NFC vinculada a este cliente.");
+  if(linked.length!==1)return alert("Este cliente tiene más de una tarjeta NFC vinculada. Revise los detalles antes de eliminar.");
+  if(!confirm("¿Está seguro de que desea eliminar este cliente y su tarjeta NFC?"))return;
+  if(!confirm("Esta acción es permanente. ¿Está completamente seguro?"))return;
+  try{
+    await deleteNfcClientCardCall({cardId,deviceId:linked[0].deviceId});
+    await loadNfcData();
+    $("clientDetailDialog")?.close();
+    alert("Cliente y tarjeta NFC eliminados permanentemente.");
+  }catch(e){console.error(e);alert(e?.message||"No se pudo eliminar el cliente y la tarjeta NFC.");}
+}
 function initNfcDeviceCenter(){
   $("newNfcDeviceButton")?.addEventListener("click",openNfcQuickDeviceCreate);$("closeNfcQuickDeviceDialog")?.addEventListener("click",()=>$("nfcQuickDeviceDialog")?.close());$("cancelNfcQuickDeviceButton")?.addEventListener("click",()=>$("nfcQuickDeviceDialog")?.close());$("nfcQuickDeviceForm")?.addEventListener("submit",createNfcQuickDevice);
   $("newNfcProfileButton")?.addEventListener("click",()=>{prepareNfcProfileDialog();$("nfcProfileDialog")?.showModal()});$("closeNfcProfileDialog")?.addEventListener("click",()=>$("nfcProfileDialog")?.close());$("cancelNfcProfileButton")?.addEventListener("click",()=>$("nfcProfileDialog")?.close());$("nfcProfileForm")?.addEventListener("submit",createNfcProfile);$("regenerateNfcProfileCardId")?.addEventListener("click",()=>{const id=randomCode();$("nfcProfileCardId").value=id;$("nfcProfileUrlPreview").textContent=friendlyUrl(id)});
-  $("newNfcBatchButton")?.addEventListener("click",openNfcBatchCreate);$("closeNfcBatchDialog")?.addEventListener("click",()=>$("nfcBatchDialog")?.close());$("cancelNfcBatchButton")?.addEventListener("click",()=>$("nfcBatchDialog")?.close());$("nfcBatchForm")?.addEventListener("submit",createNfcBatch);$("regenerateBatchId")?.addEventListener("click",()=>$("nfcBatchId").value=nfcRandom("BATCH",8));$("regenerateBatchActivation")?.addEventListener("click",()=>$("nfcBatchActivationCode").value=nfcRandom("ACT",8));$("closeNfcDeviceDialog")?.addEventListener("click",()=>$("nfcDeviceDialog")?.close());$("closeNfcEncoderDialog")?.addEventListener("click",()=>$("nfcEncoderDialog")?.close());$("nfcEncoderDialog")?.addEventListener("click",e=>{if(e.target===$("nfcEncoderDialog"))$("nfcEncoderDialog").close()});$("copyNfcEncoderUrl")?.addEventListener("click",()=>copyText($("nfcEncoderUrl")?.value||""));$("nfcEncoderPrevious")?.addEventListener("click",()=>{if(nfcEncoderIndex>0){nfcEncoderIndex--;renderNfcEncoder()}});$("nfcEncoderMarkNext")?.addEventListener("click",()=>markCurrentNfcEncoded(true));$("nfcEncoderVerify")?.addEventListener("click",verifyCurrentNfcDevice);$("nfcEncoderMarkError")?.addEventListener("click",async()=>{const d=nfcBatchDevices(nfcEncoderBatchId)[nfcEncoderIndex];if(d)await updateNfcEncoding(d.deviceId,"error")});$("nfcDeviceDialog")?.addEventListener("click",e=>{if(e.target===$("nfcDeviceDialog"))$("nfcDeviceDialog").close()});document.querySelectorAll("[data-nfc-expand]").forEach(b=>b.addEventListener("click",()=>expandNfcBox(b.dataset.nfcExpand)));["nfcCardsSearch","nfcStickersSearch","nfcOtherSearch","nfcBatchesSearch","nfcBasicClientsSearch","nfcPremiumClientsSearch","nfcBusinessClientsSearch"].forEach(id=>$(id)?.addEventListener("input",renderNfcCenter));let timer;$("nfcGlobalSearch")?.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(renderNfcGlobalSearch,220)});$("nfcGlobalSearchButton")?.addEventListener("click",renderNfcGlobalSearch);document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNfcExpanded()});
+  $("newNfcBatchButton")?.addEventListener("click",openNfcBatchCreate);$("closeNfcBatchDialog")?.addEventListener("click",()=>$("nfcBatchDialog")?.close());$("cancelNfcBatchButton")?.addEventListener("click",()=>$("nfcBatchDialog")?.close());$("nfcBatchForm")?.addEventListener("submit",createNfcBatch);$("regenerateBatchId")?.addEventListener("click",()=>$("nfcBatchId").value=nfcRandom("BATCH",8));$("regenerateBatchActivation")?.addEventListener("click",()=>$("nfcBatchActivationCode").value=nfcRandom("ACT",8));$("closeNfcDeviceDialog")?.addEventListener("click",()=>$("nfcDeviceDialog")?.close());$("closeNfcEncoderDialog")?.addEventListener("click",()=>$("nfcEncoderDialog")?.close());$("nfcEncoderDialog")?.addEventListener("click",e=>{if(e.target===$("nfcEncoderDialog"))$("nfcEncoderDialog").close()});$("copyNfcEncoderUrl")?.addEventListener("click",()=>copyText($("nfcEncoderUrl")?.value||""));$("nfcEncoderPrevious")?.addEventListener("click",()=>{if(nfcEncoderIndex>0){nfcEncoderIndex--;renderNfcEncoder()}});$("nfcEncoderMarkNext")?.addEventListener("click",()=>markCurrentNfcEncoded(true));$("nfcEncoderVerify")?.addEventListener("click",verifyCurrentNfcDevice);$("nfcEncoderMarkError")?.addEventListener("click",async()=>{const d=nfcBatchDevices(nfcEncoderBatchId)[nfcEncoderIndex];if(d)await updateNfcEncoding(d.deviceId,"error")});$("nfcDeviceDialog")?.addEventListener("click",e=>{if(e.target===$("nfcDeviceDialog"))$("nfcDeviceDialog").close()});document.querySelectorAll("[data-nfc-expand]").forEach(b=>b.addEventListener("click",()=>expandNfcBox(b.dataset.nfcExpand)));["nfcAvailableCardsSearch","nfcSoldCardsSearch","nfcBasicClientsSearch","nfcPremiumClientsSearch","nfcBusinessClientsSearch"].forEach(id=>$(id)?.addEventListener("input",renderNfcCenter));let timer;$("nfcGlobalSearch")?.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(renderNfcGlobalSearch,220)});$("nfcGlobalSearchButton")?.addEventListener("click",renderNfcGlobalSearch);document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNfcExpanded()});
 }
 initNfcDeviceCenter();
-if(JMX_LOCAL_PREVIEW) renderNfcCenter();
 // load when authenticated; the existing admin check protects the collections in Firestore rules.
-if(!JMX_LOCAL_PREVIEW) onAuthStateChanged(auth, async currentUser=>{if(currentUser&&await isAdmin(currentUser).catch(()=>false))await loadNfcData()});
+onAuthStateChanged(auth, async currentUser=>{if(currentUser&&await isAdmin(currentUser).catch(()=>false))await loadNfcData()});
 
-const NFC_SETTING_TYPES=["card","sticker","keychain","bracelet","ring","plate","tag","other"];
+const NFC_SETTING_TYPES=["card"];
 let nfcDeviceSettings={enabled:true,global:{},Basic:{},Premium:{},Business:{}};
 function defaultNfcSettings(){const b=()=>Object.fromEntries(NFC_SETTING_TYPES.map(t=>[t,true]));return {enabled:true,global:b(),Basic:b(),Premium:b(),Business:b()}}
 function renderNfcSettings(){if(!$("nfcSettingsMatrix"))return;const d=defaultNfcSettings();nfcDeviceSettings={enabled:nfcDeviceSettings.enabled!==false,global:{...d.global,...(nfcDeviceSettings.global||{})},Basic:{...d.Basic,...(nfcDeviceSettings.Basic||{})},Premium:{...d.Premium,...(nfcDeviceSettings.Premium||{})},Business:{...d.Business,...(nfcDeviceSettings.Business||{})}};$("nfcSystemEnabled").checked=nfcDeviceSettings.enabled;$("nfcSettingsMatrix").innerHTML=["global","Basic","Premium","Business"].map(group=>`<section class="nfc-settings-column"><h4>${group==="global"?"GLOBAL":group==="Business"?"JMX Business":group}</h4>${NFC_SETTING_TYPES.map(t=>`<label class="nfc-settings-toggle"><span>${esc(NFC_TYPE_LABELS[t])}</span><input type="checkbox" data-nfc-setting-group="${group}" data-nfc-setting-type="${t}" ${nfcDeviceSettings[group]?.[t]!==false?"checked":""}></label>`).join("")}</section>`).join("")}
 async function loadNfcSettings(){try{const s=await getDoc(doc(db,"platform","nfcDeviceSettings"));nfcDeviceSettings=s.exists()?s.data():defaultNfcSettings();renderNfcSettings()}catch(e){console.error("NFC settings load failed",e)}}
 async function saveNfcSettings(){const status=$("nfcSettingsStatus");status.textContent="Saving…";const next=defaultNfcSettings();next.enabled=$("nfcSystemEnabled")?.checked!==false;document.querySelectorAll("[data-nfc-setting-group]").forEach(x=>next[x.dataset.nfcSettingGroup][x.dataset.nfcSettingType]=x.checked);try{await setDoc(doc(db,"platform","nfcDeviceSettings"),{...next,updatedAt:serverTimestamp()},{merge:true});nfcDeviceSettings=next;status.textContent="NFC controls saved."}catch(e){console.error(e);status.textContent="Could not save NFC controls."}}
 $("saveNfcDeviceSettings")?.addEventListener("click",saveNfcSettings);
-if(!JMX_LOCAL_PREVIEW) onAuthStateChanged(auth,async currentUser=>{if(currentUser&&await isAdmin(currentUser).catch(()=>false))await loadNfcSettings()});
+onAuthStateChanged(auth,async currentUser=>{if(currentUser&&await isAdmin(currentUser).catch(()=>false))await loadNfcSettings()});
+
+
+/* Sep 2026 — reusable desktop contextual help tooltips (hover/focus only) */
+(function initJmxAdminTooltips(){
+  const finePointer=()=>window.matchMedia?.("(hover: hover) and (pointer: fine)").matches===true;
+  const featureHelp={
+    description:"Muestra u oculta la descripción del perfil o negocio en la tarjeta digital pública.",
+    saveContact:"Muestra u oculta Guardar contacto, para que un visitante pueda guardar los datos del cliente en su teléfono.",
+    quickActions:"Muestra u oculta las acciones rápidas del perfil, como los accesos de contacto que estén habilitados.",
+    phone:"Muestra u oculta la acción del teléfono principal en la tarjeta digital.",
+    phone2:"Permite mostrar u ocultar un segundo número de teléfono en la tarjeta digital.",
+    whatsapp:"Muestra u oculta la acción de WhatsApp en la tarjeta digital.",
+    email:"Muestra u oculta la acción de correo electrónico en la tarjeta digital.",
+    website:"Muestra u oculta la sección o enlace de sitio web en la tarjeta digital.",
+    location:"Muestra u oculta la ubicación o dirección del cliente en la tarjeta digital.",
+    facebook:"Muestra u oculta el enlace de Facebook en la tarjeta digital.",
+    instagram:"Muestra u oculta el enlace de Instagram en la tarjeta digital.",
+    linkedin:"Muestra u oculta el enlace de LinkedIn en la tarjeta digital.",
+    twitter:"Muestra u oculta el enlace de X / Twitter en la tarjeta digital.",
+    tiktok:"Muestra u oculta el enlace de TikTok en la tarjeta digital.",
+    youtube:"Muestra u oculta el enlace de YouTube en la tarjeta digital.",
+    services:"Muestra u oculta la sección Servicios del perfil.",
+    gallery:"Muestra u oculta la Galería de Fotos del perfil.",
+    video:"Muestra u oculta la sección de video destacado del perfil.",
+    qr:"Muestra u oculta el código QR del perfil.",
+    customQR:"Permite o bloquea las opciones para personalizar el código QR.",
+    qrDownload:"Permite o bloquea la descarga del código QR.",
+    finalCTA:"Muestra u oculta la llamada a la acción final del perfil.",
+    businessLinks:"Muestra u oculta los enlaces comerciales adicionales del perfil.",
+    catalog:"Permite o bloquea la sección de catálogo o PDF.",
+    customBusiness:"Muestra u oculta el enlace comercial personalizado.",
+    analytics:"Permite o bloquea el acceso a las analíticas estándar.",
+    advancedAnalytics:"Permite o bloquea las analíticas avanzadas.",
+    quickCapture:"Muestra u oculta el formulario Quick Capture para captar prospectos.",
+    leads:"Permite o bloquea Leads / Mis Contactos para administrar prospectos capturados.",
+    contactNotes:"Permite o bloquea las notas de contactos.",
+    meetingNotes:"Permite o bloquea las notas de reuniones.",
+    followUp:"Permite o bloquea las herramientas de seguimiento de contactos.",
+    csvExport:"Permite o bloquea la exportación de contactos o leads en formato CSV.",
+    vcfDownload:"Permite o bloquea la descarga de contactos en formato VCF/vCard.",
+    contactMap:"Permite o bloquea el módulo Mapa de Contactos cuando la integración esté disponible.",
+    aiScanner:"Permite o bloquea el Escáner de Tarjetas de Presentación con IA.",
+    autoIntroEmail:"Permite o bloquea el correo automático de presentación cuando la integración esté disponible.",
+    appleWallet:"Permite o bloquea Apple Wallet cuando la integración esté disponible.",
+    googleWallet:"Permite o bloquea el acceso del propietario a Google Wallet.",
+    googleWalletThemes:"Permite o bloquea la personalización de temas de Google Wallet.",
+    qrCardThemes:"Permite o bloquea la personalización de temas de la tarjeta QR.",
+    profileThemes:"Permite o bloquea la personalización de colores/temas del perfil.",
+    brandingRemoval:"Permite o bloquea la opción de retirar el branding de JMX cuando corresponda.",
+    advancedNetworkingInsights:"Permite o bloquea las herramientas avanzadas de información de networking cuando estén disponibles."
+  };
+  const exact={
+    newNfcProfileButton:"Crea manualmente un nuevo perfil de cliente JMX. Después se puede vincular una tarjeta NFC física.",
+    newNfcDeviceButton:"Crea una nueva tarjeta NFC física y la agrega al inventario disponible.",
+    newNfcBatchButton:"Crea varias tarjetas NFC a la vez y las agrega al inventario disponible.",
+    newCardButton:"Crea una nueva tarjeta en el inventario.",
+    nfcGlobalSearch:"Busca clientes y tarjetas NFC por nombre, empresa, correo, teléfono o identificadores administrativos.",
+    nfcGlobalSearchButton:"Ejecuta la búsqueda de clientes y tarjetas NFC.",
+    searchCards:"Busca inventario y clientes por nombre, código, URL, correo, teléfono, plan, fecha o notas.",
+    masterSearchButton:"Busca en todo el inventario y los clientes.",
+    nfcSystemEnabled:"Activa o desactiva globalmente el sistema oficial de tarjetas NFC con ID.",
+    featureControlsEnabled:"Activa o desactiva las reglas avanzadas de control de funciones.",
+    showFeaturePanels:"Muestra u oculta en el administrador los paneles de switches Global, Basic, Premium y JMX Business.",
+    premiumEnabled:"Muestra u oculta el plan Premium en el sitio público.",billingEnabled:"Activa o desactiva el checkout de suscripciones.",privacyRequired:"Exige aceptar la privacidad antes de completar un pago.",
+    businessEnabled:"Muestra u oculta JMX Business en el sitio público.",businessPoliciesReady:"Marca las políticas de JMX Business como listas/aprobadas.",
+    aiKillSwitch:"Permite o bloquea globalmente los servicios externos de IA/OCR.",logoutButton:"Cierra la sesión del administrador JMX.",dashboardGoogleLogin:"Inicia sesión en el administrador con Google.",loginButton:"Inicia sesión en el administrador.",
+    closeCardDialog:"Cierra esta ventana.",closeClientDetailDialog:"Cierra la ventana del cliente.",closeNfcProfileDialog:"Cierra esta ventana.",closeNfcQuickDeviceDialog:"Cierra esta ventana.",closeNfcBatchDialog:"Cierra esta ventana.",closeNfcEncoderDialog:"Cierra esta ventana.",closeNfcDeviceDialog:"Cierra esta ventana."
+  };
+  const actionHelp={
+    "mark-sold":"Marca esta tarjeta como vendida y la mueve de Disponible a Vendida / esperando activación.",
+    "delivery-kit":"Abre la información de entrega y activación necesaria para entregar esta tarjeta al cliente.",
+    suspend:"Suspende temporalmente esta tarjeta NFC sin borrar el perfil ni los datos del cliente.",
+    reactivate:"Vuelve a habilitar una tarjeta o perfil que estaba suspendido.",
+    replace:"Reemplaza la tarjeta NFC física conservando el perfil digital del cliente.",
+    return:"Desvincula al cliente, invalida el código anterior, genera uno nuevo y devuelve la tarjeta a Disponible.",
+    delete:"Inicia la eliminación permanente protegida por confirmaciones.",
+    view:"Abre los detalles administrativos de este registro.",edit:"Abre la edición de este registro.",history:"Muestra el historial de esta tarjeta o cliente.",analytics:"Muestra las analíticas disponibles para esta tarjeta o cliente."
+  };
+  const clean=s=>(s||"").replace(/\s+/g," ").trim();
+  function scopeText(el){
+    const group=el.closest?.("[data-feature-panel]")?.dataset.featurePanel||el.dataset?.group||el.dataset?.nfcSettingGroup;
+    if(group==="global")return " Este control aplica a todos los planes; si se apaga globalmente, bloquea esta función aunque un plan la tenga encendida.";
+    if(group==="Basic")return " Este control aplica a clientes Basic.";
+    if(group==="Premium")return " Este control aplica a clientes Premium.";
+    if(group==="Business")return " Este control aplica a clientes JMX Business.";
+    return "";
+  }
+  function featureText(k,el){return (featureHelp[k]||`Controla la función ${k}.`)+scopeText(el)}
+  function helpFor(el){
+    if(!el)return "";if(el.dataset?.tooltip)return el.dataset.tooltip;if(exact[el.id])return exact[el.id];
+    const featureRow=el.closest?.("[data-feature]");if(featureRow)return featureText(featureRow.dataset.feature,featureRow);
+    const clientFeature=el.closest?.("[data-client-feature], [data-client-feature-select]");if(clientFeature){const k=clientFeature.dataset.clientFeature||clientFeature.dataset.clientFeatureSelect;return (featureHelp[k]||"Controla esta función.")+" Este override afecta solamente a este cliente; si se deja en Heredar, sigue la configuración normal de su plan."}
+    const nfcSetting=el.closest?.("[data-nfc-setting-group]");if(nfcSetting)return "Activa o desactiva las tarjetas NFC físicas con ID para este nivel de control."+scopeText(nfcSetting);
+    if(el.matches?.("[data-feature-expand],[data-panel-expand],[data-nfc-expand]"))return el.getAttribute("aria-expanded")==="true"?"Contrae esta sección.":"Expande esta sección para ver más controles o registros.";
+    if(el.matches?.("[data-nfc-copy-url]"))return "Copia la URL única que utiliza esta tarjeta NFC para resolver y abrir el perfil correspondiente.";
+    if(el.matches?.("[data-delivery-kit]"))return actionHelp["delivery-kit"];
+    if(el.matches?.('[data-device-life="lost"]'))return "Marca esta tarjeta física como perdida y la saca del uso normal hasta que el administrador cambie su estado o la reemplace.";
+    if(el.matches?.('[data-device-life="stolen"]'))return "Marca esta tarjeta física como robada y deshabilita su uso normal.";
+    if(el.matches?.('[data-device-life="retired"]'))return "Retira permanentemente esta tarjeta física del servicio normal y conserva su historial administrativo.";
+    if(el.matches?.('[data-device-life="archived"]'))return "Archiva el registro de esta tarjeta para quitarla de la operación normal, conservando su historial.";
+    if(el.matches?.("[data-replace-device]"))return actionHelp.replace;
+    if(el.matches?.("[data-open-batch]"))return "Abre el lote al que pertenece esta tarjeta NFC.";
+    if(el.matches?.("[data-nfc-client-action=return]"))return actionHelp.return;
+    if(el.matches?.("[data-nfc-client-action=delete]"))return "Elimina permanentemente este cliente y su tarjeta NFC después de dos confirmaciones.";
+    if(el.matches?.("[data-open-linked-nfc]"))return "Abre los detalles administrativos de la tarjeta NFC física vinculada a este cliente.";
+    for(const [key,text] of Object.entries(actionHelp)){if(el.matches?.(`[data-${key}], [data-dialog-action="${key}"], [data-nfc-client-action="${key}"], [data-device-life="${key}"]`))return text}
+    const txt=clean(el.getAttribute?.("aria-label")||el.textContent||el.placeholder);
+    if(!txt)return "";
+    if(/delete permanently|eliminar permanentemente/i.test(txt))return "Elimina permanentemente este registro después de las confirmaciones requeridas.";
+    if(/return.*inventory|devolver.*inventario/i.test(txt))return actionHelp.return;
+    if(/replace|reemplazar/i.test(txt))return actionHelp.replace;
+    if(/suspend profile|suspender perfil/i.test(txt))return "Suspende temporalmente el perfil completo del cliente sin borrar sus datos.";
+    if(/archive profile|perfil de archivo|archivar perfil/i.test(txt))return "Archiva el perfil administrativo del cliente conservando su historial.";
+    if(/suspend|suspender/i.test(txt))return actionHelp.suspend;
+    if(/reactivate|reactivar|enable|habilitar/i.test(txt))return "Vuelve a habilitar esta función, tarjeta o perfil según el control seleccionado.";
+    if(/disable|deshabilitar/i.test(txt))return "Deshabilita temporalmente esta función o elemento según el control seleccionado.";
+    if(/save|guardar/i.test(txt))return "Guarda estos cambios.";
+    if(/copy|copiar/i.test(txt))return "Copia este valor al portapapeles.";
+    if(/random|regenerar/i.test(txt))return "Genera un nuevo valor aleatorio para este campo.";
+    if(/cancel|cancelar/i.test(txt))return "Cancela y cierra sin completar esta acción.";
+    if(/close|cerrar|×|^x$/i.test(txt))return "Cierra esta ventana.";
+    if(/search|buscar/i.test(txt))return "Busca registros que coincidan con la información escrita.";
+    if(/view all|ver todos/i.test(txt))return "Muestra todos los registros de esta sección.";
+    if(/add.*nfc|añadir.*nfc/i.test(txt))return "Permite agregar o asignar tarjetas NFC con ID adicionales a este cliente.";
+    if(/assign.*batch|asignar.*lote/i.test(txt))return "Permite asignar a este cliente tarjetas de un lote NFC de tarjetas existente.";
+    if(/open profile|abrir perfil/i.test(txt))return "Abre el perfil público de este cliente.";
+    if(/edit profile|editar perfil/i.test(txt))return "Abre el editor del perfil de este cliente.";
+    if(/copy.*recover|recover url|recuperar url/i.test(txt))return "Copia o recupera la URL pública de este perfil.";
+    if(/create|crear/i.test(txt))return `${txt}. Abre el formulario para realizar esta acción.`;
+    if(el.matches?.('input[type="checkbox"]')){const label=clean(el.closest("label")?.querySelector("span,strong")?.textContent||el.closest("label")?.textContent);return label?`Activa o desactiva ${label}.`:"Activa o desactiva esta opción."}
+    if(el.matches?.("button,[role=button],select,input[type=search]"))return `${txt}.`;
+    return "";
+  }
+  let tip=null,timer=null,current=null;
+  function ensure(){if(tip)return tip;tip=document.createElement("div");tip.className="jmx-admin-tooltip";tip.setAttribute("role","tooltip");tip.id="jmxAdminTooltip";document.body.appendChild(tip);return tip}
+  function targetFrom(node){return node?.closest?.('[data-tooltip],button,input[type="checkbox"],input[type="search"],select,[role="button"],[data-feature],[data-client-feature],[data-client-feature-select],[data-nfc-setting-group],summary')||null}
+  function place(el){const t=ensure(),r=el.getBoundingClientRect(),tr=t.getBoundingClientRect(),gap=9;let left=r.left+(r.width-tr.width)/2;left=Math.max(8,Math.min(left,innerWidth-tr.width-8));let top=r.top-tr.height-gap;if(top<8)top=Math.min(innerHeight-tr.height-8,r.bottom+gap);t.style.left=`${Math.round(left)}px`;t.style.top=`${Math.round(top)}px`}
+  function show(el){if(!finePointer())return;const text=helpFor(el);if(!text)return;current=el;clearTimeout(timer);timer=setTimeout(()=>{if(current!==el)return;const t=ensure();t.textContent=text;t.classList.add("is-visible");requestAnimationFrame(()=>place(el));el.setAttribute("aria-describedby","jmxAdminTooltip")},300)}
+  function hide(el){clearTimeout(timer);if(el&&el.getAttribute?.("aria-describedby")==="jmxAdminTooltip")el.removeAttribute("aria-describedby");current=null;if(tip)tip.classList.remove("is-visible")}
+  document.addEventListener("pointerover",e=>{const el=targetFrom(e.target);if(el&&el!==current)show(el)});
+  document.addEventListener("pointerout",e=>{const el=targetFrom(e.target);if(el&&!el.contains(e.relatedTarget))hide(el)});
+  document.addEventListener("focusin",e=>{const el=targetFrom(e.target);if(el)show(el)});
+  document.addEventListener("focusout",e=>{const el=targetFrom(e.target);if(el)hide(el)});
+  window.addEventListener("scroll",()=>{if(current&&tip?.classList.contains("is-visible"))place(current)},true);window.addEventListener("resize",()=>{if(current&&tip?.classList.contains("is-visible"))place(current)});
+})();

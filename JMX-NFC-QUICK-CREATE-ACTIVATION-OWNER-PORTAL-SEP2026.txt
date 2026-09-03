@@ -1,0 +1,20 @@
+JMX Digital Card — Quick Device-ID Creation + Customer Activation Update
+
+Implemented:
+- Quick Create NFC Device: type/material + plan + optional private admin note only.
+- Automatic Device ID, one-device Batch ID, Activation Code, NFC resolver URL.
+- New unassigned devices start pending activation and not encoded.
+- Pending /d/DEVICE-ID routes to customer activation instead of dead-end waiting message.
+- Activation code is validated against that specific one-device batch before Google sign-in.
+- Google claim creates a normal cards/profile/cardOwners/cardAdmin set and links the Device ID.
+- Customer is redirected to the existing private admin.html?card= editor, preserving Basic/Premium/Business feature locks and switches.
+- /login is the fixed owner access point (GitHub/Firebase routing to login.html); a single owned card now opens its editor directly.
+- Device details now show activation code, plan, private note and a Delivery Kit with activation QR/link + login link.
+- Global Device search includes customer profile data, device/batch IDs, activation code, plan, material and private note.
+- Existing URL/Card ID activation, existing batch creation, lifecycle controls, analytics and Wallet code were preserved.
+
+Deployment required:
+- GitHub Pages/static frontend: YES (dashboard.html/js, device.html/js, device-activate.html/js, login.js).
+- Firebase Functions: YES (resolveNfcDevice update + validateNfcActivation + activateNfcDevice).
+- Firestore Rules: NO changes required for this implementation; trusted activation writes use Admin SDK.
+- Firebase Hosting: only if you continue mirroring static frontend there.

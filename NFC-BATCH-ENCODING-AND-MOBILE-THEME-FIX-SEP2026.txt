@@ -1,0 +1,28 @@
+JMX DIGITAL CARD — UPDATE SEP 1 2026
+
+Implemented on top of the NFC Hybrid Local Preview build.
+
+1) NFC batch production / encoding workflow
+- Every device keeps a unique Device ID and production URL: https://jmxdigitalcard.com/d/DEVICE-ID
+- New Program / Continue Devices action inside each batch.
+- Current device number, Device ID, Batch ID, type, encoding status, URL and progress are shown.
+- Copy NFC URL button for NFC Tools / external NFC writer software.
+- Mark Encoded & Next, Previous, Verify and Encoding Error controls.
+- Encoding state is persistent in Firebase in production and simulated only in Local Preview.
+- Pause/resume starts at the first device not yet encoded/verified.
+- Batch CSV export includes Batch ID, device number/type/ID, resolver URL, status, encoding status, profile and encoded date.
+- No fake direct USB writer behavior was added. Manual mode is explicit until compatible writer hardware/software is integrated.
+- Local Preview can create simulated batches in memory without changing Firebase, so the workflow can be inspected with Live Server.
+
+2) Mobile QR Card Themes fix
+- The Save Changes button inside the expanded theme modal is hidden on mobile so it cannot cover theme tiles.
+- Selecting a theme updates the preview and the selection remains after closing the modal.
+- X / backdrop close the theme modal without discarding the pending selection.
+- The user then saves through the normal editor Save Changes flow.
+- Safe-area spacing was added for modern phone browser/navigation bars.
+- No artificial dead space is left by the hidden modal save action.
+
+Production deployment note
+- Front-end changes: dashboard.html, dashboard.js, dashboard.css, admin.js, admin.css.
+- Existing Firestore rules already restrict nfcDevices/nfcBatches writes to the administrator; no destructive rule reset was made.
+- No Firebase deployment has been performed from this package.

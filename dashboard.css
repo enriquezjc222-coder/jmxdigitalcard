@@ -466,3 +466,11 @@ body.feature-panel-open{overflow:hidden}
   .nfc-client-section-title{align-items:center}
   .nfc-profile-dialog{width:min(96vw,720px);max-height:94dvh}
 }
+
+/* Sep 2026 simplified NFC card administration */
+.nfc-simple-inventory-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0 18px}.nfc-simple-card-record{display:flex;align-items:center;justify-content:space-between;gap:10px}.nfc-simple-card-main{border:0;background:transparent;color:inherit;text-align:left;flex:1;cursor:pointer}.nfc-simple-card-actions{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:800px){.nfc-simple-inventory-board{grid-template-columns:1fr}}
+
+/* Sep 2026 — Desktop contextual help tooltips */
+.jmx-admin-tooltip{position:fixed;z-index:2147483000;max-width:min(330px,calc(100vw - 24px));padding:8px 10px;border-radius:8px;background:#0b0b0d;color:#fff;font-size:.78rem;font-weight:650;line-height:1.35;box-shadow:0 8px 28px rgba(0,0,0,.28);pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s ease,transform .12s ease;white-space:normal}
+.jmx-admin-tooltip.is-visible{opacity:1;transform:translateY(0)}
+@media (hover:none),(pointer:coarse){.jmx-admin-tooltip{display:none!important}}

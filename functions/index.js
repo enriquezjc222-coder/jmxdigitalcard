@@ -4,6 +4,7 @@ const {initializeApp, getApp} = require("firebase-admin/app");
 const {defineSecret} = require("firebase-functions/params");
 const {GoogleAuth} = require("google-auth-library");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const {getFirestore, Timestamp, FieldValue} = require("firebase-admin/firestore");
 const {getStorage} = require("firebase-admin/storage");
 
@@ -53,17 +54,12 @@ function mergeFeatureControls(raw = {}) {
   return {enabled: raw.enabled !== false, global: {...d.global, ...(raw.global || {})}, Basic: {...d.Basic, ...(raw.Basic || {})}, Premium: {...d.Premium, ...(raw.Premium || {})}, Business: {...d.Business, ...(raw.Business || {})}};
 }
 function featureAllows(card, publicSettings, key) {
-  const controls = mergeFeatureControls(publicSettings?.featureControls || {});
-  const plan = normalizePlan(card);
-  // GLOBAL -> PLAN -> CLIENT. A per-client value may restrict access but never
-  // bypass a platform-level or plan-level OFF setting.
-  if (controls.enabled === false) {
-    const baseAllowed = plan === "Business" || (plan === "Premium" && !new Set(["quickCapture","leads","advancedAnalytics"]).has(key)) || BASIC_FEATURE_DEFAULTS.has(key);
-    return baseAllowed && card?.featureOverrides?.[key] !== false;
-  }
+  const controls = mergeFeatureControls(publicSettings?.featureControls || {}), plan = normalizePlan(card);
   if (controls.global?.[key] === false) return false;
+  const override=card?.featureOverrides?.[key]; if(override===true)return true; if(override===false)return false;
+  if (controls.enabled === false) return plan === "Business" || (plan === "Premium" && !new Set(["quickCapture","leads","advancedAnalytics"]).has(key)) || BASIC_FEATURE_DEFAULTS.has(key);
   const bucket = plan === "Basic" ? controls.Basic : plan === "Business" ? controls.Business : controls.Premium;
-  return bucket?.[key] !== false && card?.featureOverrides?.[key] !== false;
+  return bucket?.[key] !== false;
 }
 async function isPlatformAdmin(uid) {
   const cfg = await db.doc("platform/config").get();
@@ -506,7 +502,7 @@ exports.resolveNfcDevice=onCall({timeoutSeconds:15},async request=>{
   const deviceId=safeString(request.data?.deviceId,80).toUpperCase().replace(/[^A-Z0-9_-]/g,"");if(!deviceId)throw new HttpsError("invalid-argument","Device ID is required.");
   const deviceSnap=await db.doc(`nfcDevices/${deviceId}`).get();if(!deviceSnap.exists)throw new HttpsError("not-found","This NFC device is not registered with JMX Digital Card.");const device=deviceSnap.data();
   if(device.enabled===false)throw new HttpsError("failed-precondition","This NFC device is currently disabled.");
-  if(device.status==="pending"&&!device.cardId)return {ok:true,pending:true,deviceId,deviceType:nfcDeviceType(device.deviceType),plan:["Basic","Premium","Business"].includes(device.plan)?device.plan:"Basic"};
+  if(["pending","available","sold"].includes(device.status)&&!device.cardId)return {ok:true,pending:true,deviceId,deviceType:nfcDeviceType(device.deviceType),plan:["Basic","Premium","Business"].includes(device.plan)?device.plan:"Basic"};
   if(device.status!=="active")throw new HttpsError("failed-precondition",device.status==="pending"?"This NFC device is waiting for activation.":"This NFC device is currently disabled.");
   if(!device.cardId)throw new HttpsError("failed-precondition","This NFC device is not assigned to a profile.");
   const [batchSnap,cardSnap]=await Promise.all([db.doc(`nfcBatches/${device.batchId}`).get(),db.doc(`cards/${device.cardId}`).get()]);if(!cardSnap.exists)throw new HttpsError("not-found","The linked JMX profile no longer exists.");const card=cardSnap.data();
@@ -532,6 +528,83 @@ exports.setNfcDeviceSettings=onCall({timeoutSeconds:30},async request=>{await as
 exports.getNfcDeviceSettings=onCall({timeoutSeconds:15},async request=>{await assertNfcAdmin(request);const s=await db.doc("platform/nfcDeviceSettings").get();return {ok:true,settings:s.exists?s.data():{}}});
 
 
+
+// Production NFC card lifecycle administration — Sep 2026.
+function nfcSecureCode(prefix="ACT-",length=10){
+  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes=crypto.randomBytes(length);
+  let out=prefix;
+  for(let i=0;i<length;i++)out+=chars[bytes[i]%chars.length];
+  return out;
+}
+async function nfcFreshActivationCode(){
+  for(let i=0;i<12;i++){
+    const code=nfcSecureCode("ACT-",10);
+    const q=await db.collection("nfcBatches").where("activationCode","==",code).limit(1).get();
+    if(q.empty)return code;
+  }
+  throw new HttpsError("resource-exhausted","Could not generate a unique activation code. Please try again.");
+}
+async function assertOfficialNfcCard(cardId,deviceId){
+  const [cardSnap,deviceSnap]=await Promise.all([db.doc(`cards/${cardId}`).get(),db.doc(`nfcDevices/${deviceId}`).get()]);
+  if(!cardSnap.exists)throw new HttpsError("not-found","The NFC client profile was not found.");
+  if(!deviceSnap.exists)throw new HttpsError("not-found","The NFC card was not found.");
+  const card=cardSnap.data(),device=deviceSnap.data();
+  if(device.deviceType!=="card"||device.cardId!==cardId)throw new HttpsError("failed-precondition","This physical NFC card is not linked to the requested client.");
+  if(!safeString(card.creationMethod,100).startsWith("official-device-id"))throw new HttpsError("failed-precondition","This action is restricted to clients created through the official NFC ID system.");
+  if(!device.batchId)throw new HttpsError("failed-precondition","This NFC card has no activation batch.");
+  const batchSnap=await db.doc(`nfcBatches/${device.batchId}`).get();
+  if(!batchSnap.exists)throw new HttpsError("failed-precondition","The NFC activation batch was not found.");
+  const batch=batchSnap.data();
+  if(Number(batch.quantity||1)!==1)throw new HttpsError("failed-precondition","This safety action currently requires a one-card activation batch.");
+  return {cardSnap,card,deviceSnap,device,batchSnap,batch};
+}
+async function deleteLegacyCardMedia(cardId){
+  const media=await db.collection(`cards/${cardId}/media`).get();
+  for(let i=0;i<media.docs.length;i+=200){const wb=db.batch();media.docs.slice(i,i+200).forEach(d=>wb.delete(d.ref));await wb.commit();}
+}
+exports.returnNfcCardToInventory=onCall({timeoutSeconds:60},async request=>{
+  await assertNfcAdmin(request);
+  const cardId=sanitizeCardId(request.data?.cardId),deviceId=safeString(request.data?.deviceId,80).toUpperCase().replace(/[^A-Z0-9_-]/g,"");
+  if(!cardId||!deviceId)throw new HttpsError("invalid-argument","Card ID and Device ID are required.");
+  const ctx=await assertOfficialNfcCard(cardId,deviceId),activationCode=await nfcFreshActivationCode(),now=Timestamp.now();
+  await db.runTransaction(async tx=>{
+    const [freshCard,freshDevice,freshBatch]=await Promise.all([tx.get(ctx.cardSnap.ref),tx.get(ctx.deviceSnap.ref),tx.get(ctx.batchSnap.ref)]);
+    if(!freshCard.exists||!freshDevice.exists||!freshBatch.exists)throw new HttpsError("failed-precondition","NFC data changed. Reload and try again.");
+    const d=freshDevice.data(),b=freshBatch.data();
+    if(d.cardId!==cardId||d.batchId!==ctx.batchSnap.id)throw new HttpsError("failed-precondition","The NFC card assignment changed. Reload and try again.");
+    if(Number(b.quantity||1)!==1)throw new HttpsError("failed-precondition","This action requires a one-card activation batch.");
+    tx.delete(db.doc(`cards/${cardId}`));
+    tx.delete(db.doc(`profiles/${cardId}`));
+    tx.delete(db.doc(`cardOwners/${cardId}`));
+    tx.delete(db.doc(`cardAdmin/${cardId}`));
+    tx.set(ctx.deviceSnap.ref,{cardId:null,status:"available",lifecycleStatus:"available",enabled:true,deviceEnabled:true,activatedAt:null,activatedByUid:null,updatedAt:now},{merge:true});
+    tx.set(db.doc(`nfcDevicePublic/${deviceId}`),{cardId:null,batchId:ctx.batchSnap.id,deviceType:"card",status:"available",enabled:true,updatedAt:now},{merge:true});
+    tx.set(ctx.batchSnap.ref,{cardId:null,status:"available",enabled:true,activationCode,activationCodeStatus:"unused",activatedAt:null,activatedByUid:null,rotatedAt:now,updatedAt:now},{merge:true});
+  });
+  await deleteLegacyCardMedia(cardId);
+  await db.collection("nfcDeviceEvents").add({event:"Returned To Inventory",deviceId,batchId:ctx.batchSnap.id,previousCardId:cardId,createdAt:now,adminUid:request.auth.uid});
+  return {ok:true,deviceId,batchId:ctx.batchSnap.id,activationCode,status:"available"};
+});
+exports.deleteNfcClientCard=onCall({timeoutSeconds:60},async request=>{
+  await assertNfcAdmin(request);
+  const cardId=sanitizeCardId(request.data?.cardId),deviceId=safeString(request.data?.deviceId,80).toUpperCase().replace(/[^A-Z0-9_-]/g,"");
+  if(!cardId||!deviceId)throw new HttpsError("invalid-argument","Card ID and Device ID are required.");
+  const ctx=await assertOfficialNfcCard(cardId,deviceId),now=Timestamp.now();
+  await db.runTransaction(async tx=>{
+    const [freshCard,freshDevice,freshBatch]=await Promise.all([tx.get(ctx.cardSnap.ref),tx.get(ctx.deviceSnap.ref),tx.get(ctx.batchSnap.ref)]);
+    if(!freshCard.exists||!freshDevice.exists||!freshBatch.exists)throw new HttpsError("failed-precondition","NFC data changed. Reload and try again.");
+    const d=freshDevice.data(),b=freshBatch.data();
+    if(d.cardId!==cardId||d.batchId!==ctx.batchSnap.id)throw new HttpsError("failed-precondition","The NFC card assignment changed. Reload and try again.");
+    if(Number(b.quantity||1)!==1)throw new HttpsError("failed-precondition","This action requires a one-card activation batch.");
+    tx.delete(db.doc(`cards/${cardId}`));tx.delete(db.doc(`profiles/${cardId}`));tx.delete(db.doc(`cardOwners/${cardId}`));tx.delete(db.doc(`cardAdmin/${cardId}`));
+    tx.delete(ctx.deviceSnap.ref);tx.delete(db.doc(`nfcDevicePublic/${deviceId}`));tx.delete(ctx.batchSnap.ref);
+  });
+  await deleteLegacyCardMedia(cardId);
+  await db.collection("nfcDeviceEvents").add({event:"NFC Client/Card Deleted",deviceId,batchId:ctx.batchSnap.id,previousCardId:cardId,createdAt:now,adminUid:request.auth.uid});
+  return {ok:true,deviceId,cardId};
+});
+
 // Individual Device-ID activation flow — Sep 2026.
 // A new device can be manufactured without customer data. The customer verifies
 // the device-specific activation code, signs in with Google, and only then is a
@@ -540,8 +613,9 @@ function nfcGeneratedId(prefix="",length=10){const chars="ABCDEFGHJKLMNPQRSTUVWX
 async function nfcActivationContext(deviceId,activationCode){
   const dref=db.doc(`nfcDevices/${deviceId}`),ds=await dref.get();if(!ds.exists)throw new HttpsError("not-found","This NFC device is not registered with JMX Digital Card.");const device=ds.data();
   if(device.enabled===false)throw new HttpsError("failed-precondition","This NFC device is currently disabled.");
-  if(device.status!=="pending"||device.cardId)throw new HttpsError("failed-precondition","This NFC device has already been activated or cannot be claimed.");
+  if(!["pending","available","sold"].includes(device.status)||device.cardId)throw new HttpsError("failed-precondition","This NFC device has already been activated or cannot be claimed.");
   if(!device.batchId)throw new HttpsError("failed-precondition","Activation information is missing for this device.");const bref=db.doc(`nfcBatches/${device.batchId}`),bs=await bref.get();if(!bs.exists)throw new HttpsError("failed-precondition","Activation batch is missing.");const batch=bs.data();
+  if(batch.enabled===false||["archived","disabled"].includes(safeString(batch.status||"",30).toLowerCase()))throw new HttpsError("failed-precondition","This NFC batch is disabled.");
   if(batch.activationCodeStatus&&batch.activationCodeStatus!=="unused")throw new HttpsError("failed-precondition","This activation code is no longer available.");
   if(safeString(batch.activationCode,80).toUpperCase()!==activationCode)throw new HttpsError("permission-denied","Activation code is incorrect for this NFC device.");
   if(Number(batch.quantity||1)!==1&&batch.activationMode==="individual-device")throw new HttpsError("failed-precondition","This individual activation code is not configured safely.");
@@ -552,7 +626,7 @@ exports.activateNfcDevice=onCall({timeoutSeconds:60},async request=>{
   if(!request.auth?.uid)throw new HttpsError("unauthenticated","Continue with Google before activating this NFC device.");const deviceId=safeString(request.data?.deviceId,80).toUpperCase().replace(/[^A-Z0-9_-]/g,"");const activationCode=safeString(request.data?.activationCode,80).toUpperCase();if(!deviceId||!activationCode)throw new HttpsError("invalid-argument","Device ID and Activation Code are required.");
   const ctx=await nfcActivationContext(deviceId,activationCode),now=Timestamp.now(),email=safeString(request.auth.token?.email||"",180).toLowerCase();
   let cardId="";for(let attempt=0;attempt<8&&!cardId;attempt++){const candidate=nfcGeneratedId("",8);if(!(await db.doc(`cards/${candidate}`).get()).exists)cardId=candidate}if(!cardId)throw new HttpsError("resource-exhausted","Could not allocate a JMX Card ID. Please try again.");const profileId=`PROF-${nfcGeneratedId("",10)}`;
-  await db.runTransaction(async tx=>{const [freshD,freshB]=await Promise.all([tx.get(ctx.dref),tx.get(ctx.bref)]);if(!freshD.exists||!freshB.exists)throw new HttpsError("failed-precondition","NFC activation data changed. Please retry.");const d=freshD.data(),b=freshB.data();if(d.status!=="pending"||d.cardId)throw new HttpsError("already-exists","This NFC device has already been activated.");if(safeString(b.activationCode,80).toUpperCase()!==activationCode||b.activationCodeStatus&&b.activationCodeStatus!=="unused")throw new HttpsError("permission-denied","Activation code is no longer valid.");
+  await db.runTransaction(async tx=>{const [freshD,freshB]=await Promise.all([tx.get(ctx.dref),tx.get(ctx.bref)]);if(!freshD.exists||!freshB.exists)throw new HttpsError("failed-precondition","NFC activation data changed. Please retry.");const d=freshD.data(),b=freshB.data();if(d.enabled===false)throw new HttpsError("failed-precondition","This NFC device is currently disabled.");if(!["pending","available","sold"].includes(d.status)||d.cardId)throw new HttpsError("already-exists","This NFC device has already been activated or cannot be claimed.");if(b.enabled===false||["archived","disabled"].includes(safeString(b.status||"",30).toLowerCase()))throw new HttpsError("failed-precondition","This NFC batch is disabled.");if(safeString(b.activationCode,80).toUpperCase()!==activationCode||b.activationCodeStatus&&b.activationCodeStatus!=="unused")throw new HttpsError("permission-denied","Activation code is no longer valid.");
     tx.set(db.doc(`cards/${cardId}`),{inventoryVersion:2,status:"activated",profileStatus:"active",profileId,creationMethod:"official-device-id-customer-activation",plan:ctx.plan,complimentaryPremium:false,complimentaryBusiness:false,subscription:{status:"none",source:"manual"},nfcStatus:"programmed",requiresActivationCode:false,createdAt:now,activatedAt:now,updatedAt:now});
     tx.set(db.doc(`profiles/${cardId}`),{fullName:"",company:"",email:"",phone:"",theme:"gold",visibility:{},createdAt:now,updatedAt:now});
     tx.set(db.doc(`cardOwners/${cardId}`),{ownerUid:request.auth.uid,ownerEmail:email,activatedAt:now,activationMethod:"official-device-id"});

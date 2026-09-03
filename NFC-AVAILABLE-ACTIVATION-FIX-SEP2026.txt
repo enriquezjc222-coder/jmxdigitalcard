@@ -1,0 +1,37 @@
+JMX DIGITAL CARD — NFC AVAILABLE ACTIVATION FIX — SEP 2026
+
+Modified file:
+- functions/index.js
+
+Verified/fixed:
+- resolveNfcDevice accepts pending OR available only when cardId is absent.
+- nfcActivationContext accepts pending OR available only when cardId is absent.
+- Final Firestore activation transaction now also accepts pending OR available.
+- Final transaction re-checks device enabled state.
+- Activation context and final transaction reject disabled/archived NFC batches.
+- Activation code remains required, must match, and must remain unused.
+- Existing transaction/race protection remains in place.
+- No Firestore Rules changes.
+- No Node/runtime upgrade.
+- No legacy /c/ route changes.
+- No frontend changes were necessary for this correction because device.js already follows the backend pending response.
+
+Static checks passed:
+- node --check functions/index.js
+- node --check device.js
+- node --check device-activate.js
+- node --check login.js
+- node --check dashboard.js
+
+HTML duplicate-ID review passed:
+- dashboard.html
+- device.html
+- device-activate.html
+
+Deployment needed after testing/review:
+- Firebase Functions: YES (functions/index.js changed)
+- GitHub Pages: NO code change required by this fix
+- Firestore Rules: NO
+- Firebase Hosting: NO static-hosting change required by this fix
+
+No deployment was performed automatically.

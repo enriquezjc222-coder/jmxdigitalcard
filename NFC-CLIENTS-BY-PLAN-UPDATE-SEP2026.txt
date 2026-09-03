@@ -1,0 +1,14 @@
+JMX DIGITAL CARD — NFC CLIENTS BY PLAN UPDATE — SEP 2026
+
+Added to Official JMX NFC Devices:
+- Separate compact client modules for Basic, Premium and JMX Business.
+- Each module shows a maximum of six client rows until expanded.
+- Each module has its own search field, total client count and expand/close control.
+- Expanded modules use internal scrolling and close via the existing X/expand control, backdrop click or Escape.
+- Global NFC search remains available above all three plan modules.
+- Opening a client shows client-specific Official NFC controls, device totals, batch totals, per-device-type ON/OFF controls, assigned batches and individual devices.
+- Batches can be opened from inside the client panel for batch-level controls.
+- Device inventory by Batches/Cards/Stickers/Other remains below as a separate inventory view.
+- Existing URL cards, QR, Google Wallet, Device-ID encoding workflow and mobile theme fix were not removed.
+
+No new Firestore schema is required for this visual grouping; it uses the existing card plan, nfcDevices and nfcBatches data already present in this version.

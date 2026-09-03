@@ -1,0 +1,57 @@
+JMX DIGITAL CARD — CLEAN PRODUCTION RELEASE — SEP 2026
+
+Purpose
+-------
+This build is based on the last approved production/tooltips ZIP and keeps the existing working JMX Digital Card architecture intact.
+
+Production UI simplification
+----------------------------
+- Official JMX NFC admin UI is card-only.
+- Keeps Create New Profile.
+- Keeps Create NFC Device.
+- Keeps Create NFC Batch.
+- Keeps the NFC global search button / magnifying glass.
+- Keeps Available NFC Cards.
+- Keeps Sold — Waiting for Activation.
+- Keeps Basic, Premium and JMX Business client lists.
+- Removes Sticker / Keychain / Bracelet / Ring / Plate / Tag type boxes and type controls from the visible client admin UI.
+- Existing legacy non-card Device-ID records are NOT deleted from Firestore. They remain preserved for history/compatibility but are hidden from the normal card-only admin workflow.
+
+Preserved functional systems
+----------------------------
+- Existing URL / Card ID cards and permanent /c/ URLs.
+- Official Device-ID /d/ resolver URLs.
+- Activation Code -> Google -> Claim -> Editor flow.
+- /login and /my-card GitHub Pages routing.
+- Available / Sold / Active lifecycle.
+- Return to Inventory with activation-code regeneration.
+- Protected permanent delete flow.
+- Replace / Suspend / Lost / Stolen / Retire / Archive controls.
+- Google Authentication and existing administrator authorization.
+- Google Wallet, QR, analytics, feature controls and Client Feature Overrides.
+- Global / Basic / Premium / JMX Business feature switches.
+- Specific Spanish desktop tooltips for feature switches and dynamic NFC/client modal controls.
+
+GitHub conflict prevention
+--------------------------
+The previous publishing problem happened because an older local Git repository was behind origin/main and had a separate local production commit. Git then tried to rebase two histories that modified the same dashboard/backend files.
+
+This ZIP intentionally contains NO .git directory.
+A helper script is included:
+  PREPARE-GITHUB-CLEAN.ps1
+
+It clones the CURRENT GitHub main branch into a new temporary folder, configures the repository-local author as enriquezjc222-coder, overlays this approved production build, and shows git status. It does NOT commit and does NOT push.
+
+Recommended author for this repo
+--------------------------------
+user.name  = enriquezjc222-coder
+user.email = 316862702+enriquezjc222-coder@users.noreply.github.com
+
+Deployment requirements
+-----------------------
+Frontend files changed: YES -> GitHub Pages/main must receive the final production commit.
+functions/index.js present with production NFC activation/return/delete backend: YES -> deploy Firebase Functions after GitHub review.
+Firestore rules: preserved from the supplied production build; do not deploy rules unless a deliberate rules diff is confirmed.
+Firebase Hosting static deploy: not required for jmxdigitalcard.com GitHub Pages frontend routing unless separately desired.
+
+No remote deployment was performed while preparing this ZIP.
