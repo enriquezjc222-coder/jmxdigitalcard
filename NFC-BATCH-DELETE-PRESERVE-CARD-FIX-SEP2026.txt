@@ -1,0 +1,13 @@
+JMX DIGITAL CARD — NFC BATCH DELETE / PRESERVE PRIMARY CARD
+
+Added an admin-only “Eliminar lote” action for every NFC batch shown inside a client and in the batch detail modal.
+
+Deletion behavior:
+- Permanently deletes the selected nfcBatches document.
+- Permanently deletes all nfcDevices belonging to that batch.
+- Permanently deletes matching nfcDevicePublic resolver documents.
+- Keeps the client cards document, profiles document, Card ID, permanent URL, QR, Google Wallet, ownership/admin data, and every other batch untouched.
+- Writes an NFC Batch Deleted audit event after deletion.
+- Requires two explicit confirmations and states exactly what is preserved.
+
+This is intended for accessory/product batches such as stickers, rings, keychains, wristbands, plates, and other NFC Device-ID products, including batches assigned before sale or activated later by the customer.

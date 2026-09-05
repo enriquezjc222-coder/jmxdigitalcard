@@ -1,0 +1,98 @@
+JMX DIGITAL CARD — NFC PROFILE + DEVICE LIFECYCLE UPDATE — SEP 2026
+
+SOURCE
+- Updated incrementally from: JMX-Digital-Card-2026-NFC-Hybrid-Clients-By-Plan-PRODUCTION(1).zip
+- Existing Basic/Premium/JMX Business, URL system, QR, Google Wallet, authentication, analytics, NFC batches and Device-ID resolver were preserved.
+
+WHAT WAS ADDED
+1. CREATE NEW PROFILE directly inside Official JMX NFC Clients.
+   - Customer Name, Company, Email, Phone, Plan, Admin Notes.
+   - Generates a permanent internal Profile ID (PROF-...) and Card ID.
+   - Stores creationMethod=official-device-id-profile.
+   - Keeps legacy/public profile URL for compatibility, but Official JMX NFC devices continue to use /d/DEVICE-ID.
+
+2. CLIENT NFC QUICK ACTIONS
+   - Add NFC Devices (opens Create Batch already assigned to the selected profile).
+   - Assign Existing Batch (select an unassigned/existing batch and assign it without regenerating Device IDs).
+   - Suspend / Reactivate / Archive Profile.
+
+3. CLIENT NFC MASTER SWITCH
+   - All Official NFC Devices ON/OFF per client using cards.nfcDevicesEnabled.
+   - Existing per-device-type client controls remain.
+   - Backend resolver now enforces the client master switch.
+
+4. DEVICE LIFECYCLE
+   - Active / Pending / Available
+   - Suspended
+   - Lost
+   - Stolen
+   - Replaced
+   - Retired
+   - Archived
+   - Lost/Stolen/Retired/Archived are disabled and are not automatically reactivated by Batch OFF->ON.
+
+5. DEVICE ACTIONS
+   - Copy NFC URL
+   - Suspend / Reactivate
+   - Mark Lost
+   - Mark Stolen
+   - Replace Device
+   - Retire
+   - Archive
+   - Open Batch
+
+6. BATCH SAFETY
+   - Batch disable/reactivate preserves terminal individual device states.
+   - Assign/Transfer Batch preserves Lost/Stolen/Replaced/Retired/Archived states.
+   - Device IDs are not regenerated during assignment/transfer.
+
+7. REPLACEMENT SAFETY
+   - Old Device ID becomes REPLACED and disabled.
+   - New Device ID is generated cleanly without inheriting terminal lifecycle flags.
+
+8. PROFILE LIFECYCLE BACKEND ENFORCEMENT
+   - resolveNfcDevice rejects suspended/archived/cancelled profiles.
+   - recordNfcTap also respects profile lifecycle.
+   - Archived profiles use legacy suspended state so the existing public card path is also unavailable while archived.
+
+9. ACTIVATION SAFETY
+   - activateNfcBatch preserves terminal device states instead of reactivating Lost/Stolen/Replaced/Retired/Archived devices.
+   - nfcDevicePublic is synchronized during activation.
+
+10. AUDIT EVENTS
+   - Profile Created
+   - Profile Suspended / Reactivated / Archived
+   - Device Suspended / Reactivated / Lost / Stolen / Retired / Archived / Replaced
+   - Batch Assigned / Transferred / Disabled / Reactivated
+   - Client NFC Type Control Changed
+
+FILES MODIFIED
+- dashboard.html
+- dashboard.js
+- dashboard.css
+- functions/index.js
+
+FILES NOT MODIFIED
+- firestore.rules (existing rules already protect new/used collections as admin-only where required)
+- firebase.json
+- Firebase Authentication configuration
+
+DEPLOYMENT REQUIRED AFTER REVIEW
+1. GitHub push / web files: YES
+2. Firestore Rules deploy: NO change required for this update
+3. Cloud Functions deploy: YES (functions/index.js changed)
+4. Firebase Hosting deploy: YES if this production release is served through the existing Firebase Hosting configuration / rewrites
+5. Firestore indexes: NO new indexes required
+6. Firebase Authentication manual changes: NO
+
+VALIDATION PERFORMED
+- node --check on all project JavaScript files: PASS
+- node --check functions/index.js: PASS
+- JSON validation: PASS
+- Duplicate HTML ID scan: PASS
+- ZIP integrity check: PASS (after packaging)
+
+IMPORTANT SECURITY NOTE
+NTAG215/216 chips are not cryptographic anti-cloning chips. Device-ID provides official registration, control, analytics, suspension and replacement, but a readable resolver URL can still be copied to another basic NFC chip. True cryptographic anti-cloning requires secure hardware such as NTAG 424 DNA/SUN or equivalent.
+
+NO LIVE DEPLOYMENT WAS PERFORMED BY THIS UPDATE.

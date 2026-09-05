@@ -1,0 +1,181 @@
+JMX DIGITAL CARD — AI BUSINESS CARD SCANNER IMPLEMENTATION REPORT
+Date: 2026-08-26
+Base: JMX-Digital-Card-Switches-Save-CustomQR-Audited-Aug2026(1).zip
+
+NON-DESTRUCTIVE BASELINE
+- The project was extended in place. It was not rebuilt.
+- Existing Card ID / Activation Code generation and claim logic were not changed.
+- Existing NFC URLs, public URLs, Basic, Premium, JMX Business, Quick Capture, Leads,
+  Analytics transition, Cloud Storage media handling, Custom QR and Save Changes logic remain in place.
+- No existing Firebase production data was modified by this implementation.
+
+IMPLEMENTED
+1) Feature Controls
+- Existing aiScanner feature key is now an active feature instead of a fake/pending switch.
+- Existing Global / Basic / Premium / Business Feature Control Center controls it.
+- Existing per-client Client Feature Overrides controls it.
+- Existing hierarchy remains: Global -> Plan -> Client override.
+- Positive client override does NOT bypass a Global/Plan OFF because the current JMX permission
+  architecture does not permit that. This is intentional and safer.
+- Client-specific monthly scanner limit added to the client detail modal and saved with Save Changes.
+
+2) Emergency Kill Switch
+- New admin panel: AI EXTERNAL SERVICES — EMERGENCY KILL SWITCH.
+- OFF blocks the trusted backend before any Google Vision OCR request is sent.
+- ON allows requests only after authentication, feature permissions and monthly limits pass.
+- Kill Switch setting is stored in /platform/aiScanner and survives refresh.
+- Default is OFF for safety until JMX explicitly turns it on after provider setup/testing.
+
+3) AI Scanner Provider / Cost Controls
+- Provider status area added.
+- OCR Provider: Google Cloud Vision implementation included.
+- Advanced AI Parsing provider is NOT falsely marked connected. A basic deterministic parsing
+  fallback is functional. Advanced model integration remains Code Ready / Credentials Required.
+- Check Connection reports configuration / last successful OCR state without creating a billable OCR request.
+- Admin Test Mode performs a real OCR test and does not create production Leads or production usage counters.
+  NOTE: the provider itself can still bill a Test Mode OCR request.
+
+4) Monthly Limits
+- Basic / Premium / JMX Business monthly limit configuration added.
+- Modes: Limit disabled, Unlimited, Monthly limit.
+- Client-specific override added.
+- Number limits are enforced server-side before OCR.
+- A short server-side request cooldown reduces accidental duplicate calls.
+
+5) Client AI Business Card Scanner UI
+- Take Photo (camera capture where supported).
+- Upload Card.
+- Image validation: supported image types, max size, minimum resolution.
+- Client-side resize/compression before upload to backend.
+- Original image is sent to the callable function for temporary processing only and is not stored.
+- Use Photo / Scan.
+- Processing state and failure handling.
+- Manual-entry fallback.
+- Preview fields are review-only until Edit is selected.
+- Scan Again / Cancel.
+
+6) OCR + Parsing
+- Trusted Cloud Function calls Google Cloud Vision DOCUMENT_TEXT_DETECTION using the Cloud Function
+  runtime service account; no private OCR key is placed in browser code or GitHub.
+- Basic parser extracts/attempts:
+  first name, last name, full name, company, job title, up to three phones, email, website,
+  address, WhatsApp indication, LinkedIn, Facebook, Instagram and raw OCR text.
+- Advanced AI parsing is modularly separated and remains pending an explicitly chosen provider.
+- If advanced AI is absent, OCR + basic parsing + manual correction remains usable.
+
+7) Duplicate Detection
+- Checks existing Contacts and Leads primarily by email / phone.
+- Falls back to normalized name + company comparison when needed.
+- UI options:
+  View Existing Contact
+  Update Existing Contact
+  Save as New Anyway
+- Existing records are never overwritten automatically.
+
+8) Leads and Contacts
+- Save Lead integrates with existing /leads/{cardId}/items structure.
+- AI-created Leads retain 30-day expiration behavior.
+- Add to Contacts uses private /contacts/{cardId}/items.
+- Category, where met, date met and notes supported.
+- Saved Contacts list added to owner editor.
+- Scan History added with lightweight metadata; original card images are not stored.
+
+9) Usage / Analytics
+- Monthly usage structure: /aiScannerUsage/{YYYY-MM}/cards/{cardId}.
+- All-time per-card totals: /aiScannerTotals/{cardId}.
+- Admin summary includes total scans, OCR requests, success/failure and usage by plan.
+- Leads Created / Contacts Created / Duplicates Detected are tracked by backend counters.
+- High-frequency UI-only events such as every input click are intentionally not persisted as separate
+  Firestore documents to avoid defeating the cost-optimization work already done in JMX Analytics.
+- No PII is written to usage counters.
+
+10) Security
+- New /platform/aiScanner document: administrator only.
+- Contacts: private to owner/admin.
+- Scan history: owner/admin read; backend-only writes.
+- Usage/totals: owner/admin read as appropriate; backend-only writes.
+- OCR/AI permission, Kill Switch and limits are validated server-side.
+- No OCR API key or AI secret is exposed in frontend JavaScript.
+
+FILES MODIFIED
+- dashboard.html
+- dashboard.js
+- dashboard.css
+- admin.html
+- admin.js
+- admin.css
+- firestore.rules
+- functions/index.js
+
+FILE CREATED
+- JMX-AI-BUSINESS-CARD-SCANNER-IMPLEMENTATION-AUG2026.txt
+
+BACKEND FUNCTIONS ADDED
+- aiScannerHealth
+- aiScannerClientStatus
+- getAiScannerAdminSummary
+- scanBusinessCard
+- saveAiScannerRecord
+
+EXISTING BACKEND FUNCTION PRESERVED
+- cleanupExpiredBusinessLeads
+
+FIRESTORE CHANGES (NEW STRUCTURES; NO DESTRUCTIVE MIGRATION)
+- /platform/aiScanner
+- /contacts/{cardId}/items/{contactId}
+- /aiScannerHistory/{cardId}/items/{scanId}
+- /aiScannerUsage/{YYYY-MM}
+- /aiScannerUsage/{YYYY-MM}/cards/{cardId}
+- /aiScannerTotals/{cardId}
+- optional card field: aiScannerMonthlyLimit
+
+EXTERNAL SETUP REQUIRED BEFORE LIVE OCR
+1. Google Cloud project: jmx-digital-card must have billing active (Blaze already prepared in this project workflow).
+2. Enable Google Cloud Vision API for jmx-digital-card.
+3. Deploy the updated firestore.rules.
+4. Deploy the updated Cloud Functions.
+5. Deploy updated Hosting files.
+6. If Google Vision returns an IAM/service-usage permission error, grant the Cloud Functions runtime
+   service account the minimum Google Cloud permission required to consume the enabled Vision API.
+7. From JMX Admin, leave Kill Switch OFF until setup is complete.
+8. Use Test AI Card Scanner with a TEST Card ID and a sample business-card image.
+9. After a successful test, turn Kill Switch ON and press Save AI Scanner Settings.
+
+ADVANCED AI PARSING STATUS
+- Basic OCR parsing: IMPLEMENTED.
+- Advanced AI model parsing: CODE ARCHITECTURE READY, PROVIDER NOT CONFIGURED.
+- No OpenAI/Gemini/other credentials were invented or placed in the project.
+- When JMX chooses an advanced provider, add it behind the backend parser interface and keep secrets in
+  a secure server-side secret store. Do not place credentials in frontend code.
+
+TESTS COMPLETED OFFLINE
+- node --check passed for all project JS and functions/index.js.
+- firebase.json and functions/package.json parsed successfully.
+- No duplicate HTML IDs found in main HTML files.
+- CSS brace sanity passed.
+- Required AI Scanner implementation markers verified.
+- Existing package dependencies are sufficient; Node 20 built-in fetch is used for Google Vision REST.
+
+TESTS STILL REQUIRED IN THE REAL FIREBASE PROJECT
+- Firestore rules dry-run / deploy compile.
+- Deploy callable functions and verify runtime permissions.
+- Real Google Vision OCR test.
+- Global/Basic/Premium/Business switch ON/OFF + Save + refresh.
+- Client override ON/OFF + Save + refresh.
+- Kill Switch ON/OFF + Save + refresh + verify backend blocking.
+- Monthly plan and client limit enforcement.
+- Take Photo on Android/iPhone.
+- Upload Card on desktop/mobile.
+- Duplicate detection against real TEST records.
+- Save Lead / Add to Contacts using TEST data.
+- Responsive browser/device checks.
+
+KNOWN EXTERNAL DEPENDENCIES / NOT FAKED
+- Google Cloud Vision API must be enabled for live OCR.
+- Advanced AI parsing provider is not yet configured.
+- Auto-Intro Email, Contact Map, Apple Wallet and other unrelated external integrations remain separate
+  from this scanner implementation and were not falsely marked active.
+
+IMPORTANT
+Do not turn the AI External Services Kill Switch ON in production until the Vision API and updated
+functions/rules have been deployed and Test Mode succeeds.

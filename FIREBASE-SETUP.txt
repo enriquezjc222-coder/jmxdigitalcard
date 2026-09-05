@@ -1,0 +1,47 @@
+FIREBASE SETUP — JMX DIGITAL CARD FINAL
+
+Ya debes tener:
+- Proyecto Firebase JMX Digital Card
+- Firestore creado
+- Authentication Email/Password habilitado
+- Tu usuario administrador creado
+
+AHORA:
+1. Firebase Console > Firestore Database > Rules
+2. Copia TODO firestore.rules de esta carpeta
+3. Reemplaza las reglas existentes
+4. Pulsa Publish
+
+ADMINISTRADOR
+La primera vez que tu usuario administrador abre dashboard.html, el sistema intenta crear platform/config usando el ownerUid de tu tarjeta legacy cards/main. Esto conserva tu cuenta actual como administrador de la plataforma.
+
+COLECCIONES NUEVAS
+cards = estado/plan/inventario publico minimo
+profiles = contenido publico de cada tarjeta
+inventory = codigo secreto de activacion, solo JMX admin
+cardOwners = relacion privada tarjeta-cliente
+cardClaims = auditoria/reclamo de activacion
+cardAdmin = notas privadas JMX
+platform/config = identidad del administrador JMX
+
+No necesitas crear estas colecciones a mano; la aplicacion las crea cuando corresponde.
+
+CLOUD STORAGE — NUEVA ARQUITECTURA DE MEDIA
+--------------------------------------------
+Esta version guarda las NUEVAS fotos, portadas, galerias y PDFs en Firebase Cloud Storage.
+Firestore conserva el perfil y un manifiesto pequeno con URL, storagePath y metadata.
+
+Antes de probar una nueva carga de imagen/PDF:
+1. Activa/crea Cloud Storage en el mismo proyecto jmx-digital-card.
+2. Publica storage.rules incluido en esta carpeta (Firebase Console > Storage > Rules),
+   o posteriormente usa Firebase CLI desde la raiz del proyecto.
+3. Conserva firestore.rules actual. No borres colecciones ni documentos existentes.
+4. Las tarjetas legacy que aun tienen media Base64 en cards/{cardId}/media siguen siendo compatibles.
+
+IMPORTANTE: No se requiere migrar ni borrar automaticamente el contenido legacy para publicar este codigo.
+Las tarjetas NUEVAS creadas por el dashboard usan mediaStorageVersion: 2 y evitan la consulta legacy de media.
+
+CLOUD FUNCTIONS
+---------------
+La funcion cleanupExpiredBusinessLeads permanece incluida, pero NO es necesario desplegarla durante
+esta actualizacion hasta terminar la configuracion/verificacion de Blaze y Cloud Storage.

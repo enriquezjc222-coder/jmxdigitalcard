@@ -1,0 +1,487 @@
+:root{--bg:#f4f6f9;--panel:#fff;--text:#17202a;--muted:#6b7280;--accent:#b88a2b;--border:#e5e7eb;--danger:#b42318;--success:#067647;--shadow:0 12px 30px rgba(15,23,42,.08)}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.dashboard-app{max-width:1240px;margin:auto;padding:26px}.dashboard-header,.toolbar,.header-actions,.dialog-header,.dialog-actions{display:flex;align-items:center;justify-content:space-between;gap:16px}.dashboard-header{margin-bottom:22px}.eyebrow{margin:0 0 4px;font-size:.75rem;letter-spacing:.16em;font-weight:800;color:var(--accent)}h1,h2,h3,p{margin-top:0}.subtitle,.panel>p,.hint{color:var(--muted)}.panel{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:var(--shadow);margin-bottom:22px}.panel-title{display:flex;gap:12px;align-items:center}.panel-title i{color:var(--accent);font-size:1.35rem}.login-grid,.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.login-grid{grid-template-columns:1fr 1fr auto;align-items:end}label{display:flex;flex-direction:column;gap:7px;font-weight:700;font-size:.9rem}input,select,textarea{width:100%;border:1px solid #d7dce2;border-radius:11px;padding:11px 12px;background:#fff;color:var(--text)}input:focus,select:focus,textarea:focus{outline:2px solid rgba(184,138,43,.18);border-color:var(--accent)}.primary-button,.secondary-button,.icon-button{border:0;border-radius:11px;padding:11px 15px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}.primary-button{background:#171717;color:#fff}.secondary-button{background:#fff;color:#252525;border:1px solid var(--border)}.icon-button{padding:6px 10px;background:#eee;font-size:1.4rem}.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}.stat-card{background:#fff;border:1px solid var(--border);border-radius:17px;padding:18px;box-shadow:var(--shadow)}.stat-card span{display:block;color:var(--muted);font-size:.85rem;margin-bottom:7px}.stat-card strong{font-size:1.8rem}.small-value{font-size:.9rem!important;overflow-wrap:anywhere}.filter-row{display:grid;grid-template-columns:1fr 190px;gap:12px;margin:18px 0}.cards-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.client-card{border:1px solid var(--border);border-radius:16px;padding:18px;background:#fff}.client-head{display:flex;justify-content:space-between;gap:12px}.client-card h3{margin-bottom:4px}.client-meta{color:var(--muted);font-size:.88rem}.badge{display:inline-flex;padding:5px 9px;border-radius:99px;font-size:.72rem;font-weight:800;text-transform:uppercase}.badge.active{background:#ecfdf3;color:var(--success)}.badge.paused{background:#fff1f0;color:var(--danger)}.card-details{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0;font-size:.84rem}.card-details span{color:var(--muted)}.card-actions{display:flex;flex-wrap:wrap;gap:8px}.mini{border:1px solid var(--border);background:#fafafa;border-radius:9px;padding:8px 10px;cursor:pointer;font-weight:700}.mini.danger{color:var(--danger)}.empty-state{text-align:center;padding:42px;color:var(--muted)}.empty-state i{font-size:2.2rem;color:var(--accent);margin-bottom:10px}.status{min-height:1.2em;font-weight:700}.status.error{color:var(--danger)}.status.ok{color:var(--success)}.card-dialog{border:0;border-radius:20px;padding:0;width:min(720px,94vw);box-shadow:0 30px 80px rgba(0,0,0,.25)}.card-dialog::backdrop{background:rgba(15,23,42,.55)}.card-dialog form{padding:22px}.full{grid-column:1/-1}.dialog-actions{justify-content:flex-end;margin-top:18px}.hint{font-size:.82rem;margin:14px 0}.login-panel{max-width:860px;margin:60px auto}@media(max-width:800px){.dashboard-app{padding:15px}.dashboard-header,.toolbar{align-items:flex-start;flex-direction:column}.stats-grid{grid-template-columns:repeat(2,1fr)}.cards-grid,.form-grid,.filter-row,.login-grid{grid-template-columns:1fr}.header-actions{width:100%;flex-wrap:wrap}.client-head{flex-direction:column}}@media(max-width:460px){.stats-grid{grid-template-columns:1fr}.card-details{grid-template-columns:1fr}}
+.badge.available{background:#eff6ff;color:#1d4ed8}.badge.sold{background:#fff7ed;color:#c2410c}.card-url{font-size:.78rem;color:#6b7280;overflow-wrap:anywhere;background:#f8fafc;border-radius:9px;padding:8px;margin-top:10px}.inline-field{display:grid;grid-template-columns:1fr auto;gap:8px}.check-row{flex-direction:row;align-items:center}.check-row input{width:auto}.url-preview{background:#f8fafc;border:1px dashed #d7dce2;padding:12px;border-radius:12px;margin-top:14px}.url-preview span{display:block;color:#6b7280;font-size:.78rem}.url-preview strong{overflow-wrap:anywhere}.subtitle.small{font-size:.84rem;margin:4px 0 0}
+
+.switch-row{display:flex;flex-direction:row;align-items:center;gap:10px;cursor:pointer}.switch-row input{display:none}.switch-ui{width:48px;height:26px;border-radius:99px;background:#d1d5db;position:relative;transition:.2s}.switch-ui:after{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:white;box-shadow:0 1px 4px #0003;transition:.2s}.switch-row input:checked+.switch-ui{background:#171717}.switch-row input:checked+.switch-ui:after{transform:translateX(22px);background:var(--accent)}.marketing-row{display:flex;align-items:center;gap:28px;margin-top:18px}.field-label{display:block;font-weight:800;margin-bottom:8px}.company-qr-admin{display:inline-block;background:#fff;padding:8px;border:1px solid var(--border);border-radius:10px}.company-qr-admin img,.company-qr-admin canvas{display:block}.visit-pill{display:inline-flex;gap:6px;align-items:center;background:#f4f1e8;color:#6f5519;padding:5px 8px;border-radius:99px;font-weight:800}.filter-row{grid-template-columns:1fr 190px 160px}@media(max-width:800px){.marketing-row{align-items:flex-start;flex-direction:column}.filter-row{grid-template-columns:1fr}}
+
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}.settings-grid .full{grid-column:1/-1}.plan-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.plan-column{background:#f8fafc;border:1px solid var(--border);border-radius:18px;padding:14px}.premium-column{background:#fffdf7;border-color:#ead8a6}.plan-column-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.plan-column-head h3{margin:0}.plan-column-head>strong{font-size:1.4rem}.single-column{grid-template-columns:1fr}.comp-badge{display:inline-flex;align-items:center;gap:5px;background:#f5e9ff;color:#7e22ce;padding:4px 8px;border-radius:99px;font-size:.72rem;font-weight:800}.subscription-line{padding:8px 10px;border-radius:10px;background:#f8fafc;margin:8px 0;font-size:.8rem}.card-switches{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.card-switches .mini.active{background:#171717;color:#fff}.stats-grid{grid-template-columns:repeat(4,1fr)}@media(max-width:900px){.plan-board,.settings-grid{grid-template-columns:1fr}.settings-grid .full{grid-column:auto}}
+
+/* Inventory pool: unclaimed / available NFC URLs */
+.inventory-pool{background:#f7fbff;border:1px solid #cfe2f5;border-radius:18px;padding:16px;margin:18px 0}.inventory-pool-head{align-items:flex-start}.inventory-pool-head .subtitle{max-width:760px;margin:4px 0 0}.inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-pool-empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed #cbd5e1;border-radius:12px;background:#fff}.client-plan-board{margin-top:18px}.detail-wide{grid-column:1/-1}.inventory-pool .client-card{border-color:#cfe2f5}.inventory-pool .card-url{background:#eef6ff;color:#1e3a5f;font-weight:700}.inventory-pool .client-card:hover{box-shadow:0 10px 28px rgba(30,64,175,.08)}
+@media(max-width:900px){.inventory-grid{grid-template-columns:1fr}}
+
+
+/* Compact client inventory + expandable admin details */
+.client-plan-board .single-column{display:flex;flex-direction:column;gap:9px}
+.client-list-row{width:100%;display:grid;grid-template-columns:minmax(0,1.7fr) 86px 92px 92px auto 18px;gap:10px;align-items:center;text-align:left;border:1px solid var(--border);background:#fff;border-radius:13px;padding:12px 13px;cursor:pointer;color:var(--text);transition:.18s ease}
+.client-list-row:hover{transform:translateY(-1px);border-color:#c9b06c;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+.client-list-main{display:flex;flex-direction:column;min-width:0}.client-list-main strong,.client-list-main small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.client-list-main small,.client-list-stat small{color:var(--muted);font-size:.72rem}.client-list-plan{font-weight:800;font-size:.78rem}.client-list-stat{display:flex;flex-direction:column;text-align:right}.client-list-stat strong{font-size:1rem}.client-list-row>i{color:var(--muted)}
+.client-detail-dialog{border:0;padding:0;border-radius:20px;width:min(980px,95vw);max-height:90vh;box-shadow:0 30px 90px rgba(0,0,0,.3)}.client-detail-dialog::backdrop{background:rgba(15,23,42,.58)}.client-detail-shell{padding:22px;overflow:auto;max-height:90vh}.client-detail-header{position:sticky;top:-22px;background:#fff;padding:18px 0 14px;z-index:2;border-bottom:1px solid var(--border)}
+.client-detail-grid{display:grid;grid-template-columns:.95fr 1.25fr;gap:16px;margin-top:16px}.detail-panel{border:1px solid var(--border);border-radius:16px;padding:16px;background:#fafbfc}.detail-panel h3{margin-bottom:12px}.detail-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}.detail-list>div{background:#fff;border:1px solid #edf0f3;border-radius:10px;padding:10px}.detail-list span{display:block;color:var(--muted);font-size:.72rem;margin-bottom:4px}.detail-list strong{font-size:.86rem}.break-anywhere{overflow-wrap:anywhere}
+.analytics-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.analytics-summary article{background:#fff;border:1px solid #edf0f3;border-radius:11px;padding:11px}.analytics-summary span{display:block;color:var(--muted);font-size:.72rem}.analytics-summary strong{font-size:1.35rem}.analytics-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.analytics-columns>div{background:#fff;border:1px solid #edf0f3;border-radius:11px;padding:12px}.analytics-columns h4{margin:0 0 8px}.analytics-action-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #f0f1f3;font-size:.82rem}.analytics-action-row:last-child{border-bottom:0}.analytics-empty{color:var(--muted);font-size:.82rem;padding:8px 0}
+.client-detail-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px;padding-top:15px;border-top:1px solid var(--border)}.danger-button{border:1px solid #fecaca;background:#fff1f2;color:#b42318;border-radius:11px;padding:11px 15px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px}.protected-note{display:inline-flex;align-items:center;gap:7px;color:#6b7280;font-size:.82rem;padding:9px 3px}.inventory-details{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.client-list-row{grid-template-columns:minmax(0,1fr) auto 18px}.client-list-plan,.client-list-stat{display:none}.client-detail-grid{grid-template-columns:1fr}.analytics-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.detail-list,.analytics-columns{grid-template-columns:1fr}.analytics-summary{grid-template-columns:1fr 1fr}.client-detail-shell{padding:16px}.client-detail-header{top:-16px}}
+
+
+/* Compact Ready NFC Inventory lists */
+.inventory-list-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.inventory-list-column{min-width:0;background:#fff;border:1px solid #dbe7f3;border-radius:14px;padding:12px}
+.inventory-list-column.sold-column{background:#fffdfb;border-color:#eadfd8}
+.inventory-list-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 2px 10px;border-bottom:1px solid #edf1f5;margin-bottom:8px}
+.inventory-list-head>div{display:flex;align-items:center;gap:8px}
+.inventory-list-head>span{font-weight:800;color:var(--muted)}
+.inventory-status-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.inventory-status-dot.available{background:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.10)}
+.inventory-status-dot.sold{background:#9f3a32;box-shadow:0 0 0 4px rgba(159,58,50,.09)}
+.inventory-list{display:flex;flex-direction:column;gap:7px}
+.inventory-list-row-wrap{position:relative;display:flex;align-items:stretch;gap:7px}
+.inventory-list-row{min-width:0;flex:1;display:grid;grid-template-columns:minmax(120px,1.5fr) minmax(110px,1.2fr) 72px 78px auto 14px;gap:9px;align-items:center;text-align:left;border:1px solid #e4e9ef;background:#fff;border-radius:11px;padding:10px 11px;cursor:pointer;color:var(--text);transition:.18s ease}
+.inventory-list-row:hover{transform:translateY(-1px);border-color:#9ab8d7;box-shadow:0 7px 18px rgba(30,64,175,.08)}
+.inventory-list-main{display:flex;flex-direction:column;min-width:0}
+.inventory-list-main strong{font-size:.9rem}
+.inventory-list-main small,.inventory-list-note{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inventory-list-main small{font-size:.68rem;color:var(--muted)}
+.inventory-list-note{font-size:.79rem;color:#374151}
+.inventory-list-plan{font-size:.75rem;font-weight:800}
+.inventory-list-date{display:flex;flex-direction:column;font-size:.72rem}.inventory-list-date small{color:var(--muted)}
+.inventory-list-row>i{font-size:.72rem;color:var(--muted)}
+.inventory-note-edit{width:36px;flex:0 0 36px;border:1px solid #dbe3eb;background:#fff;border-radius:10px;cursor:pointer;color:#516173;transition:.18s ease}
+.inventory-note-edit:hover{border-color:#9ab8d7;color:#1e3a5f;background:#f5f9fd}
+.inventory-pool-empty.compact{padding:14px;font-size:.8rem}
+.inventory-note-detail{position:relative;padding-right:120px!important}
+.inline-edit-note{position:absolute;right:9px;top:50%;transform:translateY(-50%);border:1px solid var(--border);background:#fafafa;border-radius:8px;padding:7px 9px;font-weight:700;cursor:pointer}
+.inventory-control-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.inventory-control-summary>div{background:#fff;border:1px solid #edf0f3;border-radius:10px;padding:12px}
+.inventory-control-summary span{display:block;color:var(--muted);font-size:.72rem;margin-bottom:4px}
+.inventory-detail-grid{grid-template-columns:1.15fr .85fr}
+@media(max-width:1000px){
+  .inventory-list-board{grid-template-columns:1fr}
+  .inventory-list-row{grid-template-columns:minmax(110px,1.5fr) minmax(90px,1.1fr) 68px auto 14px}
+  .inventory-list-date{display:none}
+}
+@media(max-width:700px){
+  .inventory-list-row{grid-template-columns:minmax(0,1fr) auto 14px}
+  .inventory-list-note,.inventory-list-plan{display:none}
+  .inventory-detail-grid{grid-template-columns:1fr}
+  .inventory-note-detail{padding-right:10px!important}
+  .inline-edit-note{position:static;transform:none;margin-top:8px}
+}
+
+/* Feature Control Center */
+.feature-toolbar{align-items:flex-start}.feature-toolbar-actions{display:flex;flex-direction:column;gap:10px;align-items:flex-start}.feature-panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}.feature-column{border:1px solid var(--border);border-radius:18px;padding:15px;background:#f8fafc}.feature-column.global-column{background:#f7f7f5}.feature-column.premium-feature-column{background:#fffdf7;border-color:#ead8a6}.feature-column-head{min-height:92px}.feature-column-head h3{margin:2px 0 4px}.feature-switch-list{display:flex;flex-direction:column;gap:8px}.feature-switch-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}.feature-switch-item span:first-child{font-weight:750}.feature-switch-item .mini-switch{position:relative;width:42px;height:24px;flex:0 0 42px}.feature-switch-item .mini-switch input{position:absolute;opacity:0;pointer-events:none}.feature-switch-item .mini-switch i{display:block;width:42px;height:24px;border-radius:99px;background:#d1d5db;position:relative;transition:.2s}.feature-switch-item .mini-switch i:after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:.2s}.feature-switch-item .mini-switch input:checked+i{background:#171717}.feature-switch-item .mini-switch input:checked+i:after{transform:translateX(18px);background:var(--accent)}.feature-switch-item.master-off{opacity:.55}.feature-save-row{display:flex;align-items:center;gap:14px;margin-top:16px}@media(max-width:980px){.feature-panels{grid-template-columns:1fr}.feature-column-head{min-height:auto}.feature-toolbar-actions{width:100%}}
+.google-dashboard-button{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid #d1d5db;background:#fff;color:#171717;font-weight:800;border-radius:12px;padding:13px 16px;margin:12px 0;cursor:pointer}.google-dashboard-button:hover{border-color:#b88a2b;box-shadow:0 0 0 3px rgba(184,138,43,.10)}.auth-divider{display:flex;align-items:center;gap:10px;color:#6b7280;font-size:.8rem;margin:10px 0}.auth-divider:before,.auth-divider:after{content:"";height:1px;background:#e5e7eb;flex:1}
+
+/* JMX Business extension */
+.business-stat-card{border-color:#d7c27b;background:linear-gradient(180deg,#fffef8,#fffaf0);cursor:pointer}.business-stat-card:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(15,23,42,.08)}
+.business-column,.business-feature-column{background:#fbfaf5;border-color:#d9c987}.business-settings-panel{border-color:#e3d6aa}.compact-business-stats{margin-top:0}.client-plan-board{grid-template-columns:repeat(3,minmax(0,1fr))}.feature-panels{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1180px){.client-plan-board{grid-template-columns:1fr}.feature-panels{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.feature-panels{grid-template-columns:1fr}.compact-business-stats{grid-template-columns:1fr}}
+
+/* Client plan/gift controls — Aug 2026 */
+.client-list-row-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.client-manage-button{border:1px solid var(--border);background:#fff;border-radius:12px;padding:0 13px;font-weight:800;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:7px;justify-content:center;white-space:nowrap}
+.client-manage-button:hover{border-color:#c9b06c;background:#fffdf7}
+.client-list-plan{display:flex;flex-direction:column;gap:3px}.gift-inline-label{font-size:.65rem;color:#7e22ce;display:flex;align-items:center;gap:4px}
+.access-control-panel{grid-column:1/-1;background:#fffdf7;border-color:#ead8a6}.access-status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.access-status-grid>div{background:#fff;border:1px solid #eee5ca;border-radius:11px;padding:10px}.access-status-grid span{display:block;color:var(--muted);font-size:.72rem;margin-bottom:4px}
+.plan-choice-row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}.plan-choice-button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:9px 12px;font-weight:800;cursor:pointer}.plan-choice-button.active{background:#171717;color:#fff;border-color:#171717}.gift-switch-stack{display:grid;gap:10px}.gift-switch-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;border:1px solid #e9dfc3;background:#fff;border-radius:13px;padding:12px;cursor:pointer}.gift-switch-row>span{display:flex;flex-direction:column;gap:3px}.gift-switch-row small{color:var(--muted)}.gift-switch-row input{position:absolute;opacity:0;pointer-events:none}.gift-switch-ui{display:block;width:48px;height:26px;border-radius:99px;background:#d1d5db;position:relative;transition:.2s}.gift-switch-ui:after{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0003;transition:.2s}.gift-switch-row input:checked+.gift-switch-ui{background:#171717}.gift-switch-row input:checked+.gift-switch-ui:after{transform:translateX(22px);background:var(--accent)}.gift-switch-row.disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:700px){.client-list-row-wrap{grid-template-columns:1fr}.client-manage-button{padding:10px}.access-status-grid{grid-template-columns:1fr}.gift-switch-row{grid-template-columns:minmax(0,1fr) auto}}
+
+/* Client Feature Overrides: single clear visual toggle + staged save */
+.feature-switch-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;border:1px solid #e5e7eb;border-radius:13px;background:#fff;padding:12px 13px;cursor:pointer;position:relative}
+.feature-switch-row>span{display:flex;flex-direction:column;gap:3px;min-width:0}.feature-switch-row small{color:var(--muted);font-weight:500}.feature-switch-row input{position:absolute;opacity:0;pointer-events:none}
+.feature-switch-row .switch-ui{display:block;flex:0 0 48px}.feature-switch-row input:checked+.switch-ui{background:#171717}.feature-switch-row input:checked+.switch-ui:after{transform:translateX(22px);background:var(--accent)}
+.feature-switch-row.master-off,.feature-switch-row.integration-pending{opacity:.58;cursor:not-allowed}.feature-switch-row.master-off .switch-ui,.feature-switch-row.integration-pending .switch-ui{filter:saturate(.25)}
+.client-save-cluster{display:flex;align-items:center;gap:10px;margin-right:auto}.client-save-status{font-size:.8rem;color:var(--muted);font-weight:700}.primary-button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:700px){.client-save-cluster{width:100%;flex-wrap:wrap}.client-save-cluster .primary-button{flex:1}.feature-switch-row{grid-template-columns:minmax(0,1fr) auto}}
+
+/* AI Business Card Scanner administration */
+.ai-scanner-admin-panel{border-color:#d8c27e;background:linear-gradient(180deg,#fff,#fffdf7)}
+.ai-scanner-toolbar{align-items:flex-start}.kill-switch-row{padding:12px 14px;border:1px solid #ead8a6;border-radius:14px;background:#fff8e7}
+.ai-kill-state{margin:14px 0;padding:12px 14px;border-radius:12px;font-weight:900;letter-spacing:.02em}.ai-kill-state.active{background:#ecfdf3;border:1px solid #a7f3d0;color:#067647}.ai-kill-state.blocked{background:#fff1f0;border:1px solid #fecaca;color:#b42318}
+.ai-provider-grid,.ai-usage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ai-provider-grid article,.ai-usage-grid article{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fff;display:flex;flex-direction:column;gap:5px}.ai-provider-grid span,.ai-usage-grid span{font-size:.75rem;color:var(--muted);font-weight:800}.ai-provider-grid strong,.ai-usage-grid strong{font-size:1rem;word-break:break-word}
+.ai-admin-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}.ai-admin-actions .status{margin:0}
+.ai-limit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.ai-limit-grid label{display:grid;gap:7px;border:1px solid var(--border);border-radius:14px;padding:13px;background:#fff}.ai-limit-grid label>span{font-size:.78rem;font-weight:800}.ai-limit-grid select,.ai-limit-grid input,.ai-test-box input,.ai-limit-inline select,.ai-limit-inline input{width:100%;border:1px solid #d7dbe0;border-radius:10px;padding:10px;font:inherit;background:#fff}
+.ai-usage-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}.ai-usage-header h3{margin:0}.ai-usage-header small{color:var(--muted)}.ai-usage-grid{grid-template-columns:repeat(7,minmax(0,1fr));margin-top:10px}.ai-usage-grid article{text-align:center}.ai-usage-grid strong{font-size:1.3rem}
+.ai-test-box{margin-top:16px;border:1px dashed #d8c27e;border-radius:14px;padding:14px;display:grid;grid-template-columns:1.5fr .8fr 1fr auto;gap:10px;align-items:end;background:#fffaf0}.ai-test-box .status{grid-column:1/-1;margin:0}.ai-test-box h3{margin:0 0 3px}
+.ai-limit-inline{display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:10px}
+@media(max-width:1100px){.ai-usage-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.ai-test-box{grid-template-columns:1fr 1fr}.ai-test-box>div,.ai-test-box .status{grid-column:1/-1}}
+@media(max-width:760px){.ai-provider-grid,.ai-limit-grid,.ai-usage-grid{grid-template-columns:1fr 1fr}.ai-test-box{grid-template-columns:1fr}.ai-test-box>div,.ai-test-box .status{grid-column:auto}.ai-limit-inline{grid-template-columns:1fr}.ai-scanner-toolbar{gap:14px}.kill-switch-row{width:100%}}
+@media(max-width:480px){.ai-provider-grid,.ai-limit-grid,.ai-usage-grid{grid-template-columns:1fr}}
+
+/* Google Wallet client override: explicit INHERIT / ON / OFF. */
+.client-feature-select{min-width:118px;border:1px solid #d1d5db;border-radius:10px;background:#fff;padding:9px 10px;font:inherit;font-weight:800;color:#171717;cursor:pointer}
+.wallet-override-row{cursor:default}.wallet-override-row .client-feature-select:focus{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Feature Control Center compact / expandable cards — Aug 2026 */
+.feature-control-center{position:relative}
+.feature-column{min-width:0;align-self:start}
+.feature-column-head{min-height:0!important}
+.feature-column-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.feature-expand-button{width:34px;height:34px;flex:0 0 34px;border:1px solid #d9dde3;border-radius:10px;background:#fff;color:#374151;display:grid;place-items:center;cursor:pointer;transition:.18s ease;box-shadow:0 2px 7px rgba(15,23,42,.05)}
+.feature-expand-button:hover{border-color:#b88a2b;color:#745317;background:#fffdf7;transform:translateY(-1px)}
+.feature-expand-button:focus-visible{outline:3px solid rgba(184,138,43,.24);outline-offset:2px}
+.feature-column:not(.is-expanded) .feature-switch-item:nth-child(n+6){display:none}
+.feature-column:not(.is-expanded) .feature-switch-list{overflow:visible}
+.feature-expand-backdrop{position:fixed;inset:0;z-index:899;background:rgba(15,23,42,.52);backdrop-filter:blur(2px)}
+.feature-column.is-expanded{position:fixed;z-index:900;left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,calc(100vw - 48px));height:min(82vh,760px);max-height:calc(100vh - 48px);padding:18px;background:#f8fafc;box-shadow:0 28px 80px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden}
+.feature-column.global-column.is-expanded{background:#f7f7f5}
+.feature-column.premium-feature-column.is-expanded{background:#fffdf7}
+.feature-column.business-feature-column.is-expanded{background:#fbfaf5}
+.feature-column.is-expanded .feature-column-head{flex:0 0 auto;padding-bottom:10px;border-bottom:1px solid rgba(148,163,184,.25)}
+.feature-column.is-expanded .feature-switch-list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:10px 4px 4px 0;scrollbar-gutter:stable}
+.feature-column.is-expanded .feature-switch-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-content:start}
+.feature-column:not(.is-expanded) .feature-purge-row{display:none}
+.feature-purge-row{flex:0 0 auto;margin-top:10px;padding-top:10px;border-top:1px solid rgba(148,163,184,.25);display:flex;align-items:center;gap:10px;justify-content:space-between}
+.feature-purge-row small{color:var(--muted);font-size:.72rem;line-height:1.3}
+.feature-purge-button{white-space:nowrap}
+.feature-purge-button:disabled{opacity:.45;cursor:not-allowed}
+.feature-column.is-expanded .feature-expand-button{background:#171717;color:#fff;border-color:#171717}
+body.feature-panel-open{overflow:hidden}
+@media(min-width:901px){.feature-panels{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:900px) and (min-width:681px){.feature-panels{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:900px) and (min-width:681px){.feature-column.is-expanded .feature-switch-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){
+  .feature-panels{grid-template-columns:1fr!important;gap:12px}
+  .feature-column{padding:13px}
+  .feature-column.is-expanded{width:calc(100vw - 20px);height:calc(100dvh - 20px);max-height:calc(100dvh - 20px);padding:14px;border-radius:16px}
+  .feature-column.is-expanded .feature-switch-list{padding-top:9px;grid-template-columns:1fr}
+  .feature-purge-row{align-items:stretch;flex-direction:column}
+  .feature-purge-button{width:100%}
+  .feature-expand-button{width:38px;height:38px;flex-basis:38px}
+  .feature-save-row{align-items:stretch;flex-direction:column}
+  .feature-save-row .primary-button{width:100%}
+}
+
+/* Compact searchable inventory/client panels - Aug 2026 */
+.master-search-wrap{position:relative;min-width:0}.master-search-wrap input{padding-right:48px}.master-search-button{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:9px;background:#171717;color:#fff;display:grid;place-items:center;cursor:pointer}.master-search-button:hover{opacity:.88}.inventory-list-board{align-items:start}.inventory-list-column,.client-plan-board .plan-column{align-self:start;min-width:0}.inventory-list-head,.client-plan-board .plan-column-head{gap:8px}.panel-head-actions{display:flex;align-items:center;gap:8px;margin-left:auto}.panel-expand-button{width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:#fff;color:#252525;cursor:pointer;display:grid;place-items:center}.panel-expand-button:hover{border-color:var(--accent);color:var(--accent)}.panel-search{margin:0 0 9px}.panel-search input{padding:9px 10px;font-size:.82rem}.compact-record-list>.inventory-list-row-wrap:nth-child(n+7),.compact-record-list>.client-list-row-wrap:nth-child(n+7){display:none}.compact-record-list.is-expanded>.inventory-list-row-wrap:nth-child(n+7),.compact-record-list.is-expanded>.client-list-row-wrap:nth-child(n+7){display:flex}.inventory-panel-expanded{position:fixed!important;z-index:10020!important;inset:4vh 4vw!important;width:auto!important;max-width:none!important;height:92vh!important;margin:0!important;padding:18px!important;background:#fff!important;border:1px solid var(--border)!important;border-radius:18px!important;box-shadow:0 30px 90px rgba(15,23,42,.28)!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}.inventory-panel-expanded .inventory-list,.inventory-panel-expanded .cards-grid{overflow-y:auto;min-height:0;flex:1;padding-right:5px}.inventory-panel-expanded .panel-expand-button i:before{content:"\f00d"}.inventory-panel-backdrop{position:fixed;z-index:10010;inset:0;background:rgba(15,23,42,.52)}body.inventory-panel-open{overflow:hidden}.inventory-panel-expanded .compact-record-list>.inventory-list-row-wrap:nth-child(n+7){display:flex}.inventory-panel-expanded .compact-record-list>.client-list-row-wrap:nth-child(n+7){display:grid}.master-search-results{margin:10px 0 0;border:1px solid var(--border);border-radius:12px;background:#fff;overflow:hidden}.master-search-results[hidden]{display:none}.master-search-results-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;background:#f8fafc;border-bottom:1px solid var(--border)}.master-search-result-list{max-height:320px;overflow:auto;padding:7px}.master-search-result{width:100%;border:0;border-bottom:1px solid #edf1f5;background:#fff;text-align:left;padding:10px;border-radius:8px;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.master-search-result:last-child{border-bottom:0}.master-search-result:hover{background:#f8fafc}.master-search-result small{display:block;color:var(--muted);margin-top:3px}.master-search-category{font-size:.72rem;font-weight:800;color:#6f5519;background:#f4f1e8;padding:5px 8px;border-radius:99px;align-self:start}.inventory-return-button{border:1px solid #cfe2f5;background:#f7fbff;color:#1e3a5f;border-radius:9px;padding:8px 10px;font-weight:800;cursor:pointer;white-space:nowrap}.inventory-return-button:hover{background:#eef6ff}
+@media(max-width:900px){.inventory-panel-expanded{inset:2vh 2vw!important;height:96vh!important;padding:14px!important}.panel-head-actions{gap:5px}.panel-expand-button{width:32px;height:32px}.master-search-result{grid-template-columns:1fr}.master-search-category{justify-self:start}}
+@media(max-width:700px){.compact-record-list.is-expanded>.client-list-row-wrap:nth-child(n+7){display:grid}.inventory-panel-expanded .compact-record-list>.client-list-row-wrap:nth-child(n+7){display:grid}}
+
+
+/* Dashboard client panels — containment + two-column hierarchy fix, Aug 2026
+   UI-only: preserves existing card/client data, handlers, searches and actions. */
+.client-plan-board{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:18px!important;
+  align-items:start!important;
+}
+.client-plan-board .basic-column{grid-column:1!important}
+.client-plan-board .premium-column{grid-column:2!important}
+.client-plan-board .business-column{grid-column:1!important}
+.client-plan-board .plan-column{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  align-self:start!important;
+  overflow:visible;
+}
+.client-plan-board .plan-column-head{
+  align-items:flex-start!important;
+  min-width:0;
+}
+.client-plan-board .plan-column-head>div:first-child{
+  min-width:0;
+  flex:1 1 auto;
+}
+.client-plan-board .plan-column-head h3,
+.client-plan-board .plan-column-head .subtitle{
+  overflow-wrap:anywhere;
+}
+
+/* Compact row: keep the important controls inside the card.
+   Secondary stats remain available in the expanded panel. */
+.client-plan-board .client-list-row-wrap{
+  width:100%;
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 108px;
+  gap:8px;
+  align-items:stretch;
+}
+.client-plan-board .client-list-row{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  grid-template-columns:minmax(0,1fr) minmax(68px,auto) auto 18px;
+  gap:8px;
+  padding:11px 12px;
+  overflow:visible;
+}
+.client-plan-board .client-list-row .client-list-stat{
+  display:none;
+}
+.client-plan-board .client-list-main,
+.client-plan-board .client-list-plan{
+  min-width:0;
+  max-width:100%;
+}
+.client-plan-board .client-list-main strong,
+.client-plan-board .client-list-main small{
+  display:block;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.client-plan-board .client-list-plan{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.client-plan-board .client-list-row>.badge{
+  justify-self:end;
+  max-width:100%;
+  white-space:nowrap;
+  position:static;
+  z-index:auto;
+}
+.client-plan-board .client-list-row>i{
+  justify-self:end;
+  position:static;
+  z-index:auto;
+}
+.client-plan-board .client-manage-button{
+  width:108px;
+  min-width:0;
+  max-width:108px;
+  min-height:46px;
+  padding:8px 9px;
+  position:relative;
+  z-index:1;
+  overflow:hidden;
+}
+.client-plan-board .client-manage-button i{flex:0 0 auto}
+.client-plan-board .client-list-row:hover{
+  z-index:0;
+}
+.client-plan-board .client-list-row *,
+.client-plan-board .client-manage-button *{
+  position:relative;
+  z-index:auto;
+}
+
+/* Expanded plan panel: restore complete stats and give every field enough room. */
+.client-plan-board .plan-column.inventory-panel-expanded{
+  grid-column:auto!important;
+}
+.client-plan-board .inventory-panel-expanded .client-list-row-wrap{
+  grid-template-columns:minmax(0,1fr) 118px;
+}
+.client-plan-board .inventory-panel-expanded .client-list-row{
+  grid-template-columns:minmax(190px,1.7fr) minmax(76px,.65fr) minmax(78px,.7fr) minmax(78px,.7fr) auto 18px;
+  gap:10px;
+}
+.client-plan-board .inventory-panel-expanded .client-list-row .client-list-stat{
+  display:flex;
+  min-width:0;
+}
+.client-plan-board .inventory-panel-expanded .client-list-stat small{
+  white-space:normal;
+  line-height:1.15;
+}
+.client-plan-board .inventory-panel-expanded .client-manage-button{
+  width:118px;
+  max-width:118px;
+}
+
+/* Tablet/mobile: one panel per row, with controls deliberately stacked inside each client row. */
+@media(max-width:900px){
+  .client-plan-board{
+    grid-template-columns:1fr!important;
+    gap:12px!important;
+  }
+  .client-plan-board .basic-column,
+  .client-plan-board .premium-column,
+  .client-plan-board .business-column{
+    grid-column:1!important;
+  }
+  .client-plan-board .client-list-row-wrap{
+    grid-template-columns:1fr;
+    gap:7px;
+  }
+  .client-plan-board .client-manage-button{
+    width:100%;
+    max-width:none;
+    min-height:42px;
+  }
+  .client-plan-board .client-list-row{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px 10px;
+    padding:11px 12px;
+    align-items:center;
+  }
+  .client-plan-board .client-list-main{
+    grid-column:1;
+    grid-row:1;
+  }
+  .client-plan-board .client-list-row>i{
+    grid-column:2;
+    grid-row:1;
+  }
+  .client-plan-board .client-list-plan{
+    grid-column:1;
+    grid-row:2;
+    justify-self:start;
+  }
+  .client-plan-board .client-list-row>.badge{
+    grid-column:2;
+    grid-row:2;
+    justify-self:end;
+  }
+  .client-plan-board .client-list-row .client-list-stat{
+    display:none;
+  }
+
+  .client-plan-board .inventory-panel-expanded .client-list-row-wrap{
+    grid-template-columns:1fr;
+  }
+  .client-plan-board .inventory-panel-expanded .client-list-row{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+  .client-plan-board .inventory-panel-expanded .client-list-main{
+    grid-column:1 / -1;
+    grid-row:auto;
+    padding-right:28px;
+  }
+  .client-plan-board .inventory-panel-expanded .client-list-plan{
+    grid-column:1;
+    grid-row:auto;
+  }
+  .client-plan-board .inventory-panel-expanded .client-list-row>.badge{
+    grid-column:2;
+    grid-row:2;
+  }
+  .client-plan-board .inventory-panel-expanded .client-list-row .client-list-stat{
+    display:flex;
+    grid-column:auto;
+    grid-row:auto;
+    text-align:left;
+    padding-top:4px;
+    border-top:1px solid #edf1f5;
+  }
+  .client-plan-board .inventory-panel-expanded .client-list-row>i{
+    position:absolute;
+    top:12px;
+    right:12px;
+  }
+  .client-plan-board .inventory-panel-expanded .client-list-row{
+    position:relative;
+  }
+}
+
+@media(max-width:480px){
+  .client-plan-board .plan-column{padding:12px}
+  .client-plan-board .plan-column-head{gap:6px}
+  .client-plan-board .panel-head-actions{flex:0 0 auto}
+  .client-plan-board .client-list-row{
+    padding:10px;
+  }
+  .client-plan-board .client-list-row>.badge{
+    font-size:.66rem;
+    padding:4px 7px;
+  }
+  .client-plan-board .client-list-plan{
+    font-size:.74rem;
+  }
+}
+
+/* =========================================================
+   NFC INVENTORY ROW LAYOUT FIX — AUG 30 2026
+   Keep record content and actions in independent grid tracks so
+   status labels never slide underneath edit/return controls.
+   ========================================================= */
+.inventory-list-row-wrap{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  align-items:stretch;
+  gap:7px;
+  min-width:0;
+}
+.inventory-list-row{
+  width:100%;
+  min-width:0;
+  grid-template-columns:minmax(0,1.55fr) minmax(0,1.15fr) minmax(52px,.55fr) minmax(72px,.7fr) minmax(74px,auto) 14px;
+  gap:8px;
+  overflow:hidden;
+}
+.inventory-list-row > *{min-width:0}
+.inventory-list-row .badge{justify-self:start;white-space:nowrap;position:static;max-width:100%}
+.inventory-list-plan,.inventory-list-date{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inventory-return-button,.inventory-note-edit{position:static;z-index:1;align-self:stretch}
+.inventory-list-row:hover{transform:none}
+
+@media(max-width:1180px){
+  .inventory-list-row{
+    grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(52px,.55fr) minmax(74px,auto) 14px;
+  }
+  .inventory-list-date{display:none}
+}
+@media(max-width:760px){
+  .inventory-list-row-wrap{grid-template-columns:minmax(0,1fr) auto}
+  .inventory-list-row{
+    grid-column:1/-1;
+    grid-template-columns:minmax(0,1fr) auto 14px;
+    grid-template-areas:"main badge arrow" "note note note" "plan plan plan";
+    row-gap:5px;
+  }
+  .inventory-list-main{grid-area:main}
+  .inventory-list-note{grid-area:note;display:block;white-space:normal;overflow-wrap:anywhere}
+  .inventory-list-plan{grid-area:plan;display:block}
+  .inventory-list-row>.badge{grid-area:badge;align-self:start}
+  .inventory-list-row>i{grid-area:arrow;align-self:center}
+  .inventory-return-button{grid-column:1;grid-row:2;justify-self:start;min-height:38px}
+  .inventory-note-edit{grid-column:2;grid-row:2;width:40px;min-height:38px}
+}
+
+
+/* Official JMX NFC Device-ID center — Sep 2026 */
+.nfc-device-center{position:relative}.nfc-device-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start;margin-top:14px}.nfc-device-box{min-width:0;border:1px solid var(--border);border-radius:15px;background:#fff;padding:14px;align-self:start}.nfc-device-box-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.nfc-device-box-head h3{margin:2px 0 0}.nfc-compact-list{display:grid;gap:8px}.nfc-record:nth-child(n+7){display:none}.nfc-device-box.is-expanded .nfc-record:nth-child(n+7){display:grid}.nfc-record{width:100%;border:1px solid #edf0f4;border-radius:11px;background:#fff;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;cursor:pointer}.nfc-record:hover{border-color:#d6be78;background:#fffdf8}.nfc-record strong,.nfc-record small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nfc-record small{color:var(--muted);margin-top:3px}.nfc-record-meta{font-size:.72rem;font-weight:800;border-radius:99px;padding:5px 8px;background:#f4f1e8;color:#6f5519;white-space:nowrap}.nfc-device-box.is-expanded{position:fixed;z-index:10030;inset:4vh 4vw;width:auto;height:92vh;padding:18px;background:#fff;box-shadow:0 30px 90px rgba(15,23,42,.3);overflow:hidden;display:flex;flex-direction:column}.nfc-device-box.is-expanded .nfc-compact-list{overflow-y:auto;min-height:0;flex:1;padding-right:5px}.nfc-device-box.is-expanded [data-nfc-expand] i:before{content:"\f00d"}.nfc-device-backdrop{position:fixed;z-index:10025;inset:0;background:rgba(15,23,42,.54)}body.nfc-device-panel-open{overflow:hidden}.nfc-client-device-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.nfc-client-device-summary article{border:1px solid var(--border);border-radius:10px;padding:9px;background:#fff}.nfc-client-device-summary span{display:block;color:var(--muted);font-size:.72rem}.nfc-client-device-summary strong{font-size:1.05rem}.nfc-control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nfc-control-button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px;display:flex;justify-content:space-between;gap:8px;cursor:pointer}.nfc-control-button.off{background:#fff5f5;border-color:#fecaca}.nfc-device-mini-list{max-height:280px;overflow:auto;display:grid;gap:7px;margin-top:8px}.nfc-device-mini-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;border-bottom:1px solid #edf0f4;padding:8px 0}.nfc-device-mini-row small{display:block;color:var(--muted)}.nfc-copy-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.nfc-global-search-row{grid-template-columns:minmax(0,1fr)!important}.nfc-device-status-pill{font-size:.72rem;font-weight:800;padding:4px 7px;border-radius:99px;background:#edf7ed;color:#176526}.nfc-device-status-pill.disabled{background:#fff0f0;color:#9b1c1c}.nfc-device-status-pill.available{background:#eef6ff;color:#1e3a5f}
+@media(max-width:800px){.nfc-device-board{grid-template-columns:1fr}.nfc-device-box.is-expanded{inset:1vh 2vw;height:98dvh;padding:13px}.nfc-client-device-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.nfc-control-grid{grid-template-columns:1fr}.nfc-device-mini-row{grid-template-columns:minmax(0,1fr) auto}.nfc-device-mini-row .mini-button{grid-column:1/-1;width:100%}}
+.nfc-settings-details{margin:14px 0;border:1px solid var(--border);border-radius:14px;background:#fafafa}.nfc-settings-details summary{cursor:pointer;padding:13px 14px;display:flex;gap:8px;justify-content:space-between}.nfc-settings-inner{padding:0 14px 14px}.nfc-settings-matrix{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}.nfc-settings-column{border:1px solid var(--border);border-radius:11px;background:#fff;padding:10px}.nfc-settings-column h4{margin:0 0 8px}.nfc-settings-toggle{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;font-size:.8rem;border-bottom:1px solid #f1f3f5}.nfc-settings-toggle:last-child{border-bottom:0}.nfc-settings-toggle input{width:18px;height:18px}@media(max-width:900px){.nfc-settings-matrix{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.nfc-settings-matrix{grid-template-columns:1fr}}
+
+/* Sep 1 2026 — NFC batch production / encoding workflow */
+.nfc-encoder-dialog{width:min(760px,calc(100vw - 24px));max-height:min(92dvh,900px)}
+.nfc-encoder-progress{display:grid;gap:8px;margin:10px 0 16px}.nfc-encoder-progress>div{display:flex;justify-content:space-between;gap:12px;align-items:end}.nfc-encoder-progress strong{font-size:1.25rem}.nfc-encoder-progress progress{width:100%;height:12px}
+.nfc-encoder-current{border:1px solid var(--border);border-radius:18px;padding:16px;background:var(--panel,#fff)}.nfc-encoder-device-number{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}.nfc-encoder-device-number span{font-size:.76rem;font-weight:850;letter-spacing:.08em}.nfc-encoder-device-number strong{font-size:1.15rem}.nfc-encoder-hardware-note{margin-top:12px}.nfc-encoder-actions{flex-wrap:wrap}.nfc-encoder-actions button{min-width:130px}
+@media(max-width:600px){.nfc-encoder-dialog{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);padding:14px}.nfc-encoder-current{padding:12px}.nfc-encoder-actions{display:grid;grid-template-columns:1fr 1fr}.nfc-encoder-actions button{min-width:0;width:100%}.nfc-encoder-actions .primary-button{grid-column:1/-1}.nfc-encoder-current .inline-field{display:grid;grid-template-columns:1fr}.nfc-encoder-current .inline-field .mini{width:100%}}
+
+/* SEP 2026 — Official NFC clients separated by plan */
+.nfc-plan-clients-head,.nfc-device-inventory-head{margin-top:18px}.nfc-plan-clients-head h3,.nfc-device-inventory-head h3{margin:2px 0 0}.nfc-plan-client-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;margin-top:10px}.nfc-plan-client-box{border-top:3px solid #d6be78}.nfc-client-plan-record .nfc-client-plan-meta{font-weight:700;color:#80621c}.nfc-client-open-pill{font-size:.68rem;font-weight:900;letter-spacing:.06em;border-radius:99px;padding:5px 8px;background:#f4f1e8;color:#6f5519;white-space:nowrap}.nfc-client-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}.nfc-client-overview article{border:1px solid var(--border);border-radius:10px;padding:9px;background:#fff}.nfc-client-overview span{display:block;color:var(--muted);font-size:.72rem}.nfc-client-overview strong{font-size:.95rem}.nfc-plan-client-box.is-expanded{position:fixed;z-index:10030;inset:4vh 4vw;width:auto;height:92vh;padding:18px;background:#fff;box-shadow:0 30px 90px rgba(15,23,42,.3);overflow:hidden;display:flex;flex-direction:column}.nfc-plan-client-box.is-expanded .nfc-compact-list{overflow-y:auto;min-height:0;flex:1;padding-right:5px}.nfc-plan-client-box.is-expanded .nfc-record:nth-child(n+7){display:grid}
+@media(max-width:980px){.nfc-plan-client-board{grid-template-columns:1fr}.nfc-client-overview{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:800px){.nfc-plan-client-box.is-expanded{inset:1vh 2vw;height:98dvh;padding:13px}.nfc-client-overview{grid-template-columns:1fr}.nfc-plan-clients-head,.nfc-device-inventory-head{margin-top:14px}}
+
+/* ===== Sep 2026 incremental Device-ID profile creation / lifecycle ===== */
+.nfc-plan-clients-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.nfc-plan-clients-head .primary-button{white-space:nowrap}
+.nfc-profile-dialog .url-preview small{display:block;margin-top:6px;opacity:.72;font-size:.78rem;line-height:1.35}
+.nfc-client-section-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.nfc-client-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.nfc-client-overview{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.nfc-client-overview article strong{overflow-wrap:anywhere}
+@media (max-width:700px){
+  .nfc-plan-clients-head{align-items:stretch}
+  .nfc-plan-clients-head .primary-button{width:100%;justify-content:center}
+  .nfc-client-quick-actions{display:grid;grid-template-columns:1fr}
+  .nfc-client-quick-actions button{width:100%;justify-content:center}
+  .nfc-client-section-title{align-items:center}
+  .nfc-profile-dialog{width:min(96vw,720px);max-height:94dvh}
+}
+
+/* Sep 2026 simplified NFC card administration */
+.nfc-simple-inventory-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0 18px}.nfc-simple-card-record{display:flex;align-items:center;justify-content:space-between;gap:10px}.nfc-simple-card-main{border:0;background:transparent;color:inherit;text-align:left;flex:1;cursor:pointer}.nfc-simple-card-actions{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:800px){.nfc-simple-inventory-board{grid-template-columns:1fr}}
+
+/* Sep 2026 — Desktop contextual help tooltips */
+.jmx-admin-tooltip{position:fixed;inset:auto;margin:0;z-index:2147483647;max-width:min(330px,calc(100vw - 24px));padding:8px 10px;border:0;border-radius:8px;background:#0b0b0d;color:#fff;font-size:.78rem;font-weight:650;line-height:1.35;box-shadow:0 8px 28px rgba(0,0,0,.28);pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s ease,transform .12s ease;white-space:normal}
+.jmx-admin-tooltip.is-visible{opacity:1;transform:translateY(0)}
+@media (hover:none),(pointer:coarse){.jmx-admin-tooltip{display:block}}
+
+
+/* ===== Sep 2026 usability + local development additions ===== */
+.local-dev-banner{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:13px 15px;border:1px solid #e5b94f;border-radius:14px;background:#fff8df;color:#513d08;box-shadow:var(--shadow)}
+.local-dev-banner i{font-size:1.25rem}.local-dev-banner strong,.local-dev-banner span{display:block}.local-dev-banner span{font-size:.82rem;margin-top:3px}
+.activity-filter-row{grid-template-columns:minmax(0,1fr) 220px}.activity-log-list{display:grid;gap:8px;max-height:440px;overflow:auto;padding-right:4px}.activity-log-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;border:1px solid var(--border);border-radius:12px;padding:11px 12px;background:#fff}.activity-log-row strong,.activity-log-row small{display:block}.activity-log-row small{color:var(--muted);margin-top:3px}.activity-log-meta{text-align:right}.activity-log-meta span{display:inline-block;padding:3px 7px;border-radius:99px;background:#f4f1e8;color:#6f5519;font-size:.68rem;font-weight:800;text-transform:uppercase}.activity-log-meta time{display:block;color:var(--muted);font-size:.72rem;margin-top:4px}
+@media(max-width:700px){.activity-filter-row{grid-template-columns:1fr}.activity-log-row{grid-template-columns:1fr}.activity-log-meta{text-align:left}.local-dev-banner{align-items:flex-start}.card-dialog,.client-detail-dialog{width:calc(100vw - 12px);max-width:none;max-height:calc(100dvh - 12px)}.card-dialog form,.client-detail-shell{max-height:calc(100dvh - 12px);overflow:auto}.dialog-actions{position:sticky;bottom:-1px;background:#fff;padding:10px 0 2px;z-index:3;display:grid;grid-template-columns:1fr}.dialog-actions>button,.dialog-actions>a{width:100%;min-height:44px}.nfc-device-box.is-expanded,.nfc-plan-client-box.is-expanded{inset:6px!important;height:calc(100dvh - 12px)!important}.nfc-device-box.is-expanded .nfc-device-box-head,.nfc-plan-client-box.is-expanded .nfc-device-box-head{position:sticky;top:-13px;background:#fff;z-index:4;padding-top:10px}.primary-button,.secondary-button,.mini,.mini-button,.panel-expand-button,.feature-expand-button,.nfc-control-button{min-height:44px}.nfc-record{min-height:52px}.nfc-client-device-summary{grid-template-columns:1fr 1fr}.nfc-settings-toggle{min-height:44px}.jmx-admin-tooltip{display:block!important;font-size:.82rem;max-width:calc(100vw - 20px)}}
+@media(max-width:420px){.nfc-client-device-summary{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr}.panel{padding:15px}.dashboard-app{padding:9px}.nfc-device-mini-row{grid-template-columns:1fr}.nfc-device-mini-row>*{min-width:0}.nfc-device-mini-row .mini-button{grid-column:auto}}
+
+/* NFC batch permanent-delete control — preserves primary client card/profile */
+.nfc-delete-batch-button{border-color:#fecaca!important;background:#fff1f2!important;color:#b42318!important;font-weight:800}.nfc-batch-client-row{grid-template-columns:minmax(0,1fr) auto auto auto}@media(max-width:800px){.nfc-batch-client-row{grid-template-columns:minmax(0,1fr) auto}.nfc-batch-client-row .mini-button{grid-column:1/-1;width:100%}}

@@ -1,0 +1,100 @@
+JMX DIGITAL CARD — STORAGE + FEATURE CONTROL UPDATE — AUG 2026
+================================================================
+
+BASELINE
+- Source: JMX-Digital-Card-Business-Admin-Gift-Controls-Aug2026.zip
+- The project was extended in place. It was not rebuilt.
+- No live Firebase data was modified by this file operation.
+- No Cloud Function was deployed.
+
+FILES MODIFIED
+- admin.js
+- admin.html
+- dashboard.js
+- script.js
+- firebase.json
+- FIREBASE-SETUP.txt
+
+FILES CREATED
+- storage.rules
+- JMX-STORAGE-AND-FEATURE-CONTROL-REPORT-AUG2026.txt
+
+CLOUD STORAGE ARCHITECTURE
+- New images/PDFs are uploaded to Firebase Cloud Storage under:
+  cards/{cardId}/{mediaId}/{unique-filename}
+- Firestore profile documents store a small media manifest containing URL, storagePath,
+  filename, MIME type, size and timestamp metadata.
+- New cards are created with mediaStorageVersion: 2 and media: {}.
+- Public/profile editor loading uses the Storage manifest first.
+- Existing legacy cards that still use cards/{cardId}/media Base64 documents remain readable.
+- Legacy media is not bulk-deleted or automatically destructively migrated.
+- When a user explicitly replaces/removes a particular media item, only that item's old
+  representation is cleaned up after the new Storage upload succeeds.
+
+STORAGE SECURITY
+- Public read is allowed only under the public-card media path because these assets are
+  intentionally displayed on public JMX profiles.
+- Upload/update/delete requires either the JMX admin UID or the owner UID from cardOwners.
+- Uploads are limited to images/PDF and less than 12 MB by Storage Rules.
+- All other Storage paths are denied by default.
+
+FEATURE CONTROL HIERARCHY
+- Public card effective permission:
+  Global control -> Plan control -> Client-specific admin override -> Client visibility choice.
+- Client editor effective permission:
+  Global control -> Plan control -> Client-specific admin override.
+- A feature disabled by JMX administration is hidden from the owner's editor, not merely disabled.
+- Its public-card UI is also hidden.
+- Hidden controls use normal document layout so no placeholder gap is reserved.
+- Saved client data is preserved when a feature is administratively disabled.
+
+CLIENT-SPECIFIC FEATURE OVERRIDES
+- Each client's large admin detail dialog now includes Client Feature Overrides.
+- An OFF switch hides that feature only for that client, both publicly and inside that client's editor.
+- Global and plan controls have priority and cannot be bypassed by a client-specific switch.
+- Overrides are stored on cards/{cardId}.featureOverrides and are admin-write-only under existing Firestore rules.
+
+BACKWARD COMPATIBILITY
+- Existing Card IDs: no source migration/regeneration added.
+- Existing activation codes: no source migration/regeneration added.
+- Existing public URLs/NFC routing: unchanged.
+- Existing Basic/Premium/Business and complimentary plan logic: preserved.
+- Existing Quick Capture/Leads/analytics: preserved.
+- Existing legacy Base64 media remains supported.
+
+EXPLICIT DESTRUCTIVE WORKFLOWS
+- Existing Reset/Release-for-Reuse workflows remain destructive only after their existing confirmations.
+- Release-for-Reuse now also removes Storage media referenced by that profile so abandoned files do not accumulate.
+
+FIRESTORE COST/READ OPTIMIZATION
+- New mediaStorageVersion 2 cards no longer query cards/{cardId}/media on every public/profile load.
+- Their media URLs arrive with the normal profile document.
+- Legacy cards keep the old query only while they remain legacy, preserving compatibility.
+- Analytics write behavior was intentionally not changed because exact metrics were requested.
+
+TESTS PERFORMED
+- node --check: admin.js PASS
+- node --check: dashboard.js PASS
+- node --check: script.js PASS
+- node --check: functions/index.js PASS
+- Static validation: Cloud Storage SDK imports and manifest loader present PASS
+- Static validation: new cards receive mediaStorageVersion 2 PASS
+- Static validation: public loader retains legacy Base64 fallback PASS
+- Static validation: client featureOverrides are enforced in public planAllows PASS
+- Static validation: client featureOverrides are enforced in owner editor PASS
+- Static validation: dashboard client detail writes featureOverrides PASS
+- Static validation: firebase.json references storage.rules PASS
+- Diff audit: only the listed files changed; no unrelated project files were removed PASS
+
+NOT DEPLOYED / PENDING EXTERNAL SETUP
+- Enable/configure Firebase Cloud Storage for jmx-digital-card.
+- Publish storage.rules.
+- Blaze/billing configuration if Firebase requires it for the bucket/functions in this project.
+- Deploy cleanupExpiredBusinessLeads only after the user's requested Blaze/Storage verification.
+
+KNOWN LIMITATIONS / SAFETY NOTES
+- The ZIP does not contain authenticated live Firestore data, so Card IDs/activation codes/owners
+  in production cannot be individually compared from the archive alone. This implementation does
+  not contain any automatic migration that changes those values.
+- Legacy cards deliberately continue using the legacy media fallback until a separate safe migration
+  is explicitly requested. New cards use the scalable Storage path immediately.

@@ -1,0 +1,20 @@
+JMX DIGITAL CARD — VERSION FINAL INVENTARIO + ACTIVACION NFC
+
+Esta carpeta reemplaza la version multiusuario anterior.
+
+LO PRINCIPAL
+- Tu (JMX) generas cada URL corta desde dashboard.html.
+- El cliente NO puede generar URLs.
+- La URL corta se graba fisicamente en la NFC.
+- Primera lectura: activa la tarjeta y vincula la cuenta del cliente.
+- Lecturas futuras: muestran directamente el perfil publico.
+- El cliente entra por login.html y solo edita sus propias tarjetas.
+- Tu controlas inventario, Basic/Premium, suspendido/activo y codigos de activacion.
+
+ORDEN DE INSTALACION
+1. Publica primero firestore.rules en Firebase.
+2. Luego sube TODOS los archivos de esta carpeta a GitHub y haz Commit a main.
+3. Prueba dashboard.html.
+4. Crea una NFC de prueba y completa PRUEBA-FINAL.txt.
+
+NO BLOQUEES UNA NFC FISICA HASTA QUE LA URL SE HAYA PROBADO EN MAS DE UN TELEFONO.

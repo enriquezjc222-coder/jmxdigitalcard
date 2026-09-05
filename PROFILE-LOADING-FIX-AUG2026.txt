@@ -1,0 +1,16 @@
+JMX DIGITAL CARD - PUBLIC PROFILE LOADING FIX
+
+Problem fixed:
+- The old John Smith demo profile could flash briefly before Firebase finished loading.
+- In some failure/incomplete-profile cases, demo values could remain visible.
+
+Changes:
+1. card.html now starts in firebase-loading state before the browser can paint the profile.
+2. The public card stays hidden until the correct Firebase profile is loaded and applied.
+3. Static John Smith / example contact values were removed from card.html.
+4. script.js public fallback values are now empty/safe instead of another person's demo identity.
+5. admin.js defaults are now blank/safe, preventing a new/reset profile from accidentally publishing John Smith demo data.
+6. Existing Firebase cards/data are not deleted or changed by these source-code edits. BOSS remains untouched in the database.
+
+Expected result:
+Opening /c/BOSS or any future /c/CODE will never display the John Smith template while waiting. The correct profile appears only after its data is ready.

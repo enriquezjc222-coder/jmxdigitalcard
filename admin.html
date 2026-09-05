@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Card Admin</title>
+<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+<main class="admin-app">
+<header class="admin-header">
+  <div><p class="admin-eyebrow">DIGITAL CARD</p><h1>Profile Editor</h1><p class="admin-subtitle">Edit your card without touching code</p></div>
+  <div class="admin-header-actions"><a href="dashboard.html" class="view-card-button secondary-view admin-only-link"><i class="fa-solid fa-table-columns"></i> Dashboard</a><a id="viewCardButton" href="index.html" class="view-card-button" target="_blank"><i class="fa-solid fa-eye"></i> View Card</a></div>
+</header>
+
+<section class="admin-section auth-section" id="authGate">
+ <div class="section-title"><i class="fa-solid fa-lock"></i><div><small>SECURE ADMIN</small><h2>Firebase Sign In</h2></div></div>
+ <p class="section-help">Sign in with the authorized JMX administrator account. Google is the recommended option. Access is still verified against the administrator UID stored in Firebase, so another Google account cannot become the JMX administrator.</p>
+ <div class="auth-google-row">
+  <button id="adminGoogleLogin" class="google-auth-button" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
+ </div>
+ <div class="auth-divider"><span>or use email and password</span></div>
+ <div class="auth-login-grid">
+  <label class="form-group"><span>Admin Email</span><input id="adminEmail" type="email" autocomplete="username" placeholder="you@example.com"></label>
+  <label class="form-group"><span>Password</span><input id="adminPassword" type="password" autocomplete="current-password"></label>
+  <button id="adminLogin" class="save-button auth-button" type="button"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+ </div>
+ <div class="auth-signed-in"><span><i class="fa-solid fa-circle-check"></i> <strong id="adminUserEmail"></strong></span><button id="adminLogout" class="mini-button" type="button">Sign Out</button></div>
+ <div id="authStatus" class="auth-status" aria-live="polite"></div>
+</section>
+
+<section class="admin-section card-management-section admin-only-section">
+ <div class="section-title"><i class="fa-solid fa-address-card"></i><div><small>CLIENT MANAGEMENT</small><h2>Card Settings</h2></div></div>
+ <div class="card-id-banner"><div><span>Card ID</span><strong id="currentCardId">main</strong></div><div><span>Public URL</span><a id="publicCardUrl" target="_blank"></a></div></div>
+ <div class="form-grid">
+  <label class="form-group"><span>Client Name (internal)</span><input id="clientName" type="text"></label>
+  <label class="form-group"><span>Client Email (internal)</span><input id="clientEmail" type="email"></label>
+  <label class="form-group"><span>Client Phone (internal)</span><input id="clientPhone" type="tel"></label>
+  <label class="form-group full-width"><span>Client Editor Login Email (optional)</span><input id="clientEditorEmail" type="email" placeholder="client@example.com"><small>Optional: create this same email in Firebase Authentication if the client should edit only this card.</small></label>
+  <label class="form-group"><span>Plan</span><select id="clientPlan"><option>Basic</option><option>Premium</option><option value="Business">JMX Business</option></select></label><label class="form-group switch-form"><span>Complimentary Premium</span><label class="switch-row"><input id="complimentaryPremium" type="checkbox"><span class="switch-ui"></span><strong>Premium free / courtesy</strong></label></label><label class="form-group switch-form"><span>Complimentary Business</span><label class="switch-row"><input id="complimentaryBusiness" type="checkbox"><span class="switch-ui"></span><strong>Business free / courtesy</strong></label></label><label class="form-group"><span>Subscription Status</span><input id="subscriptionStatus" type="text" readonly></label><label class="form-group"><span>Premium Source</span><input id="subscriptionSource" type="text" readonly></label>
+  <label class="form-group"><span>Card Status</span><select id="cardStatus"><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select></label>
+  <label class="form-group"><span>Renewal Date</span><input id="renewalDate" type="date"></label>
+  <label class="form-group"><span>NFC Status</span><select id="nfcStatus"><option value="not-programmed">Not programmed</option><option value="programmed">Programmed</option><option value="delivered">Delivered</option></select></label>
+  <label class="form-group full-width"><span>Internal Notes</span><textarea id="internalNotes" rows="3" placeholder="Private notes visible only in the admin dashboard"></textarea></label>
+ </div>
+</section>
+
+<section id="premiumStatsSection" class="admin-section premium-stats-section" hidden>
+ <div class="section-title"><i class="fa-solid fa-chart-line"></i><div><small>PREMIUM / BUSINESS</small><h2>Your Action Analytics</h2></div></div>
+ <p class="section-help">Profile-view counters are historical and frozen after August 25, 2026. New analytics prioritize real customer actions so JMX can scale with fewer Firestore writes.</p>
+ <div class="premium-stats-grid">
+  <article data-premium-retired-counter><span>Historical profile views</span><strong id="ownerHistoricalViews">0</strong><small>frozen at the analytics transition</small></article>
+  <article><span>Tracked actions</span><strong id="ownerTrackedActions">0</strong><small>real clicks and actions</small></article>
+  <article data-advanced-analytics><span>Top action</span><strong id="ownerTopAction">—</strong><small id="ownerTopActionCount">No actions yet</small></article>
+  <article data-advanced-analytics data-premium-retired-counter><span>Analytics transition</span><strong>Aug 26, 2026</strong><small>views frozen; actions continue</small></article>
+ </div>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-user"></i><div><small>PROFILE</small><h2>Basic Information</h2></div></div>
+ <div class="form-grid">
+  <label class="form-group"><span>Full Name</span><input id="fullName" type="text"></label>
+  <label class="form-group"><span>Position</span><input id="position" type="text"></label>
+  <label class="form-group full-width"><span>Company Name</span><input id="company" type="text"></label>
+  <label class="form-group"><span>City</span><input id="city" type="text"></label>
+  <label class="form-group"><span>State</span><input id="state" type="text"></label>
+  <label class="form-group full-width"><span>Description</span><textarea id="description" rows="4"></textarea></label>
+ </div>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-image"></i><div><small>IMAGES</small><h2>Profile & Cover</h2></div></div>
+ <p class="section-help">Photos are compressed automatically and stored in Firebase Cloud Storage so Firestore stays lightweight.</p>
+ <div class="image-upload-grid">
+  <div class="upload-card"><h3>Profile Photo</h3><div class="image-preview profile-preview"><img id="profilePreview"><span id="profilePlaceholder"><i class="fa-solid fa-user"></i></span></div><label class="upload-button" for="profileUpload"><i class="fa-solid fa-upload"></i> Choose Photo</label><input hidden id="profileUpload" type="file" accept="image/*"><button class="mini-button danger" type="button" data-clear-image="profileImage">Remove</button></div>
+  <div class="upload-card"><h3>Cover Photo</h3><div class="image-preview cover-preview"><img id="coverPreview"><span id="coverPlaceholder"><i class="fa-solid fa-image"></i></span></div><label class="upload-button" for="coverUpload"><i class="fa-solid fa-upload"></i> Choose Cover</label><input hidden id="coverUpload" type="file" accept="image/*"><button class="mini-button danger" type="button" data-clear-image="coverImage">Remove</button></div>
+ </div>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-address-book"></i><div><small>CONTACT</small><h2>Contact Information</h2></div></div>
+ <div class="form-grid">
+  <label class="form-group"><span>Phone Number</span><input id="phone" type="tel"></label>
+  <label class="form-group"><span>Second Phone Number</span><input id="phone2" type="tel"></label>
+  <label class="form-group"><span>WhatsApp Number</span><input id="whatsapp" type="tel" placeholder="+1 708 555 1234"></label>
+  <label class="form-group"><span>Email</span><input id="email" type="email"></label>
+  <label class="form-group full-width"><span>Website</span><input id="website" type="url" placeholder="https://example.com"></label>
+ </div>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-share-nodes"></i><div><small>SOCIAL</small><h2>Social Media Links</h2></div></div>
+ <div class="form-grid">
+  <label class="form-group"><span>Facebook</span><input id="facebook" type="url"></label>
+  <label class="form-group"><span>Instagram</span><input id="instagram" type="url"></label>
+  <label class="form-group"><span>LinkedIn</span><input id="linkedin" type="url"></label>
+  <label class="form-group"><span>X / Twitter</span><input id="twitter" type="url"></label>
+  <label class="form-group"><span>TikTok</span><input id="tiktok" type="url"></label>
+  <label class="form-group"><span>YouTube</span><input id="youtube" type="url"></label>
+ </div>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-link"></i><div><small>BUSINESS LINKS</small><h2>Catalog & Extra Link</h2></div></div>
+ <div class="form-grid">
+  <label class="form-group full-width"><span>Catalog URL (recommended for large PDFs)</span><input id="catalog" type="url" placeholder="https://.../catalog.pdf"></label>
+  <label class="form-group full-width"><span>Upload PDF (max 10 MB)</span><input id="catalogUpload" type="file" accept="application/pdf"></label>
+  <label class="form-group"><span>Extra Link Label</span><input id="customBusinessLabel" type="text" placeholder="Request a Quote"></label>
+  <label class="form-group"><span>Extra Link Subtitle</span><input id="customBusinessSubtitle" type="text" placeholder="Open our quote form"></label>
+  <label class="form-group full-width"><span>Extra Link URL</span><input id="customBusinessUrl" type="url" placeholder="https://..."></label>
+ </div>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-star"></i><div><small>SERVICES</small><h2>Three Service Cards</h2></div></div>
+ <div class="service-editor-grid">
+  <div class="editor-card"><h3>Service 1</h3><label class="form-group"><span>Title</span><input id="service1Title"></label><label class="form-group"><span>Description</span><textarea id="service1Description" rows="3"></textarea></label><label class="form-group"><span>Icon class</span><input id="service1Icon" placeholder="fa-house"></label></div>
+  <div class="editor-card"><h3>Service 2</h3><label class="form-group"><span>Title</span><input id="service2Title"></label><label class="form-group"><span>Description</span><textarea id="service2Description" rows="3"></textarea></label><label class="form-group"><span>Icon class</span><input id="service2Icon" placeholder="fa-screwdriver-wrench"></label></div>
+  <div class="editor-card"><h3>Service 3</h3><label class="form-group"><span>Title</span><input id="service3Title"></label><label class="form-group"><span>Description</span><textarea id="service3Description" rows="3"></textarea></label><label class="form-group"><span>Icon class</span><input id="service3Icon" placeholder="fa-paint-roller"></label></div>
+ </div>
+ <p class="section-help">Use Font Awesome icon names such as fa-house, fa-hammer, fa-paint-roller.</p>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-images"></i><div><small>GALLERY</small><h2>Photo Gallery</h2></div></div>
+ <div class="upload-card wide"><label for="galleryUpload" class="upload-button"><i class="fa-solid fa-upload"></i> Choose up to 6 Photos</label><input hidden id="galleryUpload" type="file" accept="image/*" multiple><button id="clearGallery" class="mini-button danger" type="button">Clear Gallery</button><div id="galleryPreview" class="gallery-preview"></div></div>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-circle-play"></i><div><small>VIDEO</small><h2>Featured Video</h2></div></div>
+ <label class="form-group full-width"><span>YouTube or video URL</span><input id="videoUrl" type="url" placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."></label>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-handshake"></i><div><small>FINAL BUTTON</small><h2>Call To Action</h2></div></div>
+ <div class="form-grid"><label class="form-group"><span>Title</span><input id="finalCtaTitle"></label><label class="form-group"><span>Button Label</span><input id="finalCtaLabel"></label><label class="form-group full-width"><span>Text</span><textarea id="finalCtaText" rows="3"></textarea></label></div>
+</section>
+
+<section class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-eye"></i><div><small>CONTROL</small><h2>Show / Hide</h2></div></div>
+ <p class="section-help">Checked items appear on the card. Uncheck anything you do not want a client to have.</p>
+ <div class="toggle-grid" id="visibilityGrid"></div>
+</section>
+
+<section id="profileThemeSection" class="admin-section">
+ <div class="section-title"><i class="fa-solid fa-palette"></i><div><small>DESIGN</small><h2>Theme Color</h2></div></div>
+ <div id="profileThemeSelector" class="theme-selector">
+  <button class="admin-theme" data-theme="gold"><span class="color gold"></span>Gold</button>
+  <button class="admin-theme" data-theme="blue"><span class="color blue"></span>Blue</button>
+  <button class="admin-theme" data-theme="emerald"><span class="color emerald"></span>Emerald</button>
+  <button class="admin-theme" data-theme="purple"><span class="color purple"></span>Purple</button>
+  <button class="admin-theme" data-theme="red"><span class="color red"></span>Red</button>
+  <button class="admin-theme" data-theme="black"><span class="color black"></span>Black</button><button class="admin-theme" data-theme="cyan"><span class="color cyan"></span>Electric Cyan</button>
+ </div>
+</section>
+
+<section id="businessNetworkingSection" class="admin-section" hidden>
+ <div class="section-title"><i class="fa-solid fa-network-wired"></i><div><small>JMX BUSINESS</small><h2>QR & Networking Settings</h2></div></div>
+ <div class="form-grid">
+  <label class="form-group"><span>QR Dark Color</span><input id="qrDarkColor" type="color" value="#111111"></label>
+  <label class="form-group"><span>QR Light Color</span><input id="qrLightColor" type="color" value="#ffffff"></label>
+  <label class="form-group full-width switch-form"><span>Branding</span><label class="switch-row"><input id="removeJmxBranding" type="checkbox"><span class="switch-ui"></span><strong>Remove JMX Branding</strong></label></label>
+ </div>
+ <div id="qrCardThemesControl" class="qr-card-themes-control" hidden>
+  <button id="qrCardThemesToggle" class="qr-themes-toggle" type="button" aria-expanded="false"><i class="fa-solid fa-palette"></i> Google Wallet Colors <i class="fa-solid fa-chevron-down"></i></button>
+  <div id="qrCardThemesPanel" class="qr-themes-panel" hidden>
+   <p class="section-help">Choose one of 18 simple Google Wallet colors. Preview the color instantly, then press Save Changes to keep it and update the existing Wallet pass.</p>
+   <div class="qr-theme-layout"><div id="qrCardThemeGrid" class="wallet-theme-grid"></div><div class="wallet-preview-wrap"><div id="qrCardThemePreview" class="wallet-theme-preview wallet-color-preview"><img src="google-wallet-jmx.jpg" alt="JMX Digital Card"><div class="wallet-preview-copy"><small id="simpleWalletPreviewCompany">JMX DIGITAL CARD</small><strong id="simpleWalletPreviewName">Card Owner</strong><span id="simpleWalletPreviewPosition">Digital Business Card</span></div><div class="wallet-preview-qr">QR</div></div><p>Selected: <strong id="qrCardThemeSelectedName">Black</strong></p><div class="admin-actions compact-save-actions"><button id="saveGoogleWalletColor" class="save-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button></div><div id="googleWalletColorStatus" class="save-status" aria-live="polite"></div></div></div>
+  </div>
+ </div>
+ <p class="section-help">QR Dark/Light Color and Remove JMX Branding remain independent from Google Wallet Colors. Each setting is saved without deleting other profile data.</p>
+</section>
+
+<section id="googleWalletSection" class="admin-section" hidden>
+ <div class="section-title"><i class="fa-solid fa-wallet"></i><div><small>DIGITAL WALLET</small><h2>Google Wallet</h2></div></div>
+ <p class="section-help">Save this JMX Digital Card to Google Wallet. The same Wallet object is reused and updated instead of creating duplicates.</p>
+ <div class="admin-actions"><button id="addGoogleWallet" class="save-button" type="button"><i class="fa-solid fa-wallet"></i> Add to Google Wallet</button></div>
+ <div id="googleWalletStatus" class="save-status" aria-live="polite"></div>
+</section>
+
+<div id="walletThemeBackdrop" class="wallet-theme-backdrop" hidden></div>
+<section id="googleWalletThemesSection" class="admin-section wallet-themes-section" hidden aria-label="QR Card Themes">
+ <div class="section-title wallet-theme-section-title"><i class="fa-solid fa-qrcode"></i><div><small>DIGITAL QR</small><h2>QR Card Themes</h2></div><button id="walletThemesExpand" class="wallet-themes-expand" type="button" aria-label="Expand QR Card Themes" aria-expanded="false" title="Expand themes"><i class="fa-solid fa-expand"></i></button><button id="walletThemesClose" class="wallet-themes-close" type="button" aria-label="Close QR Card Themes" title="Close themes" hidden><i class="fa-solid fa-xmark"></i></button></div>
+ <p class="section-help">Choose a premium visual style for the public digital QR card. The preview keeps this client's information and QR destination dynamic; compatible base colors remain available to the existing Wallet integration.</p>
+ <div class="wallet-theme-layout">
+  <div class="wallet-theme-catalog"><div id="walletThemeGrid" class="wallet-theme-grid"></div></div>
+  <div class="wallet-preview-wrap"><div id="walletThemePreview" class="wallet-theme-preview"><img src="google-wallet-jmx.jpg" alt="JMX Digital Card"><div class="wallet-preview-copy"><small id="walletPreviewCompany">JMX DIGITAL CARD</small><strong id="walletPreviewName">Card Owner</strong><span id="walletPreviewPosition">Digital Business Card</span></div><div class="wallet-preview-qr">QR</div></div><p>Selected: <strong id="walletThemeSelectedName">JMX Classic</strong></p><p id="walletThemeSavedHint" class="wallet-theme-saved-hint">Saved theme</p></div>
+ </div>
+ <div class="admin-actions wallet-theme-save-actions"><button id="saveQrCardTheme" class="save-button" type="button" aria-label="Save selected QR Card theme"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button></div>
+ <div id="walletThemeStatus" class="save-status" aria-live="polite"></div>
+</section>
+
+<section id="aiScannerSection" class="admin-section ai-scanner-section" hidden>
+ <div class="section-title"><i class="fa-solid fa-id-card-clip"></i><div><small>AI CONTACT CAPTURE</small><h2>AI Business Card Scanner</h2></div></div>
+ <p class="section-help">Take a photo or upload a business card, review the detected information, then save it as a Lead or Contact. The original image is processed temporarily and is not stored by JMX.</p>
+ <div class="ai-scanner-status-row"><span id="aiScannerAvailability" class="scanner-badge">Checking scanner…</span><span id="aiScannerUsageText" class="scanner-usage-text"></span></div>
+ <div class="scanner-capture-grid">
+  <label class="scanner-capture-button"><i class="fa-solid fa-camera"></i><strong>Take Photo</strong><small>Use your phone camera</small><input id="aiScannerCameraInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden></label>
+  <label class="scanner-capture-button"><i class="fa-solid fa-image"></i><strong>Upload Card</strong><small>Choose an existing image</small><input id="aiScannerUploadInput" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
+ </div>
+ <div id="aiScannerImageBox" class="scanner-image-box" hidden><img id="aiScannerImagePreview" alt="Business card preview"><div class="scanner-image-actions"><button id="aiScannerScanButton" class="mini-button" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Use Photo / Scan</button><button id="aiScannerRetakeButton" class="mini-button" type="button">Scan Again</button><button id="aiScannerCancelButton" class="mini-button danger" type="button">Cancel</button></div></div>
+ <div id="aiScannerProgress" class="scanner-progress" hidden><i class="fa-solid fa-spinner fa-spin"></i><strong id="aiScannerProgressText">Scanning business card...</strong></div>
+ <div id="aiScannerError" class="admin-note scanner-error" hidden></div>
+ <div id="aiScannerErrorActions" class="scanner-error-actions" hidden><button id="scannerTryAgain" class="mini-button" type="button">Try Again</button><button id="scannerUploadAnother" class="mini-button" type="button">Upload Another Card</button><button id="scannerEnterManual" class="mini-button" type="button">Enter Manually</button></div>
+ <div id="aiScannerPreviewPanel" class="scanner-preview-panel" hidden>
+  <div class="scanner-preview-head"><div><small>SCANNED CONTACT</small><h3>Review before saving</h3></div><button id="aiScannerEditToggle" class="mini-button" type="button">Edit</button></div>
+  <div class="form-grid scanner-fields">
+   <label class="form-group"><span>First Name</span><input id="scanFirstName"></label><label class="form-group"><span>Last Name</span><input id="scanLastName"></label>
+   <label class="form-group full-width"><span>Full Name</span><input id="scanFullName"></label>
+   <label class="form-group"><span>Company</span><input id="scanCompany"></label><label class="form-group"><span>Job Title</span><input id="scanJobTitle"></label>
+   <label class="form-group"><span>Mobile Phone</span><input id="scanMobilePhone"></label><label class="form-group"><span>Office Phone</span><input id="scanOfficePhone"></label>
+   <label class="form-group"><span>Additional Phone</span><input id="scanAdditionalPhone"></label><label class="form-group"><span>Email</span><input id="scanEmail" type="email"></label>
+   <label class="form-group full-width"><span>Website</span><input id="scanWebsite"></label>
+   <label class="form-group full-width"><span>Address</span><input id="scanAddress"></label><label class="form-group"><span>City</span><input id="scanCity"></label><label class="form-group"><span>State</span><input id="scanState"></label><label class="form-group"><span>ZIP Code</span><input id="scanZipCode"></label>
+   <label class="form-group"><span>WhatsApp</span><input id="scanWhatsapp"></label><label class="form-group"><span>LinkedIn</span><input id="scanLinkedin"></label>
+   <label class="form-group"><span>Facebook</span><input id="scanFacebook"></label><label class="form-group"><span>Instagram</span><input id="scanInstagram"></label>
+   <label class="form-group"><span>Category</span><select id="scanCategory"><option>Customer</option><option>Prospect</option><option>Vendor</option><option selected>Networking</option><option>Partner</option><option>Contractor</option><option>Employee</option><option>Other</option></select></label>
+   <label class="form-group"><span>Where did you meet?</span><select id="scanWhereMet"><option value="">Not specified</option><option>Trade Show</option><option>Networking Event</option><option>Job Site</option><option>Office</option><option>Restaurant</option><option>Conference</option><option>Other</option></select></label>
+   <label class="form-group"><span>Date Met</span><input id="scanDateMet" type="date"></label><label class="form-group full-width"><span>Notes</span><textarea id="scanNotes" rows="3"></textarea></label>
+  </div>
+  <div id="scannerDuplicatePanel" class="scanner-duplicate-panel" hidden><strong>This contact already exists</strong><p id="scannerDuplicateText"></p><div class="scanner-duplicate-actions"><button id="scannerViewExisting" class="mini-button" type="button">View Existing Contact</button><button id="scannerUpdateExisting" class="mini-button" type="button">Update Existing Contact</button><button id="scannerSaveNewAnyway" class="mini-button" type="button">Save as New Anyway</button></div></div>
+  <div class="scanner-save-actions"><button id="scannerSaveLead" class="save-button scanner-action-button" type="button">Save Lead</button><button id="scannerAddContact" class="save-button scanner-action-button secondary-save" type="button">Add to Contacts</button><button id="scannerPreviewCancel" class="reset-button scanner-action-button" type="button">Cancel</button></div>
+  <p id="aiScannerSaveStatus" class="save-status" aria-live="polite"></p>
+ </div>
+ <div class="scanner-history-block"><div class="scanner-history-head"><h3>Scan History</h3><button id="refreshScannerHistory" class="mini-button" type="button">Refresh</button></div><div id="aiScannerHistoryList" class="scanner-history-list"></div><p id="aiScannerHistoryEmpty" class="section-help">No scanner history yet.</p></div>
+ <div class="scanner-history-block"><div class="scanner-history-head"><h3>Saved Contacts</h3><button id="refreshScannerContacts" class="mini-button" type="button">Refresh</button></div><div id="aiScannerContactsList" class="scanner-history-list"></div><p id="aiScannerContactsEmpty" class="section-help">No scanner contacts saved yet.</p></div>
+</section>
+
+<section id="businessLeadsSection" class="admin-section business-leads-section" hidden>
+ <div class="section-title"><i class="fa-solid fa-address-book"></i><div><small>JMX BUSINESS</small><h2>Leads / My Contacts</h2></div></div>
+ <p class="section-help">Contacts submitted through Share Your Contact are private to this card owner and expire individually after 30 days.</p>
+ <div class="leads-toolbar"><button id="exportLeadsCsv" class="mini-button" type="button"><i class="fa-solid fa-file-csv"></i> Export Contacts CSV</button><span id="leadsStatus" class="save-status"></span></div>
+ <div id="businessLeadsList" class="business-leads-list"></div>
+ <div id="businessLeadsEmpty" class="admin-note" hidden>No active leads yet.</div>
+</section>
+
+<div class="admin-actions">
+ <button id="saveProfile" class="save-button"><i class="fa-solid fa-floppy-disk"></i> Save All Changes</button>
+ <button id="resetProfile" class="reset-button"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+</div>
+<div id="saveStatus" class="save-status" aria-live="polite"></div>
+<div class="admin-note"><strong>Online mode:</strong> Save All Changes publishes all pending profile edits to Firebase. Section Save Changes buttons save only their related fields. Any phone that opens the public URL or NFC sees the same saved information.</div>
+</main>
+<script type="module" src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+JMX DIGITAL CARD — NFC TOOLTIPS PRODUCTION REPORT — SEP 2026
+
+STATUS
+- Production-ready source package prepared.
+- Local Preview removed from dashboard/admin code.
+- Preview banner, mock clients/cards, preview-only write blocking, localhost auth bypass, and PREV-* fixtures removed.
+- No deployment was performed.
+- No remote Firebase data was changed during packaging.
+
+FILES MODIFIED
+- dashboard.js
+- dashboard.css
+- admin.js
+- functions/index.js
+
+FILES ADDED
+- JMX-NFC-TOOLTIPS-PRODUCTION-REPORT-SEP2026.txt
+
+FILES REMOVED FROM THIS PACKAGE
+- LOCAL-PREVIEW-BUTTONS-FIX-SEP2026.txt
+- JMX-NFC-SIMPLIFIED-LOCAL-PREVIEW-REPORT-SEP2026.txt
+- TOOLTIPS-LOCAL-PREVIEW-UPDATE-SEP2026.txt
+
+LOCAL PREVIEW REMOVED
+- Removed JMX_LOCAL_PREVIEW dashboard behavior.
+- Removed local preview sample Basic/Premium/JMX Business clients.
+- Removed sample Available/Sold/Active NFC cards and PREV-* fixtures.
+- Removed the LOCAL PREVIEW / Firebase writes disabled banner CSS.
+- Removed the admin-side local preview helper/bypass.
+- Restored normal authenticated Firebase reads/writes.
+
+ADMIN AUTH
+- Existing Firebase/Google administrator authentication remains in place.
+- Existing production Firebase configuration was preserved.
+- No new credentials or secrets were added.
+
+FEATURE SWITCH TOOLTIPS
+- Reviewed all 44 FEATURE_DEFS keys currently defined in dashboard.js.
+- Added a specific Spanish description for every defined feature key.
+- Tooltips now describe the actual feature first, then its scope (Global, Basic, Premium, JMX Business, or client override).
+- Removed the previous plan-only generic tooltip behavior.
+- Client Feature Overrides explain both the feature and the fact that the override is client-specific.
+
+NFC / CLIENT MODAL TOOLTIPS
+- Added/expanded contextual help for Copy NFC URL, Delivery Kit, Lost, Stolen, Replace, Retire, Archive, Open Batch, Return to Inventory, Delete, linked NFC card views, profile actions, search, save/copy actions, and dynamically generated controls.
+- Tooltips continue to use delegated events so dynamically rendered modal controls are covered.
+- Tooltip element uses pointer-events:none and does not intercept clicks.
+
+PRODUCTION NFC LIFECYCLE BACKEND
+Two authenticated administrator-only callable functions were added:
+- returnNfcCardToInventory
+- deleteNfcClientCard
+
+returnNfcCardToInventory:
+- restricted to official NFC-ID clients;
+- requires an exact linked one-card activation batch;
+- removes owner/profile/admin association documents for that NFC-ID client;
+- rotates the activation code to a new cryptographically generated code;
+- returns the physical NFC card/batch to Available;
+- keeps an administrative NFC event entry.
+
+deleteNfcClientCard:
+- restricted to official NFC-ID clients;
+- requires an exact linked one-card activation batch;
+- permanently removes the exact client/card/device/batch association documents;
+- keeps an administrative deletion event entry.
+
+SAFETY
+- Legacy URL/Card-ID clients are explicitly rejected by the new NFC destructive callable functions unless their creation method is the official Device-ID system.
+- No collection-wide deletes were added.
+- No Firestore rules were changed.
+
+STATIC CHECKS PASSED
+- node --check dashboard.js
+- node --check admin.js
+- node --check device.js
+- node --check device-activate.js
+- node --check login.js
+- node --check script.js
+- node --check functions/index.js
+- No duplicate HTML ids found in dashboard.html, admin.html, device.html, device-activate.html, login.html, card.html.
+- No remaining JMX_LOCAL_PREVIEW / PREV-* / LOCAL PREVIEW code references in JS/HTML/CSS.
+- All 44 defined feature keys have a specific tooltip description.
+
+NOT A LIVE END-TO-END TEST
+- Static/code checks passed.
+- This package was not deployed, so Cloud Functions and production browser/Firebase E2E behavior were not executed from this build environment.
+
+WHAT MUST BE PUBLISHED LATER
+1. GitHub Pages / production static site: YES
+   Frontend files changed (dashboard.js, dashboard.css, admin.js).
+2. Firebase Functions: YES
+   functions/index.js changed and adds returnNfcCardToInventory + deleteNfcClientCard.
+3. Firestore Rules: NO
+   firestore.rules is unchanged.
+4. firebase.json: NO CHANGE.
+5. Firebase Hosting static deploy: only if your production workflow also serves these static files from Firebase Hosting. The custom jmxdigitalcard.com frontend has historically been published through GitHub Pages, so do not deploy Hosting automatically unless intentionally required.
+
+IMPORTANT
+Deploy functions before testing the new Return to Inventory or Delete NFC Client/Card actions in the production frontend, because those buttons now call the new production callable functions.

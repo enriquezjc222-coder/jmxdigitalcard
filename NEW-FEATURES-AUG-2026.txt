@@ -1,0 +1,21 @@
+JMX DIGITAL CARD - NEW PLATFORM CONTROLS
+
+Added:
+- Basic and Premium client columns; cards move automatically based on effective plan.
+- Complimentary Premium switch per card/client.
+- Subscription status/source fields prepared for automatic billing synchronization.
+- Platform switches for Premium visibility, checkout visibility and privacy agreement requirement.
+- Privacy agreement text and Privacy Policy URL placeholders.
+- Premium checkout URL / Stripe Payment Link field.
+- Share Card already uses the native Web Share API with clipboard fallback.
+- Save Contact vCard remains enabled.
+- Seventh theme: Electric Cyan.
+- Expanded dashboard counts and client organization.
+
+IMPORTANT ABOUT AUTOMATIC STRIPE BILLING:
+The UI is prepared, but automatic activation/deactivation after payment MUST be performed by a trusted server/webhook, not browser JavaScript. Do not place a Stripe secret key in HTML/JS. Configure the checkout URL in Dashboard > Platform. When Stripe is launched, connect its webhook to update cards/{cardId}.subscription and cards/{cardId}.plan. Complimentary Premium always overrides billing entitlement.
+
+Suggested webhook rules:
+checkout/subscription active -> plan Premium, subscription.status active, subscription.source stripe
+subscription canceled/unpaid -> plan Basic, subscription.status canceled/unpaid, unless complimentaryPremium=true
+complimentaryPremium=true -> effective plan Premium regardless of billing

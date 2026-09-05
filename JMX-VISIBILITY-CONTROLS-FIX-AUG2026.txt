@@ -1,0 +1,59 @@
+JMX DIGITAL CARD — VISIBILITY / PREMIUM / BUSINESS FIX — AUG 2026
+
+Implemented on the supplied AI Scanner Persistence 4.0 project.
+
+CHANGED FILES
+- admin.html
+- admin.js
+- this report file (new)
+
+IMPLEMENTED
+1. AI Business Card Scanner
+- If JMX Feature Control disables AI Scanner, the complete owner module remains hidden.
+- If the external AI/OCR emergency Kill Switch is OFF, the complete scanner module is hidden instead of showing the Kill Switch/temporarily-unavailable warning.
+- If the feature is authorized but the live service fails for another reason, a normal temporary-service message can still appear.
+- Existing scanner data/history is not deleted.
+
+2. Owner Show / Hide
+- Added AI Business Card Scanner to the owner Show / Hide controls when administratively allowed.
+- Added Leads / My Contacts to the owner Show / Hide controls when administratively allowed.
+- Global/Plan/Client feature permissions still have priority; owner preference cannot override an administrative OFF.
+- These controls affect private owner modules only; no private Leads, Contacts, notes or scan history were exposed on the public card.
+
+3. Leads / My Contacts
+- Existing Feature Control Center key `leads` was reused.
+- Existing Global, Basic, Premium, Business and per-client override architecture was preserved.
+- Owner Show / Hide now also controls the private Leads / My Contacts owner module.
+- No Leads or Contacts are deleted when hidden.
+
+4. Premium PDF upload
+- For a signed-in Premium card owner, the direct `Upload PDF (max 10 MB)` row is hidden and disabled.
+- Catalog URL remains available.
+- Catalog / Extra Link section remains intact.
+- Business behavior was preserved.
+
+5. Premium analytics counters
+- For Premium owners, the two marked legacy cards are hidden: Historical profile views and Analytics transition.
+- Tracked actions remains.
+- Existing analytics data is not deleted.
+- Business advanced analytics behavior is preserved.
+
+FIREBASE / BACKEND
+- No Firestore rules changes.
+- No Storage rules changes.
+- No Cloud Functions changes.
+- No new collections or destructive migrations.
+- No Firebase deployment is required for these changes.
+
+DATA SAFETY
+- No Card IDs changed.
+- No activation codes changed.
+- No NFC/QR URLs changed.
+- No cards/users/inventory/subscriptions/leads/contacts were deleted or migrated.
+
+VALIDATION
+- JavaScript syntax checked successfully for admin.js, dashboard.js, script.js and functions/index.js.
+- Existing centralized Feature Control architecture was reused instead of creating a competing permission system.
+
+GITHUB
+Upload the updated web project files. The functional changes are in admin.html and admin.js.

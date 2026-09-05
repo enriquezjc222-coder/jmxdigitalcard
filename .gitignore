@@ -1,0 +1,4 @@
+
+*.service-account.json
+google-wallet-key.json
+service-account*.json

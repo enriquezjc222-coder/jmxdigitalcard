@@ -1,0 +1,29 @@
+JMX DIGITAL CARD — READY NFC INVENTORY LIST UPDATE
+Date: 24 Aug 2026
+
+Changes in this build:
+- Ready NFC Inventory now uses two compact columns:
+  * Available
+  * Sold / Awaiting Activation
+- Inventory cards are displayed as compact list rows instead of large cards.
+- Clicking an inventory row opens a large detail dialog with:
+  * permanent URL
+  * plan
+  * status
+  * physical card type
+  * NFC state
+  * created date
+  * activation code
+  * private internal note
+  * existing inventory action buttons
+- The detail dialog closes with the X or by clicking outside the dialog.
+- Added a pencil icon beside each inventory row to edit the private Internal Notes field.
+- Internal Notes edits are saved to both cardAdmin and inventory records so they remain visible in admin inventory/search.
+- Added Edit Internal Note inside the large detail dialog.
+- Existing activated Basic/Premium client lists, analytics, permanent URLs, activation flow, and protected BOSS behavior are preserved.
+- No existing Firebase card records are deleted or modified by installing these files.
+
+Validation performed:
+- All JavaScript files passed Node syntax checks.
+- dashboard.html parsed successfully.
+- dashboard.js DOM IDs were checked against dashboard.html with no missing referenced IDs.

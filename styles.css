@@ -1,0 +1,2349 @@
+/* =========================================================
+   PREMIUM DIGITAL BUSINESS CARD
+   styles.css
+   ========================================================= */
+
+
+/* =========================================================
+   1. RESET
+   ========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(201, 168, 76, 0.10),
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            rgba(15, 23, 42, 0.07),
+            transparent 35%
+        ),
+        #f4f5f7;
+        background-attachment: fixed;
+
+    color: #171717;
+    line-height: 1.5;
+    overflow-x: hidden;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    border: 0;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+img {
+    display: block;
+    max-width: 100%;
+}
+
+
+/* =========================================================
+   2. THEME VARIABLES
+   ========================================================= */
+
+:root {
+    --accent: #b88a2b;
+    --accent-light: #e7cc84;
+    --accent-dark: #745317;
+
+    --accent-rgb: 184, 138, 43;
+
+    --background: #f4f5f7;
+    --card: #ffffff;
+    --card-secondary: #fafafa;
+
+    --text: #171717;
+    --text-soft: #6d6d73;
+    --text-light: #94949b;
+
+    --border: rgba(0, 0, 0, 0.08);
+    --border-accent: rgba(var(--accent-rgb), 0.25);
+
+    --shadow-small:
+        0 8px 24px rgba(0, 0, 0, 0.07);
+
+    --shadow-medium:
+        0 18px 50px rgba(0, 0, 0, 0.10);
+
+    --shadow-large:
+        0 28px 80px rgba(0, 0, 0, 0.14);
+
+    --radius-small: 14px;
+    --radius-medium: 22px;
+    --radius-large: 30px;
+
+    --transition:
+        0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+
+/* =========================================================
+   3. MAIN APP
+   ========================================================= */
+
+.digital-card-app {
+    width: 100%;
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+
+    padding: 42px 18px 70px;
+}
+
+
+/* =========================================================
+   4. MAIN PROFILE CARD
+   ========================================================= */
+
+.profile-card {
+    position: relative;
+
+    width: 100%;
+    max-width: 620px;
+
+    background: var(--card);
+
+    border:
+        1px solid
+        rgba(0, 0, 0, 0.06);
+
+    border-radius: var(--radius-large);
+
+    box-shadow: var(--shadow-large);
+
+    overflow: hidden;
+
+    animation:
+        cardEntrance
+        0.7s
+        ease
+        both;
+}
+
+@keyframes cardEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(25px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* =========================================================
+   5. COVER SECTION
+   ========================================================= */
+
+.cover-section {
+    position: relative;
+
+    width: 100%;
+    height: 245px;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            135deg,
+            #222,
+            #555
+        );
+}
+
+.cover-image {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    transition:
+        transform
+        0.8s
+        ease;
+}
+
+.cover-section:hover .cover-image {
+    transform: scale(1.025);
+}
+
+.cover-overlay {
+    position: absolute;
+    inset: 0;
+
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.08),
+            rgba(0, 0, 0, 0.16)
+        );
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   6. TOP ACTION BUTTONS
+   ========================================================= */
+
+.top-action-button {
+    position: absolute;
+    top: 18px;
+
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 50%;
+
+    color: #171717;
+
+    background:
+        rgba(255, 255, 255, 0.91);
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    box-shadow:
+        0 7px 22px
+        rgba(0, 0, 0, 0.16);
+
+    cursor: pointer;
+
+    z-index: 5;
+
+    transition:
+        transform var(--transition),
+        background var(--transition),
+        color var(--transition),
+        box-shadow var(--transition);
+}
+
+.top-action-button:hover {
+    transform: translateY(-2px) scale(1.05);
+
+    background: var(--accent);
+    color: #ffffff;
+
+    box-shadow:
+        0 10px 26px
+        rgba(var(--accent-rgb), 0.34);
+}
+
+.share-button {
+    right: 18px;
+}
+
+.theme-button {
+    right: 76px;
+}
+
+
+/* =========================================================
+   7. PROFILE PHOTO
+   ========================================================= */
+
+.profile-photo-wrapper {
+    position: relative;
+
+    width: 142px;
+    height: 142px;
+
+    margin:
+        -71px
+        auto
+        0;
+
+    padding: 5px;
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--accent-light),
+            var(--accent),
+            var(--accent-dark)
+        );
+
+    box-shadow:
+        0 14px 35px
+        rgba(0, 0, 0, 0.17);
+
+    z-index: 10;
+}
+
+.profile-photo-wrapper::after {
+    content: "";
+
+    position: absolute;
+    inset: -5px;
+
+    border-radius: inherit;
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), 0.22);
+
+    pointer-events: none;
+}
+
+.profile-photo {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    border:
+        5px solid
+        #ffffff;
+
+    border-radius: 50%;
+
+    background: #eeeeee;
+}
+
+
+/* =========================================================
+   8. PROFILE INFORMATION
+   ========================================================= */
+
+.profile-info {
+    padding:
+        22px
+        30px
+        10px;
+
+    text-align: center;
+}
+
+.profile-info h1 {
+    font-size:
+        clamp(
+            2rem,
+            7vw,
+            2.65rem
+        );
+
+    line-height: 1.05;
+
+    font-weight: 800;
+
+    letter-spacing: -0.045em;
+
+    color: var(--text);
+}
+
+.profile-position {
+    margin-top: 8px;
+
+    color: var(--accent-dark);
+
+    font-size: 0.92rem;
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.company-name {
+    margin-top: 5px;
+
+    font-size: 1.18rem;
+    font-weight: 700;
+
+    color: var(--text);
+}
+
+.profile-location {
+    margin-top: 12px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    color: var(--text-soft);
+
+    font-size: 0.92rem;
+}
+
+.profile-location i {
+    color: var(--accent);
+}
+
+.profile-description {
+    max-width: 470px;
+
+    margin:
+        17px
+        auto
+        0;
+
+    color: var(--text-soft);
+
+    font-size: 0.98rem;
+
+    line-height: 1.75;
+}
+
+
+/* =========================================================
+   9. SAVE CONTACT BUTTON
+   ========================================================= */
+
+.primary-action {
+    padding:
+        18px
+        28px
+        4px;
+}
+
+.save-contact-button {
+    position: relative;
+
+    width: 100%;
+    min-height: 58px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 11px;
+
+    padding:
+        14px
+        24px;
+
+    border-radius: 18px;
+
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--accent-dark),
+            var(--accent),
+            var(--accent-light)
+        );
+
+    box-shadow:
+        0 13px 28px
+        rgba(var(--accent-rgb), 0.28);
+
+    font-size: 1rem;
+    font-weight: 800;
+
+    letter-spacing: 0.015em;
+
+    cursor: pointer;
+
+    overflow: hidden;
+
+    transition:
+        transform var(--transition),
+        box-shadow var(--transition);
+}
+
+.save-contact-button::before {
+    content: "";
+
+    position: absolute;
+
+    top: -120%;
+    left: -35%;
+
+    width: 25%;
+    height: 340%;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.55),
+            transparent
+        );
+
+    transform:
+        rotate(20deg);
+
+    transition:
+        left
+        0.65s
+        ease;
+}
+
+.save-contact-button:hover::before {
+    left: 125%;
+}
+
+.save-contact-button:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 17px 35px
+        rgba(var(--accent-rgb), 0.36);
+}
+
+.save-contact-button:active {
+    transform: scale(0.985);
+}
+
+
+/* =========================================================
+   10. QUICK ACTIONS
+   ========================================================= */
+
+.quick-actions {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 12px;
+
+    padding:
+        22px
+        28px
+        28px;
+}
+
+.quick-action {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 9px;
+
+    color: var(--text-soft);
+
+    font-size: 0.77rem;
+    font-weight: 700;
+
+    transition:
+        color var(--transition),
+        transform var(--transition);
+}
+
+.quick-action-icon {
+    width: 54px;
+    height: 54px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 18px;
+
+    color: var(--accent-dark);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(var(--accent-rgb), 0.14),
+            rgba(var(--accent-rgb), 0.05)
+        );
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), 0.18);
+
+    font-size: 1.12rem;
+
+    box-shadow:
+        0 7px 20px
+        rgba(0, 0, 0, 0.055);
+
+    transition:
+        transform var(--transition),
+        background var(--transition),
+        color var(--transition),
+        box-shadow var(--transition);
+}
+
+.quick-action:hover {
+    color: var(--text);
+    transform: translateY(-2px);
+}
+
+.quick-action:hover .quick-action-icon {
+    transform: translateY(-3px);
+
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--accent-dark),
+            var(--accent)
+        );
+
+    box-shadow:
+        0 12px 25px
+        rgba(var(--accent-rgb), 0.25);
+}
+
+
+/* =========================================================
+   11. GENERAL SECTIONS
+   ========================================================= */
+
+.card-section {
+    position: relative;
+
+    margin:
+        0
+        28px
+        24px;
+
+    padding: 24px;
+
+    border-radius: 24px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #fbfbfb
+        );
+
+    border:
+        1px solid
+        var(--border);
+
+    box-shadow:
+        var(--shadow-small);
+}
+
+.card-section::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 24px;
+    right: 24px;
+
+    height: 1px;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(var(--accent-rgb), 0.42),
+            transparent
+        );
+}
+
+
+/* =========================================================
+   12. SECTION HEADINGS
+   ========================================================= */
+
+.section-heading {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    margin-bottom: 20px;
+}
+
+.section-heading-icon {
+    flex:
+        0
+        0
+        44px;
+
+    width: 44px;
+    height: 44px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 14px;
+
+    color: var(--accent-dark);
+
+    background:
+        rgba(var(--accent-rgb), 0.11);
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), 0.16);
+}
+
+.section-eyebrow {
+    margin-bottom: 1px;
+
+    color: var(--accent);
+
+    font-size: 0.66rem;
+    font-weight: 800;
+
+    letter-spacing: 0.19em;
+}
+
+.section-heading h3 {
+    color: var(--text);
+
+    font-size: 1.13rem;
+    font-weight: 800;
+
+    letter-spacing: -0.025em;
+}
+
+
+/* =========================================================
+   13. CONTACT LIST
+   ========================================================= */
+
+.contact-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.contact-row {
+    width: 100%;
+
+    min-height: 68px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    padding:
+        11px
+        13px;
+
+    border-radius: 17px;
+
+    transition:
+        background var(--transition),
+        transform var(--transition);
+}
+
+a.contact-row:hover {
+    background:
+        rgba(var(--accent-rgb), 0.065);
+
+    transform:
+        translateX(3px);
+}
+
+.contact-row-icon {
+    flex:
+        0
+        0
+        43px;
+
+    width: 43px;
+    height: 43px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    color: var(--accent-dark);
+
+    background:
+        rgba(var(--accent-rgb), 0.10);
+
+    font-size: 0.95rem;
+}
+
+.contact-row-content {
+    min-width: 0;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.contact-row-content small {
+    margin-bottom: 2px;
+
+    color: var(--text-light);
+
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.contact-row-content strong {
+    overflow: hidden;
+
+    color: var(--text);
+
+    font-size: 0.92rem;
+    font-weight: 700;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.contact-arrow {
+    color: #b4b4b8;
+
+    font-size: 0.75rem;
+}
+
+
+/* =========================================================
+   14. SOCIAL MEDIA GRID
+   ========================================================= */
+
+.social-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 11px;
+}
+
+.social-button {
+    min-height: 54px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    padding:
+        12px
+        16px;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 16px;
+
+    background: #ffffff;
+
+    color: var(--text);
+
+    font-size: 0.87rem;
+    font-weight: 700;
+
+    box-shadow:
+        0 5px 15px
+        rgba(0, 0, 0, 0.035);
+
+    transition:
+        transform var(--transition),
+        box-shadow var(--transition),
+        border-color var(--transition);
+}
+
+.social-button i {
+    width: 26px;
+
+    text-align: center;
+
+    font-size: 1.1rem;
+}
+
+.social-button:hover {
+    transform: translateY(-3px);
+
+    border-color:
+        rgba(var(--accent-rgb), 0.24);
+
+    box-shadow:
+        0 11px 24px
+        rgba(0, 0, 0, 0.075);
+}
+
+.facebook i {
+    color: #1877f2;
+}
+
+.instagram i {
+    color: #c13584;
+}
+
+.linkedin i {
+    color: #0a66c2;
+}
+
+.twitter i {
+    color: #111111;
+}
+
+.tiktok i {
+    color: #111111;
+}
+
+.youtube i {
+    color: #ff0000;
+}
+
+
+/* =========================================================
+   15. BUSINESS LINKS
+   ========================================================= */
+
+.link-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 11px;
+}
+
+.premium-link-card {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    min-height: 72px;
+
+    padding:
+        13px
+        15px;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffffff,
+            #fafafa
+        );
+
+    transition:
+        transform var(--transition),
+        border-color var(--transition),
+        box-shadow var(--transition);
+}
+
+.premium-link-card:hover {
+    transform:
+        translateY(-2px)
+        translateX(2px);
+
+    border-color:
+        rgba(var(--accent-rgb), 0.30);
+
+    box-shadow:
+        0 12px 28px
+        rgba(0, 0, 0, 0.07);
+}
+
+.premium-link-icon {
+    flex:
+        0
+        0
+        45px;
+
+    width: 45px;
+    height: 45px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 14px;
+
+    color: var(--accent-dark);
+
+    background:
+        rgba(var(--accent-rgb), 0.10);
+}
+
+.premium-link-content {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.premium-link-content strong {
+    color: var(--text);
+
+    font-size: 0.91rem;
+    font-weight: 750;
+}
+
+.premium-link-content small {
+    margin-top: 2px;
+
+    color: var(--text-soft);
+
+    font-size: 0.75rem;
+}
+
+.premium-link-card > i {
+    color: var(--accent);
+
+    font-size: 0.8rem;
+
+    transition:
+        transform var(--transition);
+}
+
+.premium-link-card:hover > i {
+    transform: translateX(4px);
+}
+
+
+/* =========================================================
+   16. SERVICES
+   ========================================================= */
+
+.services-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+.service-box {
+    min-width: 0;
+
+    padding:
+        20px
+        15px;
+
+    text-align: center;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 19px;
+
+    background: #ffffff;
+
+    transition:
+        transform var(--transition),
+        box-shadow var(--transition),
+        border-color var(--transition);
+}
+
+.service-box:hover {
+    transform: translateY(-4px);
+
+    border-color:
+        rgba(var(--accent-rgb), 0.26);
+
+    box-shadow:
+        0 12px 27px
+        rgba(0, 0, 0, 0.07);
+}
+
+.service-icon {
+    width: 46px;
+    height: 46px;
+
+    margin:
+        0
+        auto
+        13px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 15px;
+
+    color: var(--accent-dark);
+
+    background:
+        rgba(var(--accent-rgb), 0.11);
+}
+
+.service-box h4 {
+    margin-bottom: 7px;
+
+    color: var(--text);
+
+    font-size: 0.89rem;
+}
+
+.service-box p {
+    color: var(--text-soft);
+
+    font-size: 0.74rem;
+
+    line-height: 1.55;
+}
+
+
+/* =========================================================
+   17. PHOTO GALLERY
+   ========================================================= */
+
+.gallery-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 10px;
+}
+
+.gallery-item {
+    position: relative;
+
+    aspect-ratio: 1 / 1;
+
+    overflow: hidden;
+
+    border-radius: 15px;
+
+    background: #ececec;
+
+    cursor: zoom-in;
+
+    box-shadow:
+        0 6px 16px
+        rgba(0, 0, 0, 0.06);
+}
+
+.gallery-item::after {
+    content: "\f00e";
+
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    color: #ffffff;
+
+    background:
+        rgba(0, 0, 0, 0.34);
+
+    font-family:
+        "Font Awesome 6 Free";
+
+    font-size: 1.3rem;
+    font-weight: 900;
+
+    opacity: 0;
+
+    transition:
+        opacity var(--transition);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    transition:
+        transform
+        0.55s
+        ease;
+}
+
+.gallery-item:hover img {
+    transform: scale(1.08);
+}
+
+.gallery-item:hover::after {
+    opacity: 1;
+}
+
+
+/* =========================================================
+   18. VIDEO
+   ========================================================= */
+
+.video-container {
+    position: relative;
+
+    width: 100%;
+
+    aspect-ratio: 16 / 9;
+
+    overflow: hidden;
+
+    border-radius: 18px;
+
+    background: #111111;
+
+    box-shadow:
+        0 10px 27px
+        rgba(0, 0, 0, 0.12);
+}
+
+.video-container iframe {
+    width: 100%;
+    height: 100%;
+
+    border: 0;
+}
+
+
+/* =========================================================
+   19. QR SECTION
+   ========================================================= */
+
+.qr-section {
+    text-align: left;
+}
+
+.qr-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding:
+        10px
+        0
+        3px;
+
+    text-align: center;
+}
+
+.qr-code {
+    min-width: 184px;
+    min-height: 184px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 12px;
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), 0.23);
+
+    border-radius: 20px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 11px 28px
+        rgba(0, 0, 0, 0.08);
+}
+
+.qr-code img,
+.qr-code canvas {
+    max-width: 160px;
+    height: auto;
+}
+
+.qr-wrapper p {
+    max-width: 300px;
+
+    margin-top: 16px;
+
+    color: var(--text-soft);
+
+    font-size: 0.82rem;
+
+    line-height: 1.55;
+}
+
+
+/* =========================================================
+   20. FINAL CALL TO ACTION
+   ========================================================= */
+
+.final-cta {
+    position: relative;
+
+    margin:
+        10px
+        28px
+        28px;
+
+    padding:
+        34px
+        25px;
+
+    overflow: hidden;
+
+    border-radius: 25px;
+
+    text-align: center;
+
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #151515,
+            #292929
+        );
+
+    box-shadow:
+        0 18px 38px
+        rgba(0, 0, 0, 0.16);
+}
+
+.final-cta::before {
+    content: "";
+
+    position: absolute;
+
+    width: 190px;
+    height: 190px;
+
+    top: -95px;
+    right: -80px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(var(--accent-rgb), 0.30),
+            transparent 68%
+        );
+}
+
+.final-cta-icon {
+    width: 55px;
+    height: 55px;
+
+    margin:
+        0
+        auto
+        15px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 17px;
+
+    color: var(--accent-light);
+
+    background:
+        rgba(255, 255, 255, 0.08);
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.12);
+}
+
+.final-cta h3 {
+    font-size: 1.45rem;
+
+    letter-spacing: -0.025em;
+}
+
+.final-cta p {
+    max-width: 390px;
+
+    margin:
+        9px
+        auto
+        20px;
+
+    color:
+        rgba(255, 255, 255, 0.70);
+
+    font-size: 0.87rem;
+
+    line-height: 1.65;
+}
+
+.final-cta-button {
+    min-height: 50px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    padding:
+        12px
+        23px;
+
+    border-radius: 15px;
+
+    color: #171717;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--accent-light),
+            var(--accent)
+        );
+
+    font-size: 0.88rem;
+    font-weight: 800;
+
+    box-shadow:
+        0 10px 25px
+        rgba(var(--accent-rgb), 0.22);
+
+    transition:
+        transform var(--transition),
+        box-shadow var(--transition);
+}
+
+.final-cta-button:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 14px 30px
+        rgba(var(--accent-rgb), 0.31);
+}
+
+
+/* =========================================================
+   21. FOOTER
+   ========================================================= */
+
+.card-footer {
+    padding:
+        8px
+        28px
+        34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    color: var(--text-light);
+
+    font-size: 0.72rem;
+}
+
+.footer-share-button {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 7px;
+
+    padding:
+        9px
+        13px;
+
+    border-radius: 12px;
+
+    color: var(--accent-dark);
+
+    background:
+        rgba(var(--accent-rgb), 0.09);
+
+    font-size: 0.72rem;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background var(--transition),
+        transform var(--transition);
+}
+
+.footer-share-button:hover {
+    transform: translateY(-1px);
+
+    background:
+        rgba(var(--accent-rgb), 0.16);
+}
+
+
+/* =========================================================
+   22. LIGHTBOX
+   ========================================================= */
+
+.lightbox {
+    position: fixed;
+    inset: 0;
+
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 30px;
+
+    background:
+        rgba(8, 8, 10, 0.92);
+
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transition:
+        opacity var(--transition),
+        visibility var(--transition);
+}
+
+.lightbox.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.lightbox img {
+    max-width: min(950px, 94vw);
+    max-height: 88vh;
+
+    object-fit: contain;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 30px 80px
+        rgba(0, 0, 0, 0.55);
+
+    transform: scale(0.94);
+
+    transition:
+        transform var(--transition);
+}
+
+.lightbox.active img {
+    transform: scale(1);
+}
+
+.lightbox-close {
+    position: absolute;
+
+    top: 22px;
+    right: 22px;
+
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    color: #ffffff;
+
+    background:
+        rgba(255, 255, 255, 0.12);
+
+    backdrop-filter: blur(8px);
+
+    cursor: pointer;
+
+    font-size: 1.1rem;
+
+    transition:
+        background var(--transition),
+        transform var(--transition);
+}
+
+.lightbox-close:hover {
+    transform: rotate(90deg);
+
+    background:
+        rgba(255, 255, 255, 0.20);
+}
+
+
+/* =========================================================
+   23. THEME PANEL
+   ========================================================= */
+
+.theme-panel {
+    position: fixed;
+
+    top: 0;
+    right: 0;
+
+    width: min(380px, 92vw);
+    height: 100vh;
+
+    z-index: 10000;
+
+    padding: 28px;
+
+    background:
+        rgba(255, 255, 255, 0.97);
+
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+
+    box-shadow:
+        -20px
+        0
+        55px
+        rgba(0, 0, 0, 0.15);
+
+    transform:
+        translateX(110%);
+
+    transition:
+        transform
+        0.4s
+        cubic-bezier(
+            0.2,
+            0.8,
+            0.2,
+            1
+        );
+}
+
+.theme-panel.active {
+    transform:
+        translateX(0);
+}
+
+.theme-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding-bottom: 20px;
+
+    border-bottom:
+        1px solid
+        var(--border);
+}
+
+.theme-panel-header small {
+    color: var(--accent);
+
+    font-size: 0.65rem;
+    font-weight: 800;
+
+    letter-spacing: 0.18em;
+}
+
+.theme-panel-header h3 {
+    margin-top: 3px;
+
+    color: var(--text);
+
+    font-size: 1.25rem;
+}
+
+.theme-panel-header button {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 50%;
+
+    color: var(--text);
+
+    background: #f1f1f2;
+
+    cursor: pointer;
+
+    transition:
+        transform var(--transition),
+        background var(--transition);
+}
+
+.theme-panel-header button:hover {
+    transform: rotate(90deg);
+
+    background: #e8e8ea;
+}
+
+
+/* =========================================================
+   24. THEME OPTIONS
+   ========================================================= */
+
+.theme-options {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 12px;
+
+    margin-top: 24px;
+}
+
+.theme-option {
+    min-height: 58px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    padding:
+        12px
+        14px;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 16px;
+
+    color: var(--text);
+
+    background: #ffffff;
+
+    font-size: 0.83rem;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform var(--transition),
+        border-color var(--transition),
+        box-shadow var(--transition);
+}
+
+.theme-option:hover {
+    transform: translateY(-2px);
+
+    border-color:
+        rgba(var(--accent-rgb), 0.32);
+
+    box-shadow:
+        0 9px 20px
+        rgba(0, 0, 0, 0.06);
+}
+
+.theme-circle {
+    flex:
+        0
+        0
+        24px;
+
+    width: 24px;
+    height: 24px;
+
+    border-radius: 50%;
+
+    box-shadow:
+        inset
+        0
+        0
+        0
+        2px
+        rgba(255, 255, 255, 0.6),
+        0
+        3px
+        8px
+        rgba(0, 0, 0, 0.13);
+}
+
+.theme-gold {
+    background:
+        linear-gradient(
+            135deg,
+            #725115,
+            #c69a3a,
+            #ead28d
+        );
+}
+
+.theme-blue {
+    background:
+        linear-gradient(
+            135deg,
+            #123a78,
+            #2675db,
+            #8bbcff
+        );
+}
+
+.theme-emerald {
+    background:
+        linear-gradient(
+            135deg,
+            #075b49,
+            #129477,
+            #76d8bd
+        );
+}
+
+.theme-purple {
+    background:
+        linear-gradient(
+            135deg,
+            #512487,
+            #8452c8,
+            #c2a2eb
+        );
+}
+
+.theme-red {
+    background:
+        linear-gradient(
+            135deg,
+            #7c1e27,
+            #cf3d49,
+            #f3959c
+        );
+}
+
+.theme-black {
+    background:
+        linear-gradient(
+            135deg,
+            #050505,
+            #333333,
+            #777777
+        );
+}
+
+
+/* =========================================================
+   25. DYNAMIC COLOR THEMES
+   These classes will be controlled by script.js
+   ========================================================= */
+
+body.theme-gold-active {
+    --accent: #b88a2b;
+    --accent-light: #e7cc84;
+    --accent-dark: #745317;
+    --accent-rgb: 184, 138, 43;
+}
+
+body.theme-blue-active {
+    --accent: #2974cf;
+    --accent-light: #94c1f5;
+    --accent-dark: #174c8d;
+    --accent-rgb: 41, 116, 207;
+}
+
+body.theme-emerald-active {
+    --accent: #15866f;
+    --accent-light: #7ed6c0;
+    --accent-dark: #075847;
+    --accent-rgb: 21, 134, 111;
+}
+
+body.theme-purple-active {
+    --accent: #8051bf;
+    --accent-light: #c5a5eb;
+    --accent-dark: #512783;
+    --accent-rgb: 128, 81, 191;
+}
+
+body.theme-red-active {
+    --accent: #c7434d;
+    --accent-light: #f19aa1;
+    --accent-dark: #81242c;
+    --accent-rgb: 199, 67, 77;
+}
+
+body.theme-black-active {
+    --accent: #393939;
+    --accent-light: #8b8b8b;
+    --accent-dark: #111111;
+    --accent-rgb: 57, 57, 57;
+}
+
+
+/* =========================================================
+   26. SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar {
+    width: 9px;
+}
+
+::-webkit-scrollbar-track {
+    background: #eeeeef;
+}
+
+::-webkit-scrollbar-thumb {
+    border:
+        2px solid
+        #eeeeef;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            var(--accent-light),
+            var(--accent)
+        );
+}
+
+
+/* =========================================================
+   27. SELECTION
+   ========================================================= */
+
+::selection {
+    color: #ffffff;
+
+    background:
+        var(--accent);
+}
+
+
+/* =========================================================
+   28. ACCESSIBILITY / FOCUS
+   ========================================================= */
+
+a:focus-visible,
+button:focus-visible {
+    outline:
+        3px solid
+        rgba(var(--accent-rgb), 0.35);
+
+    outline-offset: 3px;
+}
+
+
+/* =========================================================
+   29. TABLET
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .digital-card-app {
+        padding:
+            22px
+            14px
+            50px;
+    }
+
+    .profile-card {
+        max-width: 580px;
+    }
+
+    .cover-section {
+        height: 220px;
+    }
+
+    .services-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+
+/* =========================================================
+   30. MOBILE
+   ========================================================= */
+
+@media (max-width: 520px) {
+
+    body {
+        background: #ffffff;
+    }
+
+    .digital-card-app {
+        padding: 0;
+    }
+
+    .profile-card {
+        max-width: none;
+
+        border: 0;
+        border-radius: 0;
+
+        box-shadow: none;
+    }
+
+    .cover-section {
+        height: 205px;
+    }
+
+    .top-action-button {
+        top: 14px;
+
+        width: 42px;
+        height: 42px;
+    }
+
+    .share-button {
+        right: 14px;
+    }
+
+    .theme-button {
+        right: 66px;
+    }
+
+    .profile-photo-wrapper {
+        width: 126px;
+        height: 126px;
+
+        margin-top: -63px;
+    }
+
+    .profile-info {
+        padding:
+            19px
+            20px
+            8px;
+    }
+
+    .profile-info h1 {
+        font-size: 2rem;
+    }
+
+    .profile-description {
+        font-size: 0.91rem;
+    }
+
+    .primary-action {
+        padding:
+            16px
+            18px
+            3px;
+    }
+
+    .save-contact-button {
+        min-height: 55px;
+    }
+
+    .quick-actions {
+        gap: 8px;
+
+        padding:
+            20px
+            18px
+            25px;
+    }
+
+    .quick-action-icon {
+        width: 49px;
+        height: 49px;
+
+        border-radius: 15px;
+    }
+
+    .quick-action-label {
+        font-size: 0.70rem;
+    }
+
+    .card-section {
+        margin:
+            0
+            16px
+            18px;
+
+        padding: 20px;
+
+        border-radius: 21px;
+    }
+
+    .section-heading {
+        margin-bottom: 17px;
+    }
+
+    .social-grid {
+        grid-template-columns:
+            1fr
+            1fr;
+    }
+
+    .services-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+    .gallery-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+    .final-cta {
+        margin:
+            8px
+            16px
+            23px;
+
+        padding:
+            30px
+            21px;
+
+        border-radius: 22px;
+    }
+
+    .card-footer {
+        padding:
+            5px
+            18px
+            30px;
+
+        flex-direction: column;
+
+        text-align: center;
+    }
+
+    .theme-panel {
+        width: 100%;
+    }
+
+    .theme-options {
+        grid-template-columns:
+            1fr
+            1fr;
+    }
+}
+
+
+/* =========================================================
+   31. SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 360px) {
+
+    .cover-section {
+        height: 185px;
+    }
+
+    .profile-photo-wrapper {
+        width: 116px;
+        height: 116px;
+
+        margin-top: -58px;
+    }
+
+    .quick-actions {
+        gap: 5px;
+
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .quick-action-icon {
+        width: 45px;
+        height: 45px;
+    }
+
+    .card-section {
+        margin-left: 12px;
+        margin-right: 12px;
+
+        padding:
+            18px
+            15px;
+    }
+
+    .social-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .theme-options {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* =========================================================
+   32. LARGE DESKTOP
+   ========================================================= */
+
+@media (min-width: 1100px) {
+
+    .digital-card-app {
+        padding-top: 60px;
+    }
+
+    .profile-card {
+        max-width: 640px;
+    }
+
+    .cover-section {
+        height: 260px;
+    }
+}
+
+
+/* =========================================================
+   33. REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+
+        animation-duration:
+            0.01ms !important;
+
+        animation-iteration-count:
+            1 !important;
+
+        transition-duration:
+            0.01ms !important;
+    }
+}
+
+
+/* =========================================================
+   END OF STYLES.CSS
+   ========================================================= */\n\n/* =========================================================\n   ADMIN-CONTROLLED ENHANCEMENTS / RESPONSIVE\n   ========================================================= */\n.business-logo-wrapper {\n    display: none;\n    justify-content: center;\n    padding: 16px 24px 0;\n}\n.business-logo {\n    max-width: 180px;\n    max-height: 90px;\n    object-fit: contain;\n}\n#whatsappRow .contact-row-icon { color: #25d366; }\n@media (max-width: 640px) {\n    .digital-card-app { padding: 0; }\n    .profile-card { max-width: 100%; border-radius: 0; min-height: 100vh; }\n    .cover-section { height: 210px; }\n    .profile-info { padding-left: 20px; padding-right: 20px; }\n    .card-section { margin-left: 14px; margin-right: 14px; }\n    .primary-action, .quick-actions { padding-left: 14px; padding-right: 14px; }\n    .quick-actions { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }\n    .quick-action { min-width: 0; }\n    .gallery-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }\n    .services-grid { grid-template-columns: 1fr; }\n    .business-logo { max-width: 150px; max-height: 72px; }\n}\n@media (min-width: 641px) and (max-width: 900px) {\n    .profile-card { max-width: 680px; }\n}\n
+/* PUBLIC CARD STATUS / MULTI-CLIENT */
+.public-status-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#f5f1e7,#f8f8f8)}.public-status-card{max-width:540px;width:100%;background:#fff;border:1px solid #e6e1d4;border-radius:24px;padding:38px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.10)}.public-status-icon{width:70px;height:70px;display:grid;place-items:center;margin:0 auto 18px;border-radius:50%;background:#f6ecd0;color:#b88a2b;font-size:1.8rem}.public-status-card h1{margin:0 0 12px}.public-status-card p{color:#6b7280;line-height:1.6}.public-status-card a{color:#8a681f;font-weight:800;text-decoration:none}
+.activation-link{display:inline-flex;padding:12px 18px;border-radius:12px;background:var(--accent,#b88a2b);color:#fff!important;text-decoration:none;font-weight:800}.owner-login-link{position:fixed;right:12px;bottom:10px;font-size:11px;color:#777;text-decoration:none;opacity:.65;z-index:20}.owner-login-link:hover{opacity:1}.public-status-card a{color:var(--accent,#b88a2b)}
+
+.theme-cyan{background:linear-gradient(135deg,#06b6d4,#a5f3fc)}
+
+
+/* Public profile boot guard: never show template data before the real card loads. */
+body.firebase-loading .digital-card-app {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+body:not(.firebase-loading) .digital-card-app {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.12s ease-out;
+}
+
+/* JMX Business - Quick Capture */
+.quick-capture-section{margin:18px 0;padding:20px;border:1px solid rgba(var(--accent-rgb),.28);border-radius:18px;background:linear-gradient(180deg,#fff,rgba(var(--accent-rgb),.035))}.quick-capture-section .section-title{display:flex;align-items:center;gap:10px}.quick-capture-intro{color:#6b7280;margin:6px 0 14px}.quick-capture-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.quick-capture-form label{display:flex;flex-direction:column;gap:6px;font-size:.82rem;font-weight:700}.quick-capture-form input,.quick-capture-form textarea{width:100%;box-sizing:border-box;border:1px solid #d7dbe0;border-radius:11px;padding:11px 12px;background:#fff;color:#171717;font:inherit}.quick-capture-form .full{grid-column:1/-1}.lead-consent{flex-direction:row!important;align-items:flex-start;font-weight:600!important}.lead-consent input{width:auto;margin-top:3px}.quick-capture-privacy{font-size:.74rem;color:#6b7280;line-height:1.45}.business-policy-links{display:flex;gap:12px;flex-wrap:wrap}.text-link{border:0;background:none;padding:0;color:var(--accent-dark);font-weight:800;text-decoration:underline;cursor:pointer}.quick-capture-status{margin:0;font-size:.82rem}.business-policy-dialog{border:0;border-radius:18px;padding:0;width:min(680px,94vw);max-height:85vh}.business-policy-dialog::backdrop{background:rgba(0,0,0,.55)}.business-policy-shell{padding:22px;position:relative}.business-policy-body{white-space:pre-wrap;line-height:1.55;max-height:60vh;overflow:auto}.dialog-close{position:absolute;right:14px;top:12px;border:0;background:none;font-size:1.7rem;cursor:pointer}@media(max-width:640px){.quick-capture-form{grid-template-columns:1fr}}
+
+/* QR Card Themes */
+.qr-card-theme-public{width:min(100%,520px);aspect-ratio:1.58/1;margin:28px auto 4px;border-radius:26px;display:grid;place-items:center;position:relative;overflow:hidden;box-shadow:0 18px 42px rgba(0,0,0,.2)}.qr-card-theme-public:after{content:"";position:absolute;inset:-80% -30%;background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.2) 50%,transparent 60%);transform:translateX(25%);pointer-events:none}.qr-card-theme-code{background:#fff;padding:12px;border-radius:16px;box-shadow:0 6px 22px rgba(0,0,0,.28);z-index:2}.qr-card-theme-code img,.qr-card-theme-code canvas{display:block!important;width:150px!important;height:150px!important}@media(max-width:560px){.qr-card-theme-public{width:100%;border-radius:20px}.qr-card-theme-code{padding:10px}.qr-card-theme-code img,.qr-card-theme-code canvas{width:132px!important;height:132px!important}}
+
+
+/* =========================================================
+   PUBLIC SHARE CARD — SINGLE THEMED QR PRESENTATION (AUG 2026)
+   Replaces the oversized/duplicated public QR presentation while
+   preserving the original QR target and Download QR PNG behavior.
+   ========================================================= */
+.public-share-theme-card{
+    width:min(100%,620px);
+    min-height:250px;
+    margin:8px auto 0;
+    padding:28px 30px;
+    box-sizing:border-box;
+    border-radius:28px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:24px;
+    position:relative;
+    isolation:isolate;
+    overflow:hidden;
+    box-shadow:0 18px 44px rgba(15,23,42,.24);
+}
+.public-share-card-shine{
+    position:absolute;
+    inset:-65% -25%;
+    z-index:-1;
+    pointer-events:none;
+    background:linear-gradient(112deg,transparent 38%,rgba(255,255,255,.18) 49%,transparent 61%);
+    transform:translateX(20%);
+}
+.public-share-identity{display:flex;align-items:center;min-width:0;gap:18px;text-align:left}
+.public-share-logo-frame{
+    width:76px;height:76px;flex:0 0 76px;border-radius:50%;overflow:hidden;
+    display:grid;place-items:center;background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.22);box-shadow:0 8px 24px rgba(0,0,0,.18)
+}
+.public-share-logo-frame img{width:100%;height:100%;display:block;object-fit:cover}
+.public-share-logo-fallback{font-size:1rem;font-weight:900;letter-spacing:.08em}
+.public-share-copy{display:flex;flex-direction:column;min-width:0;line-height:1.15;text-shadow:0 1px 6px rgba(0,0,0,.28)}
+.public-share-copy strong{font-size:clamp(.78rem,1.8vw,1.02rem);letter-spacing:.04em;text-transform:uppercase;white-space:normal;overflow-wrap:anywhere}
+.public-share-copy span{margin-top:7px;font-size:clamp(1.05rem,2.6vw,1.48rem);font-weight:900;white-space:normal;overflow-wrap:anywhere}
+.public-share-copy small{margin-top:7px;font-size:clamp(.72rem,1.55vw,.9rem);font-weight:800;text-transform:uppercase;letter-spacing:.035em;white-space:normal;overflow-wrap:anywhere}
+.public-share-light-text{color:#fff}.public-share-light-text .public-share-logo-fallback{color:#fff}
+.public-share-dark-text{color:#111827}.public-share-dark-text .public-share-copy{text-shadow:0 1px 5px rgba(255,255,255,.35)}.public-share-dark-text .public-share-logo-fallback{color:#111827}
+.public-share-qr-shell{
+    width:148px;height:148px;flex:0 0 148px;padding:10px;box-sizing:border-box;
+    border-radius:18px;display:grid;place-items:center;position:relative;z-index:2;
+    border:1px solid rgba(255,255,255,.65);box-shadow:0 9px 24px rgba(0,0,0,.22)
+}
+.public-share-qr-shell .qr-code{
+    min-width:0;min-height:0;width:128px;height:128px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden
+}
+.public-share-qr-shell .qr-code canvas{
+    display:block!important;width:128px!important;height:128px!important;max-width:none!important;margin:0!important;image-rendering:pixelated
+}
+.public-share-qr-shell .qr-code img{display:none!important}
+.qr-wrapper>p{margin-top:18px}
+@media(max-width:640px){
+    .public-share-theme-card{min-height:190px;padding:20px 18px;border-radius:22px;gap:12px;grid-template-columns:minmax(0,1fr) auto}
+    .public-share-identity{gap:11px;min-width:0}
+    .public-share-logo-frame{width:50px;height:50px;flex-basis:50px}
+    .public-share-copy strong{font-size:.67rem}
+    .public-share-copy span{font-size:.92rem;margin-top:5px}
+    .public-share-copy small{font-size:.62rem;margin-top:5px}
+    .public-share-qr-shell{width:110px;height:110px;flex-basis:110px;padding:8px;border-radius:14px}
+    .public-share-qr-shell .qr-code{width:94px;height:94px}
+    .public-share-qr-shell .qr-code canvas{width:94px!important;height:94px!important}
+}
+@media(max-width:390px){
+    .public-share-theme-card{padding:17px 14px;gap:9px;min-height:174px}
+    .public-share-logo-frame{width:44px;height:44px;flex-basis:44px}
+    .public-share-identity{gap:8px}
+    .public-share-copy strong{font-size:.6rem;letter-spacing:.025em}
+    .public-share-copy span{font-size:.82rem}
+    .public-share-copy small{font-size:.56rem}
+    .public-share-qr-shell{width:100px;height:100px;flex-basis:100px;padding:7px}
+    .public-share-qr-shell .qr-code{width:86px;height:86px}
+    .public-share-qr-shell .qr-code canvas{width:86px!important;height:86px!important}
+}
+
+/* Aug 31 2026 — dynamic theme selector supports extended profile themes */
+.theme-option .theme-circle[style]{box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 4px 12px rgba(0,0,0,.14)}

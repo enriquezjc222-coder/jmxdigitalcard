@@ -1,0 +1,36 @@
+JMX DIGITAL CARD — MASTER PROMPT UPDATE IMPLEMENTATION (SEP 2026)
+
+BASE
+Updated directly on JMX-Digital-Card-NFC-ID-CARDS-Tooltips-PRODUCTION-CLEAN. Existing URL cards, Basic/Premium/Business logic, Google Authentication, QR and Wallet code were preserved.
+
+IMPLEMENTED / EXPANDED
+1. Expanded NFC Product / Device Type selector without colors: PVC, Metal, Wood, Paper, Sticker, Tag, Keychain, Wristband, Bracelet, Ring, Plate, Badges, Inlays, on-metal, wearables, access/hotel/membership cards, custom/other and other commercial form factors.
+2. Batch creation now uses the selected Device Type instead of hard-coding every batch as an NFC Card.
+3. Client NFC detail view now summarizes/controls all assigned NFC device types rather than hiding legacy/non-card types.
+4. Existing legacy deviceType=card remains recognized for backward compatibility.
+5. Activity Log panel reads recent nfcDeviceEvents and supports search/category filters. New device/batch creation writes activity events. Existing lifecycle/assignment/encoding events remain intact.
+6. Desktop tooltips remain hover-based. Mobile/tablet now supports long-press (550 ms) to show the same tooltip while suppressing the action click that would otherwise fire.
+7. Mobile layouts improved for dialogs, expanded boxes, buttons, switch controls, activity log, client device summaries and sticky actions.
+8. Local Development Mode added for localhost/127.0.0.1 using Firebase Firestore/Storage emulators. Production Google Authentication is not removed.
+
+LOCAL MODE
+Run: firebase emulators:start --config firebase.local.json
+Then open: http://127.0.0.1:5000/dashboard.html
+The local bypass cannot activate on the public domain because local-dev-config.js checks hostname. Local emulator rules are separate and must never be deployed to production.
+
+FILES ADDED
+- local-dev-config.js
+- firebase.local.json
+- firestore.local.rules
+- storage.local.rules
+- LOCAL-DEVELOPMENT-MODE-SEP2026.txt
+
+FILES MODIFIED
+- dashboard.html
+- dashboard.js
+- dashboard.css
+- admin.js
+- admin.css
+
+PRODUCTION CLEANUP LATER
+Set enabled:false in local-dev-config.js (or remove local dev wiring) and deploy using the original firebase.json + production firestore.rules/storage.rules.

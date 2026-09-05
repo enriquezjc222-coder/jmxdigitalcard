@@ -1,0 +1,194 @@
+JMX DIGITAL CARD — SWITCH / SAVE CHANGES / CUSTOM QR / BUSINESS FEATURE AUDIT
+Date: 2026-08-25
+Base: JMX-Digital-Card-Analytics-Scalability-undia-despues-de-la-entrega-de-mis-tarjetas (2).zip
+
+SCOPE
+-----
+This update was applied additively to the supplied current project. It does not regenerate Card IDs,
+Activation Codes, NFC URLs, owners, profiles, inventory, Leads, or existing analytics data.
+No Cloud Functions were deployed and no production database records were modified by this work.
+
+FILES MODIFIED
+--------------
+1. dashboard.js
+2. dashboard.css
+3. admin.js
+4. admin.html
+5. script.js
+6. card.html
+
+FILE CREATED
+------------
+JMX-SWITCH-SAVE-QR-FEATURE-AUDIT-AUG2026.txt
+
+CLIENT FEATURE OVERRIDES
+------------------------
+- Fixed the client-specific toggle UI. The old markup used feature-switch-row with a switch-ui element,
+  but the CSS only styled switch-row / feature-switch-item. This caused the checkbox state to change while
+  the visual slider appeared stuck.
+- Client override rows now show one clear ON/OFF toggle.
+- Global and Plan controls retain priority.
+- OFF hides access without deleting saved profile data.
+- External integrations that do not have a live module are explicitly marked as pending rather than simulated.
+
+SAVE CHANGES — CLIENT DETAIL MODAL
+----------------------------------
+- Added a primary Save Changes button to the large client detail modal.
+- Base Plan, Complimentary Premium, Complimentary Business, and Client Feature Overrides are staged locally.
+- Firestore is not written on every feature click.
+- Save Changes writes the combined change set.
+- Inventory plan is updated only when the base plan actually changes.
+- If no effective change exists, no write is made.
+- Save success and failure status are shown.
+- Closing the dialog with unsaved changes prompts before discarding.
+
+CUSTOM QR / QR DOWNLOAD
+-----------------------
+- Custom QR remains Business-controlled through Global -> Plan -> Client hierarchy.
+- QR dark/light colors remain persisted through the existing profile Save Changes workflow.
+- Owner QR color fields are now explicitly hidden when Custom QR is administratively unavailable.
+- Public QR rendering reads the saved colors when Custom QR is allowed.
+- Low-contrast selections are adjusted toward a scan-safe darker value while preserving the selected accent
+  as much as possible instead of silently reverting every low-contrast choice to black/white.
+- QR Download remains separately controlled.
+- QR Visit analytics are recorded only when src=qr is actually present; NFC is not invented.
+
+QUICK ACTIONS
+-------------
+- Quick Actions continues to act as a parent gate.
+- Call, Text, Email and Website remain controlled.
+- WhatsApp is now also represented in the Quick Actions row when Quick Actions + WhatsApp are allowed and
+  a WhatsApp/phone number exists.
+- The detailed WhatsApp contact row remains independently controlled by the WhatsApp feature.
+
+QUICK CAPTURE / LEADS
+---------------------
+- Quick Capture and Leads are now treated as related but independent features.
+- Quick Capture controls the public Share Your Contact form.
+- Leads controls the owner's private Leads / My Contacts dashboard.
+- Turning Leads OFF does not automatically disable the public Quick Capture form.
+- Leads collected while the Leads dashboard is hidden continue following their existing retention rules.
+- Quick Capture analytics remain real-event based. leadReceived is tracked only when the Leads feature is allowed.
+
+LEAD SUBFEATURE SWITCHES
+------------------------
+The private Business Leads UI now honors these independent controls:
+- Contact Notes
+- Meeting Notes
+- Follow-Up
+- CSV Export
+- VCF Download
+Existing saved values are not deleted when a control is hidden.
+
+ANALYTICS / ADVANCED ANALYTICS
+------------------------------
+- Existing Analytics scalability transition (2026-08-26) is preserved.
+- Analytics controls whether the action analytics section is available.
+- Advanced Analytics is distinct for Business: advanced/top-action presentation is hidden when Advanced Analytics
+  is unavailable, while basic permitted analytics can remain.
+- No global/monthly/daily profile-view write behavior was restored.
+
+BRANDING REMOVAL
+----------------
+- The owner editor Branding Removal field is explicitly tied to the Branding Removal entitlement.
+- Public removal still requires both Business permission and the owner's saved removeJmxBranding setting.
+
+EXTERNAL / PENDING FEATURES — NOT SIMULATED
+-------------------------------------------
+The following controls exist as architecture/settings but there is no complete external implementation in this
+project. They are marked pending in the client override modal instead of being presented as a live working module:
+- Contact Map
+- AI Business Card Scanner
+- Auto-Intro Email
+- Apple Wallet
+- Google Wallet
+- Advanced Networking Insights
+They require their respective provider/API/certificates/accounts before they can be considered operational.
+
+OTHER FEATURE SWITCHES REVIEWED
+-------------------------------
+Description, Save Contact, Quick Actions, Phone 1, Phone 2, WhatsApp, Email, Website, Location,
+Facebook, Instagram, LinkedIn, X/Twitter, TikTok, YouTube, Services, Gallery, Video, QR Code,
+Custom QR, QR Download, Final CTA, Business Links, Catalog/PDF, Custom Business Link, Analytics,
+Advanced Analytics, Quick Capture, Leads, Contact Notes, Meeting Notes, Follow-Up, CSV Export,
+VCF Download, Branding Removal and the pending external items above.
+
+OWNER EDITOR BEHAVIOR
+---------------------
+- Existing Global -> Plan -> Client Override enforcement is preserved.
+- Administratively blocked profile fields continue to be hidden from the owner editor without deleting data.
+- Custom QR and Branding controls are now included explicitly in that field-gating path.
+- Lead subfeatures are now individually reflected inside the private Leads UI.
+
+PUBLIC PROFILE BEHAVIOR
+-----------------------
+- Feature controls remain enforced by Global -> effective Plan -> Client Override -> owner visibility.
+- Quick Actions now include WhatsApp when permitted.
+- Quick Capture no longer incorrectly requires the Leads dashboard feature to be visible.
+- Custom QR and QR Download remain Business feature-gated.
+
+TESTS PERFORMED
+---------------
+PASS — Node syntax check: dashboard.js
+PASS — Node syntax check: admin.js
+PASS — Node syntax check: script.js
+PASS — Node syntax check: all other project JavaScript files
+PASS — Node syntax check: functions/index.js
+PASS — firebase.json parses as valid JSON
+PASS — No duplicate HTML IDs in dashboard.html
+PASS — No duplicate HTML IDs in admin.html
+PASS — No duplicate HTML IDs in card.html
+PASS — Client feature changes are staged (no immediate featureOverride Firestore write per click)
+PASS — Save Changes handler is present and combined-save logic is wired
+PASS — Client feature toggle checked CSS is present
+PASS — Quick Capture public visibility is independent from Leads dashboard visibility
+PASS — Leads dashboard is independently gated by Leads
+PASS — Contact Notes / Meeting Notes / Follow-Up / CSV / VCF controls are wired in Leads UI
+PASS — WhatsApp Quick Action is present and tracked
+PASS — Custom QR owner fields are administratively gated
+PASS — Branding Removal owner control is administratively gated
+PASS — Analytics vs Advanced Analytics are distinct in owner presentation
+PASS — Public Custom QR uses saved colors when allowed
+PASS — QR Download remains independently gated
+PASS — Analytics cutoff 2026-08-26 remains present
+PASS — Cloud Storage / mediaStorageVersion architecture remains present
+
+LIMITATIONS OF LOCAL TESTING
+----------------------------
+No authenticated production Firebase writes were executed during this edit. Therefore the final end-to-end tests
+that require the live Firebase project should be performed after publishing the six modified web files:
+- Admin opens a TEST client, changes 3 overrides, confirms they remain pending, then Save Changes.
+- Reload admin and verify persistence.
+- Open owner editor and verify disabled features disappear.
+- Open public card and verify disabled features disappear without layout gaps.
+- Business TEST card: save QR colors, Custom QR ON, confirm public QR color and download.
+- Custom QR OFF -> default QR; ON -> saved customization returns.
+- Quick Capture ON + Leads OFF -> public form works, private Leads UI hidden.
+- Leads ON -> private Leads UI returns while existing leads remain.
+Do not use a real card for destructive reset/delete/regenerate tests.
+
+FIREBASE / RULES / FUNCTIONS
+----------------------------
+- firestore.rules: NOT changed by this update.
+- storage.rules: NOT changed by this update.
+- firebase.json: NOT changed by this update.
+- functions/: NOT changed or deployed by this update.
+- Cloud Storage architecture remains intact.
+
+GITHUB — FILES THAT NEED REPLACEMENT
+------------------------------------
+Required code files:
+- dashboard.js
+- dashboard.css
+- admin.js
+- admin.html
+- script.js
+- card.html
+Optional documentation:
+- JMX-SWITCH-SAVE-QR-FEATURE-AUDIT-AUG2026.txt
+
+KNOWN ISSUES / PENDING EXTERNAL INTEGRATIONS
+--------------------------------------------
+Contact Map, AI Scanner, Auto-Intro Email, Apple Wallet, Google Wallet and Advanced Networking Insights cannot be
+made genuinely operational without the external services/credentials/certificates they require. This update does
+not fake those integrations.

@@ -1,0 +1,231 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function platformConfigured() { return exists(/databases/$(database)/documents/platform/config); }
+    function legacyMainAdmin() {
+      return signedIn()
+        && !platformConfigured()
+        && exists(/databases/$(database)/documents/cards/main)
+        && get(/databases/$(database)/documents/cards/main).data.ownerUid == request.auth.uid;
+    }
+    function isAdmin() {
+      return signedIn() && (
+        (platformConfigured() && get(/databases/$(database)/documents/platform/config).data.adminUid == request.auth.uid)
+        || legacyMainAdmin()
+      );
+    }
+    function ownerDoc(cardId) { return get(/databases/$(database)/documents/cardOwners/$(cardId)); }
+    function isOwner(cardId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/cardOwners/$(cardId))
+        && ownerDoc(cardId).data.ownerUid == request.auth.uid;
+    }
+    function cardDoc(cardId) { return get(/databases/$(database)/documents/cards/$(cardId)); }
+    function claimAfter(cardId) { return getAfter(/databases/$(database)/documents/cardClaims/$(cardId)); }
+    function ownerAfter(cardId) { return getAfter(/databases/$(database)/documents/cardOwners/$(cardId)); }
+    function inventoryDoc(cardId) { return get(/databases/$(database)/documents/inventory/$(cardId)); }
+    function profileViewAnalyticsOpen() {
+      // 2026-08-26 00:00 America/Chicago (CDT)
+      return request.time < timestamp.value('2026-08-26T05:00:00Z');
+    }
+    function canClaim(cardId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/cards/$(cardId))
+        && cardDoc(cardId).data.status in ['available','sold']
+        && !exists(/databases/$(database)/documents/cardOwners/$(cardId))
+        && (
+          cardDoc(cardId).data.requiresActivationCode == false
+          || (
+            exists(/databases/$(database)/documents/inventory/$(cardId))
+            && request.resource.data.activationCode == inventoryDoc(cardId).data.activationCode
+          )
+        );
+    }
+
+    match /platform/config {
+      allow read: if signedIn();
+      allow create: if legacyMainAdmin() && request.resource.data.adminUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /platform/publicSettings {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Private AI Scanner administration. Contains no API secrets; backend calls
+    // still validate this Kill Switch and provider configuration server-side.
+    match /platform/aiScanner {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /platform/nfcDeviceSettings {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /cards/{cardId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.status in ['available','sold']
+        && request.resource.data.status == 'activated'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','activatedAt','updatedAt'])
+        && ownerAfter(cardId).data.ownerUid == request.auth.uid
+      );
+
+      match /media/{mediaId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin() || isOwner(cardId);
+      }
+    }
+
+    match /profiles/{cardId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() || isOwner(cardId) || (signedIn() && ownerAfter(cardId).data.ownerUid == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /inventory/{cardId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /cardOwners/{cardId} {
+      allow get: if isAdmin() || isOwner(cardId);
+      allow list: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create: if signedIn()
+        && !exists(/databases/$(database)/documents/cardOwners/$(cardId))
+        && claimAfter(cardId).data.ownerUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /cardClaims/{cardId} {
+      allow read: if isAdmin();
+      allow create: if canClaim(cardId)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerEmail == request.auth.token.email;
+      allow update, delete: if isAdmin();
+    }
+
+    match /cardAdmin/{cardId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /cardHistory/{cardId}/releases/{releaseId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /ownerActivity/{cardId} {
+      allow read: if isAdmin() || isOwner(cardId);
+      allow create, update: if isOwner(cardId) && request.resource.data.ownerUid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /cardStats/{cardId} {
+      allow read: if isAdmin() || isOwner(cardId);
+      // Historical views may increment only before the fixed transition. After it,
+      // public analytics can change action counters but the existing view value is frozen.
+      allow create: if request.resource.data.cardId == cardId
+        && request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt'])
+        && (profileViewAnalyticsOpen() || !request.resource.data.keys().hasAny(['views']));
+      allow update: if request.resource.data.cardId == cardId
+        && request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt'])
+        && (profileViewAnalyticsOpen() || request.resource.data.get('views', 0) == resource.data.get('views', 0));
+      allow delete: if isAdmin();
+    }
+
+    // Historical monthly/daily documents remain readable and are never deleted by
+    // the transition. New writes are allowed only before the 2026-08-26 cutoff.
+    match /monthlyStats/{statId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.cardId is string && isOwner(resource.data.cardId));
+      allow create, update: if profileViewAnalyticsOpen()
+        && request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /dailyStats/{statId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.cardId is string && isOwner(resource.data.cardId));
+      allow create, update: if profileViewAnalyticsOpen()
+        && request.resource.data.keys().hasOnly(['cardId','views','actions','updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+
+    // JMX Business Quick Capture / Leads. Public visitors may create a tightly
+    // constrained lead only for an existing Business card. Lead contents are
+    // private to the card owner and JMX administrator.
+    match /leads/{cardId}/items/{leadId} {
+      allow create: if exists(/databases/$(database)/documents/cards/$(cardId))
+        && (cardDoc(cardId).data.plan == 'Business' || cardDoc(cardId).data.complimentaryBusiness == true)
+        && cardDoc(cardId).data.status == 'activated'
+        && request.resource.data.cardId == cardId
+        && request.resource.data.plan == 'Business'
+        && request.resource.data.keys().hasOnly(['cardId','name','phone','email','company','message','status','notes','meetingNotes','followUpDate','createdAt','expiresAt','policyVersion','acceptedAt','plan'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.phone is string && request.resource.data.phone.size() <= 40
+        && request.resource.data.email is string && request.resource.data.email.size() <= 160
+        && request.resource.data.company is string && request.resource.data.company.size() <= 120
+        && request.resource.data.message is string && request.resource.data.message.size() <= 600
+        && request.resource.data.status == 'New'
+        && request.resource.data.notes == ''
+        && request.resource.data.meetingNotes == ''
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt < request.time + duration.value(31, 'd');
+      allow read, update, delete: if isAdmin() || isOwner(cardId);
+    }
+
+    // Private AI Scanner contacts. Images are never stored here; only confirmed
+    // contact data is retained for the card owner. Backend writes use Admin SDK.
+    match /contacts/{cardId}/items/{contactId} {
+      allow read, create, update, delete: if isAdmin() || isOwner(cardId);
+    }
+
+    // Scanner history stores only lightweight audit metadata (name/company/status),
+    // never the original business-card image.
+    match /aiScannerHistory/{cardId}/items/{scanId} {
+      allow read: if isAdmin() || isOwner(cardId);
+      allow create, update, delete: if false;
+    }
+
+    // Usage/cost-control counters are written only by trusted backend functions.
+    match /aiScannerUsage/{monthId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+      match /cards/{cardId} {
+        allow read: if isAdmin() || isOwner(cardId);
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /aiScannerTotals/{cardId} {
+      allow read: if isAdmin() || isOwner(cardId);
+      allow create, update, delete: if false;
+    }
+
+    // Official JMX NFC Device-ID inventory. Direct Firestore access is admin-only.
+    // Public device resolution and batch activation are validated through trusted Cloud Functions.
+    match /nfcDevices/{deviceId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /nfcBatches/{batchId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /nfcDevicePublic/{deviceId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /nfcDeviceEvents/{eventId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Legacy collection retained during migration.
+    match /cardAccess/{cardId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

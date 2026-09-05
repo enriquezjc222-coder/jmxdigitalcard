@@ -1,0 +1,11 @@
+JMX DIGITAL CARD — ADMIN GOOGLE AUTH UPDATE
+
+- Added Continue with Google to the administrator/editor sign-in screen.
+- Existing email/password sign-in remains available as a fallback.
+- Google sign-in does NOT grant administrator rights by itself.
+- The authenticated Firebase UID must still match platform/config.adminUid to receive JMX administrator access.
+- Unauthorized Google accounts are signed out and rejected.
+- Existing client Google authentication, inventory, analytics, card data, URLs, and Firestore rules were preserved.
+
+Firebase requirement:
+Authentication > Sign-in method > Google must be enabled, and the production domain must be an Authorized domain.

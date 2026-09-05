@@ -1,0 +1,22 @@
+JMX Digital Card - Tooltip Top Layer Fix - Sep 2026
+
+Fix applied to the production-ready version that was just deployed.
+
+Problem corrected:
+- Context-help tooltips could render behind a modal <dialog>, so the black explanation box was partially hidden by the open client/device dialog.
+
+Correction:
+- Tooltips now use the browser Popover Top Layer when supported, which renders above modal dialogs.
+- A fallback places the tooltip inside the active open dialog for browsers without Popover API support.
+- Tooltip z-index was raised and popover default inset/margins were neutralized for precise viewport positioning.
+- Existing tooltip text, hover behavior, ~550 ms mobile/tablet long-press behavior, button/switch actions, NFC functionality, Firebase Authentication, and all existing data logic remain unchanged.
+
+Files modified:
+- dashboard.js
+- dashboard.css
+
+Deployment required:
+- GitHub: yes (commit/push these two modified files plus this note if desired)
+- Firebase Hosting: yes (firebase.cmd deploy --only hosting)
+- Firestore rules/data: no
+- Firebase Functions: no

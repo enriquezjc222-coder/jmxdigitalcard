@@ -1,0 +1,15 @@
+JMX DIGITAL CARD - INVENTORY DASHBOARD UPDATE
+August 2026
+
+Changes in this build:
+- Added a separate "Available / Unclaimed" NFC inventory area.
+- Available and Sold cards stay in the inventory area until activation.
+- Activated and Suspended cards move into the Basic or Premium client columns.
+- Inventory cards show permanent NFC URL, plan, physical type, NFC status, activation code, created date, internal notes, and copy controls.
+- Added recovery display for inventory records that exist in the inventory collection even if their cards metadata document is missing.
+- New inventory records duplicate essential inventory metadata to improve recoverability.
+- Card code BOSS is protected in dashboard code from delete/regenerate operations.
+- Existing card/profile data is not deleted or rewritten by this dashboard update.
+
+Important:
+This ZIP changes application files only. It does not modify your live Firebase data until you deploy the updated files and use the dashboard normally.

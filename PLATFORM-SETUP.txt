@@ -1,0 +1,57 @@
+JMX DIGITAL CARD — FINAL COMMERCIAL NFC PLATFORM
+
+THIS VERSION IMPLEMENTS
+- JMX admin creates NFC inventory; customers cannot create URLs.
+- Random permanent short URLs such as https://jmxdigitalcard.com/c/K7P4
+- Status flow: available -> sold -> activated -> suspended
+- Optional private activation code for every physical NFC
+- First scan activation: customer creates account or signs into an existing account
+- Firebase Authentication owner account is linked to that exact NFC card
+- After activation, every scan opens the public owner profile
+- Owner Login at /login.html lets a customer edit only cards linked to that account
+- JMX admin dashboard at /dashboard.html controls inventory, plan, status, NFC status and private notes
+- Basic/Premium plan gating in the customer editor and public card
+- Admin can suspend/reactivate, mark sold, regenerate unused inventory and copy NFC/activation codes
+- Existing JMX main card remains supported during migration
+
+BEFORE UPLOADING THE WEB FILES
+1. Firebase Console -> Firestore Database -> Rules
+2. Replace the rules with firestore.rules from this folder
+3. Click Publish
+
+THEN UPLOAD ALL FILES TO GITHUB
+Include the NEW files:
+- dashboard.html / dashboard.js / dashboard.css
+- activate.html / activate.js
+- login.html / login.js
+- portal.css
+- 404.html
+- admin.html / admin.js / admin.css
+- index.html / script.js / styles.css
+- firestore.rules
+- firebase.json (for a future Firebase Hosting migration; GitHub ignores it)
+
+ADMIN BOOTSTRAP
+The first time the current JMX Firebase administrator signs in to dashboard.html, the app can bootstrap platform/config from the ownerUid already stored on the existing cards/main document. After that, platform/config is the administrator authority.
+
+GITHUB PAGES SHORT URL SUPPORT
+GitHub Pages does not natively rewrite dynamic /c/K7P4 routes. 404.html redirects the request into index.html and the app restores /c/K7P4 in the address bar. This preserves the short NFC URL while you remain on GitHub Pages.
+A firebase.json SPA rewrite is included if you later move hosting to Firebase Hosting.
+
+BASIC VS PREMIUM
+Basic keeps the core contact card functions. Premium unlocks the second phone, website, expanded social networks, services, gallery, video, catalog/business links and final CTA. JMX admin controls the plan; the customer cannot upgrade themselves by editing Firestore metadata.
+
+LARGE PDF CATALOGS
+Do not store large catalogs such as a 67 MB PDF inside Firestore. Use Catalog URL for large files. The small PDF upload remains intentionally limited.
+
+UPDATE — PUBLIC HOME + ANALYTICS + PREMIUM LAUNCH CONTROL
+- The root https://jmxdigitalcard.com/ is now the JMX public landing page. It no longer shows a personal profile.
+- The reusable digital-card template is now card.html. Short /c/CODE URLs continue to work through 404.html on GitHub Pages.
+- The admin dashboard now shows total profile opens and current-month opens for each card.
+- Premium owners see their visit totals in Owner Login; Basic owners do not see analytics.
+- The dashboard includes a Show Premium switch. OFF hides Premium promotion on the public home page without removing Premium code or plan support.
+- The dashboard includes a fixed JMX company QR pointing to https://jmxdigitalcard.com/.
+- Publish the UPDATED firestore.rules before testing analytics and the Premium switch.
+
+IMPORTANT
+Analytics in this static/Firebase version count public profile loads. Because the site has no trusted server-side analytics endpoint yet, these counts are useful operational metrics but should not be treated as fraud-proof billing data.

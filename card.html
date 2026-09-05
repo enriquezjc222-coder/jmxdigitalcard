@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Premium Digital Business Card"
+    >
+
+    <title>Premium Digital Card</title>
+
+    <!-- Prevent placeholder/profile flash while Firebase loads the correct card -->
+    <style>
+        body.firebase-loading .digital-card-app {
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+    </style>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- ICONS -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+</head>
+
+
+<body class="firebase-loading">
+
+    <!-- ========================================
+         MAIN APP
+    ========================================= -->
+
+    <main class="digital-card-app">
+
+        <!-- ========================================
+             PROFILE CARD
+        ========================================= -->
+
+        <section class="profile-card">
+
+
+            <!-- ========================================
+                 COVER IMAGE
+            ========================================= -->
+
+            <div class="cover-section">
+
+                <img
+                    src="images/cover.jpg"
+                    alt="Cover image"
+                    class="cover-image"
+                    id="coverImage"
+                >
+
+                <div class="cover-overlay"></div>
+
+
+                <!-- SHARE BUTTON -->
+
+                <button
+                    class="top-action-button share-button"
+                    id="shareButton"
+                    aria-label="Share profile"
+                >
+                    <i class="fa-solid fa-share-nodes"></i>
+                </button>
+
+
+                <!-- THEME BUTTON -->
+
+                <button
+                    class="top-action-button theme-button"
+                    id="themeButton"
+                    aria-label="Change theme"
+                >
+                    <i class="fa-solid fa-palette"></i>
+                </button>
+
+            </div>
+
+
+
+            <!-- ========================================
+                 PROFILE PHOTO
+            ========================================= -->
+
+            <div class="profile-photo-wrapper">
+
+                <img
+                    src="images/profile.jpg"
+                    alt="Profile photo"
+                    class="profile-photo"
+                    id="profilePhoto"
+                >
+
+            </div>
+
+
+
+
+            <!-- ========================================
+                 BASIC INFORMATION
+            ========================================= -->
+
+            <div class="profile-info">
+
+                <h1 id="profileName">
+
+                </h1>
+
+                <p
+                    class="profile-position"
+                    id="profilePosition"
+                >
+
+                </p>
+
+                <h2
+                    class="company-name"
+                    id="companyName"
+                >
+
+                </h2>
+
+                <p
+                    class="profile-location"
+                    id="profileLocation"
+                >
+                    <i class="fa-solid fa-location-dot"></i>
+
+                </p>
+
+                <p
+                    class="profile-description"
+                    id="profileDescription"
+                >
+
+                </p>
+
+            </div>
+
+
+
+            <!-- ========================================
+                 SAVE CONTACT
+            ========================================= -->
+
+            <div class="primary-action">
+
+                <button
+                    class="save-contact-button"
+                    id="saveContactButton"
+                >
+                    <i class="fa-solid fa-user-plus"></i>
+
+                    <span>
+                        Save Contact
+                    </span>
+                </button>
+
+            </div>
+
+
+
+            <!-- ========================================
+                 QUICK CONTACT BUTTONS
+            ========================================= -->
+
+            <div class="quick-actions" id="quickActions">
+
+
+                <!-- PHONE -->
+
+                <a
+                    href="#"
+                    class="quick-action"
+                    id="phoneButton"
+                >
+
+                    <span class="quick-action-icon">
+                        <i class="fa-solid fa-phone"></i>
+                    </span>
+
+                    <span class="quick-action-label">
+                        Call
+                    </span>
+
+                </a>
+
+
+
+                <!-- TEXT -->
+
+                <a
+                    href="#"
+                    class="quick-action"
+                    id="textButton"
+                >
+
+                    <span class="quick-action-icon">
+                        <i class="fa-solid fa-comment-dots"></i>
+                    </span>
+
+                    <span class="quick-action-label">
+                        Text
+                    </span>
+
+                </a>
+
+
+
+                <!-- WHATSAPP -->
+
+                <a href="#" class="quick-action" id="whatsappButton">
+                    <span class="quick-action-icon"><i class="fa-brands fa-whatsapp"></i></span>
+                    <span class="quick-action-label">WhatsApp</span>
+                </a>
+
+
+                <!-- EMAIL -->
+
+                <a
+                    href="#"
+                    class="quick-action"
+                    id="emailButton"
+                >
+
+                    <span class="quick-action-icon">
+                        <i class="fa-solid fa-envelope"></i>
+                    </span>
+
+                    <span class="quick-action-label">
+                        Email
+                    </span>
+
+                </a>
+
+
+
+                <!-- WEBSITE -->
+
+                <a
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="quick-action"
+                    id="websiteButton"
+                >
+
+                    <span class="quick-action-icon">
+                        <i class="fa-solid fa-globe"></i>
+                    </span>
+
+                    <span class="quick-action-label">
+                        Website
+                    </span>
+
+                </a>
+
+            </div>
+
+
+
+            <!-- ========================================
+                 CONTACT INFORMATION
+            ========================================= -->
+
+            <section class="card-section" id="contactSection">
+
+                <div class="section-heading">
+
+                    <span class="section-heading-icon">
+                        <i class="fa-solid fa-address-card"></i>
+                    </span>
+
+                    <div>
+                        <p class="section-eyebrow">
+                            CONNECT
+                        </p>
+
+                        <h3>
+                            Contact Information
+                        </h3>
+                    </div>
+
+                </div>
+
+
+                <div class="contact-list">
+
+
+                    <!-- PHONE -->
+
+                    <a
+                        href="#"
+                        class="contact-row"
+                        id="phone1Row"
+                    >
+
+                        <span class="contact-row-icon">
+                            <i class="fa-solid fa-phone"></i>
+                        </span>
+
+                        <span class="contact-row-content">
+
+                            <small>
+                                Phone
+                            </small>
+
+                            <strong id="displayPhone">
+                                (708) 555-1234
+                            </strong>
+
+                        </span>
+
+                        <span class="contact-arrow">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+
+                    </a>
+
+                    <!-- SECOND PHONE -->
+<a
+    href="#"
+    class="contact-row"
+    id="phone2Row"
+>
+    <span class="contact-row-icon">
+        <i class="fa-solid fa-phone"></i>
+    </span>
+
+    <span class="contact-row-content">
+        <small>
+            Second Phone
+        </small>
+
+        <strong id="displayPhone2">
+        </strong>
+    </span>
+
+    <span class="contact-arrow">
+        <i class="fa-solid fa-chevron-right"></i>
+    </span>
+</a>
+
+
+
+
+                    <a href="#" class="contact-row" id="whatsappRow">
+                        <span class="contact-row-icon"><i class="fa-brands fa-whatsapp"></i></span>
+                        <span class="contact-row-content">
+                            <small>WhatsApp</small>
+                            <strong id="displayWhatsApp"></strong>
+                        </span>
+                        <span class="contact-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+                    </a>
+
+                    <!-- EMAIL -->
+
+                    <a
+                        href="#"
+                        class="contact-row"
+                        id="emailRow"
+                    >
+
+                        <span class="contact-row-icon">
+                            <i class="fa-solid fa-envelope"></i>
+                        </span>
+
+                        <span class="contact-row-content">
+
+                            <small>
+                                Email
+                            </small>
+
+                            <strong id="displayEmail">
+
+                            </strong>
+
+                        </span>
+
+                        <span class="contact-arrow">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+
+                    </a>
+
+
+
+                    <!-- WEBSITE -->
+
+                    <a
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="contact-row"
+                        id="websiteRow"
+                    >
+
+                        <span class="contact-row-icon">
+                            <i class="fa-solid fa-globe"></i>
+                        </span>
+
+                        <span class="contact-row-content">
+
+                            <small>
+                                Website
+                            </small>
+
+                            <strong id="displayWebsite">
+
+                            </strong>
+
+                        </span>
+
+                        <span class="contact-arrow">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+
+                    </a>
+
+
+
+                    <!-- LOCATION -->
+
+                    <div class="contact-row" id="locationRow">
+
+                        <span class="contact-row-icon">
+                            <i class="fa-solid fa-location-dot"></i>
+                        </span>
+
+                        <span class="contact-row-content">
+
+                            <small>
+                                Location
+                            </small>
+
+                            <strong id="displayLocation">
+            
+                            </strong>
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ========================================
+                 SOCIAL MEDIA
+            ========================================= -->
+
+            <section class="card-section" id="socialSection">
+
+                <div class="section-heading">
+
+                    <span class="section-heading-icon">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </span>
+
+                    <div>
+
+                        <p class="section-eyebrow">
+                            FOLLOW
+                        </p>
+
+                        <h3>
+                            Social Media
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="social-grid">
+
+
+                    <!-- FACEBOOK -->
+
+                    <a
+                        href="#"
+                        target="_blank"
+                        class="social-button facebook"
+                        id="facebookLink"
+                    >
+
+                        <i class="fa-brands fa-facebook-f"></i>
+
+                        <span>
+                            Facebook
+                        </span>
+
+                    </a>
+
+
+
+                    <!-- INSTAGRAM -->
+
+                    <a
+                        href="#"
+                        target="_blank"
+                        class="social-button instagram"
+                        id="instagramLink"
+                    >
+
+                        <i class="fa-brands fa-instagram"></i>
+
+                        <span>
+                            Instagram
+                        </span>
+
+                    </a>
+
+
+
+                    <!-- LINKEDIN -->
+
+                    <a
+                        href="#"
+                        target="_blank"
+                        class="social-button linkedin"
+                        id="linkedinLink"
+                    >
+
+                        <i class="fa-brands fa-linkedin-in"></i>
+
+                        <span>
+                            LinkedIn
+                        </span>
+
+                    </a>
+
+
+
+                    <!-- X / TWITTER -->
+
+                    <a
+                        href="#"
+                        target="_blank"
+                        class="social-button twitter"
+                        id="twitterLink"
+                    >
+
+                        <i class="fa-brands fa-x-twitter"></i>
+
+                        <span>
+                            X / Twitter
+                        </span>
+
+                    </a>
+
+
+
+                    <!-- TIKTOK -->
+
+                    <a
+                        href="#"
+                        target="_blank"
+                        class="social-button tiktok"
+                        id="tiktokLink"
+                    >
+
+                        <i class="fa-brands fa-tiktok"></i>
+
+                        <span>
+                            TikTok
+                        </span>
+
+                    </a>
+
+
+
+                    <!-- YOUTUBE -->
+
+                    <a
+                        href="#"
+                        target="_blank"
+                        class="social-button youtube"
+                        id="youtubeLink"
+                    >
+
+                        <i class="fa-brands fa-youtube"></i>
+
+                        <span>
+                            YouTube
+                        </span>
+
+                    </a>
+
+                    <a href="#" target="_blank" rel="noopener noreferrer" class="premium-link-card" id="customBusinessLink">
+                        <span class="premium-link-icon"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                        <span class="premium-link-content">
+                            <strong id="customBusinessLabel">More Information</strong>
+                            <small id="customBusinessSubtitle">Open business link</small>
+                        </span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ========================================
+                 BUSINESS LINKS
+            ========================================= -->
+
+            <section class="card-section" id="businessLinksSection">
+
+                <div class="section-heading">
+
+                    <span class="section-heading-icon">
+                        <i class="fa-solid fa-link"></i>
+                    </span>
+
+                    <div>
+
+                        <p class="section-eyebrow">
+                            EXPLORE
+                        </p>
+
+                        <h3>
+                            Business Links
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="link-list">
+
+
+                    <!-- SERVICES -->
+
+                    <a
+                        href="#services"
+                        class="premium-link-card"
+                        id="businessServicesLink"
+                    >
+
+                        <span class="premium-link-icon">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </span>
+
+                        <span class="premium-link-content">
+
+                            <strong>
+                                Our Services
+                            </strong>
+
+                            <small>
+                                Explore what we offer
+                            </small>
+
+                        </span>
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </a>
+
+
+
+                    <!-- GALLERY -->
+
+                    <a
+                        href="#gallery"
+                        class="premium-link-card"
+                        id="businessGalleryLink"
+                    >
+
+                        <span class="premium-link-icon">
+                            <i class="fa-solid fa-images"></i>
+                        </span>
+
+                        <span class="premium-link-content">
+
+                            <strong>
+                                Photo Gallery
+                            </strong>
+
+                            <small>
+                                View recent work
+                            </small>
+
+                        </span>
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </a>
+
+
+
+                    <!-- CATALOG -->
+
+                    <a
+                        href="documents/catalog.pdf"
+                        target="_blank"
+                        class="premium-link-card"
+                        id="catalogLink"
+                    >
+
+                        <span class="premium-link-icon">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </span>
+
+                        <span class="premium-link-content">
+
+                            <strong>
+                                Digital Catalog
+                            </strong>
+
+                            <small>
+                                Open our PDF catalog
+                            </small>
+
+                        </span>
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </a>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ========================================
+                 SERVICES
+            ========================================= -->
+
+            <section
+                class="card-section"
+                id="services"
+            >
+
+                <div class="section-heading">
+
+                    <span class="section-heading-icon">
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+
+                    <div>
+
+                        <p class="section-eyebrow">
+                            SERVICES
+                        </p>
+
+                        <h3>
+                            What We Offer
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="services-grid">
+
+
+                    <article class="service-box" id="service1Box">
+
+                        <span class="service-icon">
+                            <i class="fa-solid fa-house" id="service1Icon"></i>
+                        </span>
+
+                        <h4 id="service1Title">
+                            Service One
+                        </h4>
+
+                        <p id="service1Description">
+                            Add a short description
+                            of your service here.
+                        </p>
+
+                    </article>
+
+
+
+                    <article class="service-box" id="service2Box">
+
+                        <span class="service-icon">
+                            <i class="fa-solid fa-screwdriver-wrench" id="service2Icon"></i>
+                        </span>
+
+                        <h4 id="service2Title">
+                            Service Two
+                        </h4>
+
+                        <p id="service2Description">
+                            Add another service
+                            description here.
+                        </p>
+
+                    </article>
+
+
+
+                    <article class="service-box" id="service3Box">
+
+                        <span class="service-icon">
+                            <i class="fa-solid fa-paint-roller" id="service3Icon"></i>
+                        </span>
+
+                        <h4 id="service3Title">
+                            Service Three
+                        </h4>
+
+                        <p id="service3Description">
+                            Customize this section
+                            for any type of business.
+                        </p>
+
+                    </article>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ========================================
+                 PHOTO GALLERY
+            ========================================= -->
+
+            <section
+                class="card-section"
+                id="gallery"
+            >
+
+                <div class="section-heading">
+
+                    <span class="section-heading-icon">
+                        <i class="fa-solid fa-images"></i>
+                    </span>
+
+                    <div>
+
+                        <p class="section-eyebrow">
+                            PORTFOLIO
+                        </p>
+
+                        <h3>
+                            Photo Gallery
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="gallery-grid">
+
+
+                    <button
+                        class="gallery-item"
+                        data-image="images/gallery-01.jpg"
+                    >
+                        <img
+                            src="images/gallery-01.jpg"
+                            alt="Gallery image 1"
+                        >
+                    </button>
+
+
+                    <button
+                        class="gallery-item"
+                        data-image="images/gallery-02.jpg"
+                    >
+                        <img
+                            src="images/gallery-02.jpg"
+                            alt="Gallery image 2"
+                        >
+                    </button>
+
+
+                    <button
+                        class="gallery-item"
+                        data-image="images/gallery-03.jpg"
+                    >
+                        <img
+                            src="images/gallery-03.jpg"
+                            alt="Gallery image 3"
+                        >
+                    </button>
+
+
+                    <button
+                        class="gallery-item"
+                        data-image="images/gallery-04.jpg"
+                    >
+                        <img
+                            src="images/gallery-04.jpg"
+                            alt="Gallery image 4"
+                        >
+                    </button>
+
+
+                    <button
+                        class="gallery-item"
+                        data-image="images/gallery-05.jpg"
+                    >
+                        <img
+                            src="images/gallery-05.jpg"
+                            alt="Gallery image 5"
+                        >
+                    </button>
+
+
+                    <button
+                        class="gallery-item"
+                        data-image="images/gallery-06.jpg"
+                    >
+                        <img
+                            src="images/gallery-06.jpg"
+                            alt="Gallery image 6"
+                        >
+                    </button>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ========================================
+                 VIDEO
+            ========================================= -->
+
+            <section class="card-section" id="videoSection">
+
+                <div class="section-heading">
+
+                    <span class="section-heading-icon">
+                        <i class="fa-solid fa-circle-play"></i>
+                    </span>
+
+                    <div>
+
+                        <p class="section-eyebrow">
+                            VIDEO
+                        </p>
+
+                        <h3>
+                            Featured Video
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="video-container">
+
+                    <iframe
+                        id="featuredVideo"
+                        src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                        title="Featured video"
+                        allowfullscreen
+                    ></iframe>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ========================================
+                 QR SECTION
+            ========================================= -->
+
+            <section class="card-section qr-section" id="qrSection">
+
+                <div class="section-heading">
+
+                    <span class="section-heading-icon">
+                        <i class="fa-solid fa-qrcode"></i>
+                    </span>
+
+                    <div>
+
+                        <p class="section-eyebrow">
+                            SHARE
+                        </p>
+
+                        <h3>
+                            Scan My Card
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="qr-wrapper">
+
+                    <div id="publicShareThemeCard" class="public-share-theme-card" aria-label="Digital business card QR">
+                        <div class="public-share-card-shine" aria-hidden="true"></div>
+                        <div class="public-share-identity">
+                            <div class="public-share-logo-frame">
+                                <img id="publicShareLogo" alt="Business logo" hidden>
+                                <span id="publicShareLogoFallback" class="public-share-logo-fallback">JMX</span>
+                            </div>
+                            <div class="public-share-copy">
+                                <strong id="publicShareCompany">JMX DIGITAL CARD</strong>
+                                <span id="publicShareName">Card Owner</span>
+                                <small id="publicSharePosition">Digital Business Card</small>
+                            </div>
+                        </div>
+                        <div class="public-share-qr-shell" aria-label="Scan QR code">
+                            <div class="qr-code" id="qrCode"></div>
+                        </div>
+                    </div>
+
+                    <p>
+                        Scan this QR code to open
+                        this digital business card.
+                    </p>
+                    <button id="downloadQrButton" type="button" class="final-cta-button" hidden><i class="fa-solid fa-download"></i> Download QR PNG</button>
+
+                </div>
+
+            </section>
+
+
+
+
+            <section class="quick-capture-section" id="quickCaptureSection" hidden>
+              <div class="section-title"><i class="fa-solid fa-user-plus"></i><h3>Share Your Contact</h3></div>
+              <p class="quick-capture-intro">Send your contact details directly to this card owner.</p>
+              <form id="quickCaptureForm" class="quick-capture-form">
+                <label><span>Name *</span><input id="leadName" name="name" maxlength="100" required autocomplete="name"></label>
+                <label><span>Phone</span><input id="leadPhone" name="phone" maxlength="40" autocomplete="tel"></label>
+                <label><span>Email</span><input id="leadEmail" name="email" type="email" maxlength="160" autocomplete="email"></label>
+                <label><span>Company</span><input id="leadCompany" name="company" maxlength="120" autocomplete="organization"></label>
+                <label class="full"><span>Optional Message</span><textarea id="leadMessage" name="message" rows="3" maxlength="600"></textarea></label>
+                <label class="full lead-consent"><input id="leadConsent" type="checkbox" required><span>I agree to the JMX Business Terms & Conditions and Privacy Policy.</span></label>
+                <p class="quick-capture-privacy full">By submitting this form, you are sharing this information with the owner of this JMX Digital Card. JMX may retain this information for up to 30 days.</p>
+                <div class="full business-policy-links"><button id="openBusinessTerms" type="button" class="text-link">Terms & Conditions</button><button id="openBusinessPrivacy" type="button" class="text-link">Privacy Policy</button></div>
+                <button class="final-cta-button full" id="submitLeadButton" type="submit"><i class="fa-solid fa-paper-plane"></i> Share My Contact</button>
+                <p id="quickCaptureStatus" class="quick-capture-status full" aria-live="polite"></p>
+              </form>
+            </section>
+
+            <!-- ========================================
+                 FINAL CTA
+            ========================================= -->
+
+            <section class="final-cta" id="finalCtaSection">
+
+                <span class="final-cta-icon">
+                    <i class="fa-solid fa-handshake"></i>
+                </span>
+
+                <h3 id="finalCtaTitle">
+                    Let's Connect
+                </h3>
+
+                <p id="finalCtaText">
+                    Have a question or want to work together?
+                    Contact us today.
+                </p>
+
+
+                <a
+                    href="#"
+                    id="final-cta-button"
+                    class="final-cta-button"
+                >
+                    <i class="fa-solid fa-phone"></i>
+                    <span id="finalCtaLabel">Contact Now</span>
+                </a>
+
+            </section>
+
+
+
+            <!-- ========================================
+                 FOOTER
+            ========================================= -->
+
+            <footer class="card-footer">
+
+                <p>
+                    © <span id="currentYear"></span>
+                    Premium Digital Card
+                </p>
+
+                <button
+                    type="button"
+                    id="footerShareButton"
+                    class="footer-share-button"
+                >
+                    <i class="fa-solid fa-share-nodes"></i>
+                    Share Card
+                </button>
+
+            </footer>
+
+        </section>
+
+    </main>
+
+
+
+    <dialog id="businessPolicyDialog" class="business-policy-dialog"><div class="business-policy-shell"><button id="closeBusinessPolicyDialog" type="button" class="dialog-close">×</button><h2 id="businessPolicyTitle">JMX Business Policy</h2><div id="businessPolicyBody" class="business-policy-body"></div></div></dialog>
+
+    <!-- ========================================
+         IMAGE LIGHTBOX
+    ========================================= -->
+
+    <div
+        class="lightbox"
+        id="lightbox"
+        aria-hidden="true"
+    >
+
+        <button
+            class="lightbox-close"
+            id="lightboxClose"
+            aria-label="Close image"
+        >
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <img
+            src=""
+            alt="Expanded gallery image"
+            id="lightboxImage"
+        >
+
+    </div>
+
+
+
+    <!-- ========================================
+         THEME PANEL
+    ========================================= -->
+
+    <div
+        class="theme-panel"
+        id="themePanel"
+    >
+
+        <div class="theme-panel-header">
+
+            <div>
+
+                <small>
+                    PERSONALIZE
+                </small>
+
+                <h3>
+                    Choose Theme
+                </h3>
+
+            </div>
+
+
+            <button
+                id="closeThemePanel"
+                aria-label="Close theme panel"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div class="theme-options">
+
+
+            <button
+                class="theme-option"
+                data-theme="gold"
+            >
+                <span class="theme-circle theme-gold"></span>
+                Gold
+            </button>
+
+
+            <button
+                class="theme-option"
+                data-theme="blue"
+            >
+                <span class="theme-circle theme-blue"></span>
+                Blue
+            </button>
+
+
+            <button
+                class="theme-option"
+                data-theme="emerald"
+            >
+                <span class="theme-circle theme-emerald"></span>
+                Emerald
+            </button>
+
+
+            <button
+                class="theme-option"
+                data-theme="purple"
+            >
+                <span class="theme-circle theme-purple"></span>
+                Purple
+            </button>
+
+
+            <button
+                class="theme-option"
+                data-theme="red"
+            >
+                <span class="theme-circle theme-red"></span>
+                Red
+            </button>
+
+
+            <button
+                class="theme-option"
+                data-theme="black"
+            >
+                <span class="theme-circle theme-black"></span>
+                Black
+            </button>
+            <button class="theme-option" data-theme="cyan"><span class="theme-circle theme-cyan"></span>Electric Cyan</button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ========================================
+         QR CODE LIBRARY
+    ========================================= -->
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+    ></script>
+
+
+    <!-- ========================================
+         MAIN JAVASCRIPT
+    ========================================= -->
+
+    <script type="module" src="script.js"></script>
+
+</body>
+
+</html>

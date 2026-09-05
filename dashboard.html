@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMX Digital Card - Platform Dashboard</title>
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+<main class="dashboard-app">
+<header class="dashboard-header">
+  <div>
+    <p class="eyebrow">JMX DIGITAL CARD</p>
+    <h1>NFC Inventory & Client Dashboard</h1>
+    <p class="subtitle">Prepare NFC inventory, activate customers, manage plans and control every digital card.</p>
+  </div>
+  <div class="header-actions">
+    <a class="secondary-button" href="login.html" target="_blank"><i class="fa-solid fa-user"></i> Owner Login</a>
+    <a class="secondary-button" href="/" target="_blank"><i class="fa-solid fa-globe"></i> Public Home</a>
+    <button id="logoutButton" class="secondary-button" type="button"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</button>
+  </div>
+</header>
+<section id="loginGate" class="panel login-panel">
+  <div class="panel-title"><i class="fa-solid fa-shield-halved"></i><div><small>JMX ADMIN ONLY</small><h2>Administrator Sign In</h2></div></div>
+  <p>Only the JMX platform administrator can create NFC inventory or change ownership, plans and status.</p>
+  <button id="dashboardGoogleLogin" class="google-dashboard-button" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
+  <div class="auth-divider"><span>or use email and password</span></div>
+  <div class="login-grid">
+    <label><span>Email</span><input id="loginEmail" type="email" autocomplete="username"></label>
+    <label><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password"></label>
+    <button id="loginButton" class="primary-button" type="button">Sign In</button>
+  </div>
+  <p id="loginStatus" class="status"></p>
+</section>
+<div id="dashboardContent" hidden>
+<section class="stats-grid">
+  <article class="stat-card"><span>Total NFC Cards</span><strong id="totalCards">0</strong></article>
+  <article class="stat-card"><span>Available</span><strong id="availableCards">0</strong></article>
+  <article class="stat-card"><span>Activated</span><strong id="activatedCards">0</strong></article>
+  <article class="stat-card"><span>Suspended</span><strong id="suspendedCards">0</strong></article><article class="stat-card"><span>Basic</span><strong id="basicCards">0</strong></article><article class="stat-card"><span>Premium</span><strong id="premiumCards">0</strong></article><article class="stat-card business-stat-card" id="businessKpiCard"><span>JMX Business</span><strong id="businessCards">0</strong></article><article class="stat-card"><span>Complimentary Premium</span><strong id="compCards">0</strong></article><article class="stat-card"><span>Complimentary Business</span><strong id="compBusinessCards">0</strong></article><article class="stat-card"><span>Inactive / Unclaimed</span><strong id="inactiveCards">0</strong></article>
+</section>
+<section class="panel platform-controls">
+  <div class="toolbar"><div><p class="eyebrow">PLATFORM</p><h2>Launch Controls, Billing & Legal</h2><p class="subtitle small">Keep Premium and billing installed but hidden until your policies and payment account are ready.</p></div><label class="switch-row"><input id="premiumEnabled" type="checkbox"><span class="switch-ui"></span><strong>Show Premium on public site</strong></label></div>
+  <div class="settings-grid">
+    <label class="switch-row"><input id="billingEnabled" type="checkbox"><span class="switch-ui"></span><strong>Enable subscription checkout</strong></label>
+    <label class="switch-row"><input id="privacyRequired" type="checkbox"><span class="switch-ui"></span><strong>Require privacy agreement before payment</strong></label>
+    <label><span>Premium checkout URL / Stripe Payment Link</span><input id="premiumCheckoutUrl" type="url" placeholder="https://buy.stripe.com/..."></label>
+    <label><span>Privacy Policy URL</span><input id="privacyPolicyUrl" type="url" placeholder="https://jmxdigitalcard.com/privacy"></label>
+    <label class="full"><span>Privacy agreement text placeholder</span><textarea id="privacyAgreementText" rows="4" placeholder="Paste attorney-approved privacy/subscription agreement here when ready."></textarea></label>
+  </div>
+  <div class="marketing-row"><div><span class="field-label">JMX Company QR</span><div id="companyQrAdmin" class="company-qr-admin"></div><small>Always points to https://jmxdigitalcard.com/</small></div><div><button id="savePlatformButton" class="primary-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Platform Settings</button> <button id="copyCompanyUrl" class="secondary-button" type="button"><i class="fa-solid fa-copy"></i> Copy JMX URL</button><p id="platformStatus" class="status"></p></div></div>
+</section>
+
+<section class="panel feature-control-center" id="featureControlCenter">
+  <div class="toolbar feature-toolbar">
+    <div>
+      <p class="eyebrow">FEATURE CONTROL CENTER</p>
+      <h2>Basic, Premium & Business Module Controls</h2>
+      <p class="subtitle small">Turn modules on or off by plan. Global OFF always hides a module for Basic, Premium and Business cards.</p>
+    </div>
+    <div class="feature-toolbar-actions">
+      <label class="switch-row"><input id="featureControlsEnabled" type="checkbox"><span class="switch-ui"></span><strong>Enable advanced feature controls</strong></label>
+      <label class="switch-row"><input id="showFeaturePanels" type="checkbox" checked><span class="switch-ui"></span><strong>Show switch panels</strong></label>
+    </div>
+  </div>
+  <div id="featurePanels" class="feature-panels">
+    <section class="feature-column global-column" data-feature-panel="global"><div class="feature-column-head"><div class="feature-column-title-row"><div><p class="eyebrow">GLOBAL</p><h3>All Plans</h3></div><button class="feature-expand-button" type="button" data-feature-expand aria-label="Expand All Plans feature controls" aria-expanded="false" title="Expand controls"><i class="fa-solid fa-expand"></i></button></div><p class="subtitle small">Global OFF always hides a module.</p></div><div id="globalFeatureSwitches" class="feature-switch-list"></div><div class="feature-purge-row"><button class="danger-button feature-purge-button" type="button" data-purge-gallery="Global" disabled><i class="fa-solid fa-trash-can"></i> Purge Gallery Media</button><small>Destructive action. Available only while Gallery is OFF.</small></div></section>
+    <section class="feature-column" data-feature-panel="Basic"><div class="feature-column-head"><div class="feature-column-title-row"><div><p class="eyebrow">BASIC</p><h3>Basic Version</h3></div><button class="feature-expand-button" type="button" data-feature-expand aria-label="Expand Basic Version feature controls" aria-expanded="false" title="Expand controls"><i class="fa-solid fa-expand"></i></button></div><p class="subtitle small">Choose which modules Basic cards can use.</p></div><div id="basicFeatureSwitches" class="feature-switch-list"></div><div class="feature-purge-row"><button class="danger-button feature-purge-button" type="button" data-purge-gallery="Basic" disabled><i class="fa-solid fa-trash-can"></i> Purge Gallery Media</button><small>Deletes Gallery files only for Basic cards after confirmation.</small></div></section>
+    <section class="feature-column premium-feature-column" data-feature-panel="Premium"><div class="feature-column-head"><div class="feature-column-title-row"><div><p class="eyebrow">PREMIUM</p><h3>Premium Version</h3></div><button class="feature-expand-button" type="button" data-feature-expand aria-label="Expand Premium Version feature controls" aria-expanded="false" title="Expand controls"><i class="fa-solid fa-expand"></i></button></div><p class="subtitle small">Temporarily hide any Premium module without deleting client data.</p></div><div id="premiumFeatureSwitches" class="feature-switch-list"></div><div class="feature-purge-row"><button class="danger-button feature-purge-button" type="button" data-purge-gallery="Premium" disabled><i class="fa-solid fa-trash-can"></i> Purge Gallery Media</button><small>Deletes Gallery files only for Premium cards after confirmation.</small></div></section>
+    <section class="feature-column business-feature-column" data-feature-panel="Business"><div class="feature-column-head"><div class="feature-column-title-row"><div><p class="eyebrow">BUSINESS</p><h3>JMX Business</h3></div><button class="feature-expand-button" type="button" data-feature-expand aria-label="Expand JMX Business feature controls" aria-expanded="false" title="Expand controls"><i class="fa-solid fa-expand"></i></button></div><p class="subtitle small">Business inherits Premium and adds networking, Leads, QR and advanced tools.</p></div><div id="businessFeatureSwitches" class="feature-switch-list"></div><div class="feature-purge-row"><button class="danger-button feature-purge-button" type="button" data-purge-gallery="Business" disabled><i class="fa-solid fa-trash-can"></i> Purge Gallery Media</button><small>Deletes Gallery files only for JMX Business cards after confirmation.</small></div></section>
+  </div>
+  <div id="featureExpandBackdrop" class="feature-expand-backdrop" hidden></div>
+  <div class="feature-save-row"><button id="saveFeatureControls" class="primary-button" type="button"><i class="fa-solid fa-sliders"></i> Save Changes</button><p id="featureControlStatus" class="status"></p></div>
+</section>
+
+<section class="panel ai-scanner-admin-panel" id="aiScannerAdminPanel">
+  <div class="toolbar ai-scanner-toolbar">
+    <div>
+      <p class="eyebrow">AI BUSINESS CARD SCANNER</p>
+      <h2>Provider, Cost & Emergency Controls</h2>
+      <p class="subtitle small">Feature access is controlled above by Global / Basic / Premium / Business. This panel controls external OCR calls, limits, diagnostics and usage.</p>
+    </div>
+    <label class="switch-row kill-switch-row"><input id="aiKillSwitch" type="checkbox"><span class="switch-ui"></span><strong>Allow external AI/OCR services</strong></label>
+  </div>
+  <div id="aiKillSwitchState" class="ai-kill-state blocked">External AI Services: BLOCKED</div>
+  <div class="ai-provider-grid">
+    <article><span>OCR Provider</span><strong id="aiOcrProviderState">Google Vision: Ready to test</strong></article>
+    <article><span>AI Parsing</span><strong id="aiParsingProviderState">Basic fallback active</strong></article>
+    <article><span>Provider Check</span><strong id="aiScannerProviderStatus">Not checked yet</strong></article>
+  </div>
+  <div class="ai-admin-actions">
+    <button id="checkAiScannerConnection" class="secondary-button" type="button"><i class="fa-solid fa-plug-circle-check"></i> Check Connection</button>
+    <button id="saveAiScannerSettings" class="primary-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save AI Scanner Settings</button>
+    <p id="aiScannerAdminStatus" class="status"></p>
+  </div>
+  <div class="ai-limit-grid">
+    <label><span>Basic Monthly Scan Limit</span><select id="aiLimitBasicMode"><option value="disabled">Limit disabled</option><option value="unlimited">Unlimited</option><option value="number">Monthly limit</option></select><input id="aiLimitBasicCount" type="number" min="1" max="100000" value="25" disabled></label>
+    <label><span>Premium Monthly Scan Limit</span><select id="aiLimitPremiumMode"><option value="disabled">Limit disabled</option><option value="unlimited">Unlimited</option><option value="number">Monthly limit</option></select><input id="aiLimitPremiumCount" type="number" min="1" max="100000" value="100" disabled></label>
+    <label><span>JMX Business Monthly Scan Limit</span><select id="aiLimitBusinessMode"><option value="disabled">Limit disabled</option><option value="unlimited">Unlimited</option><option value="number">Monthly limit</option></select><input id="aiLimitBusinessCount" type="number" min="1" max="100000" value="500" disabled></label>
+  </div>
+  <div class="ai-usage-header"><div><h3>AI Scanner Usage</h3><small>Current month: <strong id="aiUsageMonth">—</strong></small></div><button id="refreshAiUsage" class="secondary-button" type="button">Refresh Usage</button></div>
+  <div class="ai-usage-grid">
+    <article><span>Total Scans</span><strong id="aiUsageTotal">0</strong></article>
+    <article><span>OCR Requests</span><strong id="aiUsageOcr">0</strong></article>
+    <article><span>Successful</span><strong id="aiUsageSuccess">0</strong></article>
+    <article><span>Failed</span><strong id="aiUsageFailed">0</strong></article>
+    <article><span>Basic</span><strong id="aiUsageBasic">0</strong></article>
+    <article><span>Premium</span><strong id="aiUsagePremium">0</strong></article>
+    <article><span>Business</span><strong id="aiUsageBusiness">0</strong></article>
+  </div>
+  <div class="ai-test-box">
+    <div><h3>Test AI Card Scanner</h3><p class="subtitle small">Admin-only Test Mode runs OCR against a chosen test card and does not create Leads or production usage.</p></div>
+    <input id="aiTestCardId" maxlength="8" placeholder="TEST Card ID">
+    <input id="aiTestImage" type="file" accept="image/jpeg,image/png,image/webp">
+    <button id="testAiScanner" class="secondary-button" type="button">Run Test Scan</button>
+    <p id="aiTestStatus" class="status"></p>
+  </div>
+</section>
+
+<section class="panel business-settings-panel" id="businessSettingsPanel">
+  <div class="toolbar"><div><p class="eyebrow">JMX BUSINESS</p><h2>Business Website Settings & Policies</h2><p class="subtitle small">Business stays hidden publicly until you enable it. Legal text fields are placeholders until approved content is entered.</p></div><label class="switch-row"><input id="businessEnabled" type="checkbox"><span class="switch-ui"></span><strong>Show JMX Business on Website</strong></label></div>
+  <div class="settings-grid">
+    <label><span>Plan name</span><input id="businessPlanName" value="JMX Business"></label>
+    <label><span>Title</span><input id="businessTitle" placeholder="Advanced networking for growing businesses"></label>
+    <label class="full"><span>Subtitle / Description</span><textarea id="businessDescription" rows="3" placeholder="Add public Business plan description"></textarea></label>
+    <label><span>Price display</span><input id="businessPrice" placeholder="$-- / month"></label>
+    <label><span>CTA text</span><input id="businessCtaText" placeholder="Get JMX Business"></label>
+    <label class="full"><span>CTA destination</span><input id="businessCtaUrl" type="url" placeholder="https://..."></label>
+    <label class="full"><span>Feature list (one per line)</span><textarea id="businessFeatureList" rows="7" placeholder="Everything in Premium
+Quick Capture
+Leads
+Advanced Analytics"></textarea></label>
+    <label class="full"><span>JMX Business Privacy Policy</span><textarea id="businessPrivacy" rows="8" placeholder="PLACEHOLDER — add attorney-approved Business Privacy Policy"></textarea></label>
+    <label class="full"><span>JMX Business Terms & Conditions</span><textarea id="businessTerms" rows="8" placeholder="PLACEHOLDER — add attorney-approved Business Terms & Conditions"></textarea></label>
+    <label class="switch-row"><input id="businessPoliciesReady" type="checkbox"><span class="switch-ui"></span><strong>Business Policies Ready / Approved</strong></label>
+  </div>
+  <div class="feature-save-row"><button id="saveBusinessSettings" class="primary-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Business Policies & Settings</button><p id="businessSettingsStatus" class="status"></p></div>
+</section>
+
+<section class="panel business-inventory-summary">
+ <div class="toolbar"><div><p class="eyebrow">BUSINESS INVENTORY</p><h2>JMX Business Available / Sold</h2><p class="subtitle small">These counters are inventory states and are separate from the active Business KPI above.</p></div></div>
+ <div class="stats-grid compact-business-stats"><article class="stat-card"><span>JMX Business Available</span><strong id="businessAvailableCards">0</strong></article><article class="stat-card"><span>JMX Business Sold</span><strong id="businessSoldCards">0</strong></article></div>
+</section>
+
+<section class="panel">
+  <div class="toolbar">
+    <div><p class="eyebrow">INVENTORY</p><h2>NFC Cards</h2><p class="subtitle small">Each code becomes a permanent NFC URL. Customers cannot create these codes.</p></div>
+    <button id="newCardButton" class="primary-button" type="button"><i class="fa-solid fa-plus"></i> Create NFC Card</button>
+  </div>
+  <div class="filter-row"><div class="master-search-wrap"><input id="searchCards" type="search" enterkeyhint="search" placeholder="Search name, code, URL, email, phone, plan, date or notes"><button id="masterSearchButton" class="master-search-button" type="button" aria-label="Search all inventory and clients" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button></div><select id="statusFilter"><option value="all">All statuses</option><option value="available">Available</option><option value="sold">Sold</option><option value="activated">Activated</option><option value="suspended">Suspended</option></select><select id="planFilter"><option value="all">All plans</option><option value="Basic">Basic</option><option value="Premium">Premium</option><option value="Business">JMX Business</option></select></div>
+  <div id="masterSearchResults" class="master-search-results" hidden></div>
+  <section class="inventory-pool">
+    <div class="plan-column-head inventory-pool-head">
+      <div><p class="eyebrow">AVAILABLE / UNCLAIMED</p><h3>Ready NFC Inventory</h3><p class="subtitle small">Generated permanent URLs that are not activated yet. Keep available inventory on the left and sold / awaiting activation on the right.</p></div>
+      <strong id="inventoryPoolCount">0</strong>
+    </div>
+    <div class="inventory-list-board">
+      <section class="inventory-list-column">
+        <div class="inventory-list-head"><div><span class="inventory-status-dot available"></span><strong>Available</strong></div><div class="panel-head-actions"><span id="inventoryAvailableCount">0</span><button class="panel-expand-button" type="button" data-panel-expand="available" aria-label="Expand Available" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+        <div class="panel-search"><input id="availablePanelSearch" type="search" enterkeyhint="search" placeholder="Search Available"></div>
+        <div id="inventoryAvailableList" class="inventory-list compact-record-list"></div>
+        <div id="inventoryAvailableEmpty" class="inventory-pool-empty compact" hidden>No available cards match the current filters.</div>
+      </section>
+      <section class="inventory-list-column sold-column">
+        <div class="inventory-list-head"><div><span class="inventory-status-dot sold"></span><strong>Sold / Awaiting Activation</strong></div><div class="panel-head-actions"><span id="inventorySoldCount">0</span><button class="panel-expand-button" type="button" data-panel-expand="sold" aria-label="Expand Sold" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+        <div class="panel-search"><input id="soldPanelSearch" type="search" enterkeyhint="search" placeholder="Search Sold / Awaiting Activation"></div>
+        <div id="inventorySoldList" class="inventory-list compact-record-list"></div>
+        <div id="inventorySoldEmpty" class="inventory-pool-empty compact" hidden>No sold cards match the current filters.</div>
+      </section>
+    </div>
+    <div id="inventoryPoolEmpty" class="inventory-pool-empty" hidden>No available or unclaimed NFC cards match the current filters.</div>
+  </section>
+  <div class="plan-board client-plan-board">
+    <section class="plan-column basic-column"><div class="plan-column-head"><div><p class="eyebrow">BASIC</p><h3>Basic Clients</h3><p class="subtitle small">Activated or suspended client cards.</p></div><div class="panel-head-actions"><strong id="basicColumnCount">0</strong><button class="panel-expand-button" type="button" data-panel-expand="basic" aria-label="Expand Basic Clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div><div class="panel-search"><input id="basicPanelSearch" type="search" enterkeyhint="search" placeholder="Search Basic clients"></div><div id="basicCardsGrid" class="cards-grid single-column compact-record-list"></div></section>
+    <section class="plan-column premium-column"><div class="plan-column-head"><div><p class="eyebrow">PREMIUM</p><h3>Premium Clients</h3><p class="subtitle small">Activated or suspended client cards.</p></div><div class="panel-head-actions"><strong id="premiumColumnCount">0</strong><button class="panel-expand-button" type="button" data-panel-expand="premium" aria-label="Expand Premium Clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div><div class="panel-search"><input id="premiumPanelSearch" type="search" enterkeyhint="search" placeholder="Search Premium clients"></div><div id="premiumCardsGrid" class="cards-grid single-column compact-record-list"></div></section>
+    <section class="plan-column business-column"><div class="plan-column-head"><div><p class="eyebrow">BUSINESS</p><h3>JMX Business Clients</h3><p class="subtitle small">Activated or suspended Business client cards.</p></div><div class="panel-head-actions"><strong id="businessColumnCount">0</strong><button class="panel-expand-button" type="button" data-panel-expand="business" aria-label="Expand JMX Business Clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div><div class="panel-search"><input id="businessPanelSearch" type="search" enterkeyhint="search" placeholder="Search JMX Business clients"></div><div id="businessCardsGrid" class="cards-grid single-column compact-record-list"></div></section>
+  </div>
+  <div id="emptyState" class="empty-state" hidden><i class="fa-solid fa-wifi"></i><h3>No NFC cards match these filters</h3><p>Clear the filters or create a new permanent NFC URL.</p></div>
+</section>
+
+<section class="panel nfc-device-center" id="nfcDeviceCenter">
+  <div class="toolbar">
+    <div><p class="eyebrow">OFFICIAL JMX NFC CARDS</p><h2>NFC Cards & Batches</h2><p class="subtitle small">Second creation method. Existing URL cards remain unchanged; NFC ID cards can be created individually or in batches and assigned to the same client profile.</p></div>
+    <div class="panel-head-actions"><button id="newNfcDeviceButton" class="primary-button" type="button"><i class="fa-solid fa-bolt"></i> Create NFC Device</button><button id="newNfcBatchButton" class="secondary-button" type="button"><i class="fa-solid fa-layer-group"></i> Create NFC Batch</button></div>
+  </div>
+  <div class="nfc-device-stats stats-grid compact-business-stats">
+    <article class="stat-card"><span>Total NFC Cards</span><strong id="nfcDeviceTotal">0</strong></article>
+    <article class="stat-card"><span>Available</span><strong id="nfcDeviceAvailable">0</strong></article>
+    <article class="stat-card"><span>Active</span><strong id="nfcDeviceActive">0</strong></article>
+    <article class="stat-card"><span>Disabled</span><strong id="nfcDeviceDisabled">0</strong></article>
+    <article class="stat-card"><span>Batches</span><strong id="nfcBatchTotal">0</strong></article>
+  </div>
+  <details class="nfc-settings-details"><summary><strong>NFC Card Controls</strong><span> Global + Basic + Premium + JMX Business</span></summary><div class="nfc-settings-inner"><label class="switch-row"><input id="nfcSystemEnabled" type="checkbox" checked><span class="switch-ui"></span><strong>NFC Card ID System Enabled</strong></label><div id="nfcSettingsMatrix" class="nfc-settings-matrix"></div><div class="feature-save-row"><button id="saveNfcDeviceSettings" class="primary-button" type="button"><i class="fa-solid fa-floppy-disk"></i> Save NFC Controls</button><p id="nfcSettingsStatus" class="status"></p></div></div></details>
+  <div class="filter-row nfc-global-search-row">
+    <div class="master-search-wrap"><input id="nfcGlobalSearch" type="search" enterkeyhint="search" placeholder="Search customer, email, phone, Card ID, Device ID, Batch ID or activation code"><button id="nfcGlobalSearchButton" class="master-search-button" type="button" aria-label="Search NFC devices"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+  </div>
+  <div id="nfcGlobalResults" class="master-search-results" hidden></div>
+
+  <div class="nfc-plan-clients-head">
+    <div><p class="eyebrow">CLIENTS BY PLAN</p><h3>Official NFC Clients</h3><p class="subtitle small">Clients stay separated by Basic, Premium and JMX Business. Open any client to manage that client's NFC cards, batches and individual Device IDs.</p></div>
+    <button id="newNfcProfileButton" class="primary-button" type="button"><i class="fa-solid fa-user-plus"></i> Create New Profile</button>
+  </div>
+  <div class="nfc-simple-inventory-board" id="nfcSimpleInventoryBoard">
+    <section class="nfc-device-box nfc-simple-state-box" data-nfc-box="available-cards"><div class="nfc-device-box-head"><div><p class="eyebrow">INVENTORY</p><h3>Available NFC Cards</h3></div><div class="panel-head-actions"><strong id="nfcAvailableCardsCount">0</strong></div></div><div class="panel-search"><input id="nfcAvailableCardsSearch" type="search" placeholder="Search available cards"></div><div id="nfcAvailableCardsList" class="nfc-compact-list"></div></section>
+    <section class="nfc-device-box nfc-simple-state-box" data-nfc-box="sold-cards"><div class="nfc-device-box-head"><div><p class="eyebrow">SOLD</p><h3>Sold — Waiting for Activation</h3></div><div class="panel-head-actions"><strong id="nfcSoldCardsCount">0</strong></div></div><div class="panel-search"><input id="nfcSoldCardsSearch" type="search" placeholder="Search sold cards"></div><div id="nfcSoldCardsList" class="nfc-compact-list"></div></section>
+  </div>
+  <div class="nfc-plan-client-board" id="nfcPlanClientBoard">
+    <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-basic">
+      <div class="nfc-device-box-head"><div><p class="eyebrow">BASIC</p><h3>Basic Clients</h3></div><div class="panel-head-actions"><strong id="nfcBasicClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-basic" aria-label="Expand Basic NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="panel-search"><input id="nfcBasicClientsSearch" type="search" enterkeyhint="search" placeholder="Search Basic clients"></div>
+      <div id="nfcBasicClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
+    </section>
+    <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-premium">
+      <div class="nfc-device-box-head"><div><p class="eyebrow">PREMIUM</p><h3>Premium Clients</h3></div><div class="panel-head-actions"><strong id="nfcPremiumClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-premium" aria-label="Expand Premium NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="panel-search"><input id="nfcPremiumClientsSearch" type="search" enterkeyhint="search" placeholder="Search Premium clients"></div>
+      <div id="nfcPremiumClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
+    </section>
+    <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-business">
+      <div class="nfc-device-box-head"><div><p class="eyebrow">JMX BUSINESS</p><h3>JMX Business Clients</h3></div><div class="panel-head-actions"><strong id="nfcBusinessClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-business" aria-label="Expand JMX Business NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="panel-search"><input id="nfcBusinessClientsSearch" type="search" enterkeyhint="search" placeholder="Search JMX Business clients"></div>
+      <div id="nfcBusinessClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
+    </section>
+  </div>
+
+</section>
+
+</div>
+</main>
+<section class="panel admin-activity-panel" id="adminActivityPanel">
+  <div class="toolbar"><div><p class="eyebrow">ADMIN HISTORY</p><h2>Activity Log</h2><p class="subtitle small">Recent administrative NFC/profile actions. This log never stores passwords or authentication secrets.</p></div><button id="refreshActivityLog" class="secondary-button" type="button"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+  <div class="filter-row activity-filter-row"><input id="activitySearch" type="search" enterkeyhint="search" placeholder="Search action, Card ID, Device ID, Batch ID or admin"><select id="activityTypeFilter"><option value="all">All activity</option><option value="device">Device</option><option value="batch">Batch</option><option value="profile">Profile / Client</option><option value="settings">Settings</option></select></div>
+  <div id="activityLogList" class="activity-log-list"></div><p id="activityLogEmpty" class="empty-state compact" hidden>No matching activity yet.</p>
+</section>
+
+<dialog id="cardDialog" class="card-dialog">
+  <form id="cardForm">
+    <div class="dialog-header"><div><p class="eyebrow">NEW INVENTORY</p><h2>Create NFC Card</h2></div><button id="closeCardDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+    <div class="form-grid">
+      <label><span>Short Card Code *</span><div class="inline-field"><input id="newCardId" required maxlength="8"><button id="regenerateCode" class="mini" type="button">Random</button></div></label>
+      <label><span>Plan</span><select id="newPlan"><option>Basic</option><option>Premium</option><option value="Business">JMX Business</option></select></label>
+      <label><span>Physical Card</span><select id="newPhysicalType"><option>PVC</option><option>Metal</option><option>Hybrid</option><option>Other</option></select></label>
+      <label><span>NFC Status</span><select id="newNfcStatus"><option value="not-programmed">Not programmed</option><option value="programmed">Programmed</option><option value="delivered">Delivered</option></select></label>
+      <label class="full check-row"><input id="requireActivationCode" type="checkbox" checked><span>Require private activation code when customer claims this NFC</span></label>
+      <label class="full"><span>Activation Code</span><div class="inline-field"><input id="newActivationCode" readonly><button id="regenerateActivation" class="mini" type="button">Random</button></div></label>
+      <label class="full"><span>Internal Notes</span><textarea id="newNotes" rows="3" placeholder="Customer name, order label, or private JMX inventory note"></textarea></label>
+    </div>
+    <div class="url-preview"><span>Permanent NFC URL</span><strong id="newUrlPreview">—</strong></div>
+    <p id="dialogStatus" class="status"></p>
+    <div class="dialog-actions"><button id="cancelCardButton" type="button" class="secondary-button">Cancel</button><button id="createCardButton" type="submit" class="primary-button">Create Inventory Card</button></div>
+  </form>
+</dialog>
+
+<dialog id="clientDetailDialog" class="client-detail-dialog">
+  <div class="client-detail-shell">
+    <div class="dialog-header client-detail-header">
+      <div><p class="eyebrow">CLIENT DETAILS</p><h2 id="clientDetailTitle">Client</h2><p id="clientDetailSubtitle" class="subtitle small"></p></div>
+      <button id="closeClientDetailDialog" type="button" class="icon-button" aria-label="Close">×</button>
+    </div>
+    <div id="clientDetailBody"></div>
+    <div id="clientDetailActions" class="client-detail-actions"></div>
+  </div>
+</dialog>
+
+
+<dialog id="nfcProfileDialog" class="card-dialog nfc-profile-dialog">
+ <form id="nfcProfileForm">
+  <div class="dialog-header"><div><p class="eyebrow">NEW JMX DIGITAL PROFILE</p><h2>Create New Profile</h2><p class="subtitle small">Creates the digital profile first. Official JMX NFC devices can then be assigned by permanent Device ID.</p></div><button id="closeNfcProfileDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+  <div class="form-grid">
+   <label><span>Customer Name *</span><input id="nfcProfileName" maxlength="120" required placeholder="Juan Perez"></label>
+   <label><span>Company</span><input id="nfcProfileCompany" maxlength="140" placeholder="ABC Remodeling"></label>
+   <label><span>Email</span><input id="nfcProfileEmail" type="email" maxlength="180" placeholder="customer@example.com"></label>
+   <label><span>Phone</span><input id="nfcProfilePhone" maxlength="50" placeholder="(000) 000-0000"></label>
+   <label><span>Plan</span><select id="nfcProfilePlan"><option value="Basic">JMX Basic</option><option value="Premium">JMX Premium</option><option value="Business">JMX Business</option></select></label>
+   <label><span>Card ID</span><div class="inline-field"><input id="nfcProfileCardId" readonly><button id="regenerateNfcProfileCardId" class="mini" type="button">Random</button></div></label>
+   <label class="full"><span>Profile ID (internal)</span><input id="nfcProfileInternalId" readonly></label>
+   <label class="full"><span>Creation Method</span><input value="Official JMX Device-ID Profile" readonly></label>
+   <label class="full"><span>Admin Notes</span><textarea id="nfcProfileNotes" rows="3" maxlength="1000" placeholder="Private JMX administrative note"></textarea></label>
+  </div>
+  <div class="url-preview"><span>Legacy/Public profile compatibility URL</span><strong id="nfcProfileUrlPreview">—</strong><small>The Official JMX NFC device will use /d/DEVICE-ID instead of writing this profile URL to the chip.</small></div>
+  <p id="nfcProfileStatus" class="status"></p>
+  <div class="dialog-actions"><button id="cancelNfcProfileButton" type="button" class="secondary-button">Cancel</button><button id="createNfcProfileButton" type="submit" class="primary-button">Create Profile</button></div>
+ </form>
+</dialog>
+
+
+<dialog id="nfcQuickDeviceDialog" class="card-dialog nfc-batch-dialog">
+ <form id="nfcQuickDeviceForm">
+  <div class="dialog-header"><div><p class="eyebrow">QUICK DEVICE CREATION</p><h2>Create NFC Device</h2><p class="subtitle small">Choose the physical product and plan. Customer information is added later by the customer after activation.</p></div><button id="closeNfcQuickDeviceDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+  <div class="form-grid">
+   <label><span>NFC Product / Device Type</span><select id="nfcQuickDeviceType"><option value="pvc-card">PVC NFC Card</option><option value="metal-card">Metal NFC Card</option><option value="wood-card">Wood NFC Card</option><option value="paper-card">Paper/Cardboard NFC Card</option><option value="sticker">NFC Sticker</option><option value="tag">NFC Tag</option><option value="keychain">NFC Keychain / Key Fob</option><option value="wristband">NFC Wristband</option><option value="bracelet">NFC Bracelet</option><option value="ring">NFC Ring</option><option value="plate">NFC Plate</option><option value="badge">NFC Badge</option><option value="id-badge">NFC ID Badge</option><option value="name-tag">NFC Name Tag</option><option value="token">NFC Token</option><option value="coin">NFC Coin</option><option value="disc">NFC Disc</option><option value="button">NFC Button</option><option value="label">NFC Label</option><option value="inlay">NFC Inlay</option><option value="wet-inlay">NFC Wet Inlay</option><option value="dry-inlay">NFC Dry Inlay</option><option value="epoxy-tag">NFC Epoxy Tag</option><option value="silicone-tag">NFC Silicone Tag</option><option value="laundry-tag">NFC Laundry Tag</option><option value="cable-tie-tag">NFC Cable Tie Tag</option><option value="nail-tag">NFC Nail Tag</option><option value="screw-tag">NFC Screw Tag</option><option value="anti-metal-tag">NFC Anti-Metal Tag</option><option value="on-metal-tag">NFC On-Metal Tag</option><option value="flexible-tag">NFC Flexible Tag</option><option value="smart-poster">NFC Smart Poster</option><option value="display-sign">NFC Display / Sign</option><option value="table-tent">NFC Table Tent</option><option value="stand">NFC Stand</option><option value="business-card">NFC Business Card</option><option value="access-card">NFC Access Card</option><option value="hotel-key-card">NFC Hotel Key Card</option><option value="membership-card">NFC Membership Card</option><option value="event-badge">NFC Event Badge</option><option value="luggage-tag">NFC Luggage Tag</option><option value="pet-tag">NFC Pet Tag</option><option value="phone-tag">NFC Phone Tag</option><option value="wearable">NFC Wearable</option><option value="other">Other NFC Device</option><option value="custom">Custom NFC Device</option></select></label>
+   <label><span>Plan</span><select id="nfcQuickDevicePlan"><option value="Basic">JMX Basic</option><option value="Premium">JMX Premium</option><option value="Business">JMX Business</option></select></label>
+   <label class="full"><span>Private Admin Note (optional)</span><textarea id="nfcQuickDeviceNotes" rows="3" maxlength="1000" placeholder="Example: My sister, Customer from Chicago show, black card..."></textarea></label>
+  </div>
+  <div class="url-preview"><span>Generated automatically after Create</span><strong>Device ID · Activation Code · NFC URL</strong><small>No customer name, email or phone is required at this stage.</small></div>
+  <p id="nfcQuickDeviceStatus" class="status"></p>
+  <div class="dialog-actions"><button id="cancelNfcQuickDeviceButton" type="button" class="secondary-button">Cancel</button><button id="createNfcQuickDeviceButton" type="submit" class="primary-button">Create Device</button></div>
+ </form>
+</dialog>
+
+<dialog id="nfcBatchDialog" class="card-dialog nfc-batch-dialog">
+ <form id="nfcBatchForm">
+  <div class="dialog-header"><div><p class="eyebrow">NEW DEVICE-ID INVENTORY</p><h2>Create NFC Batch</h2></div><button id="closeNfcBatchDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+  <div class="form-grid">
+   <label class="full"><span>Assign to Card Profile (optional)</span><select id="nfcBatchCardId"><option value="">Keep Available / Unassigned</option></select><small>Optional: choose an existing client/profile. A later batch can point to the same profile while keeping its own Batch ID and Activation Code.</small></label><label><span>NFC Product / Device Type</span><select id="nfcBatchType"><option value="pvc-card">PVC NFC Card</option><option value="metal-card">Metal NFC Card</option><option value="wood-card">Wood NFC Card</option><option value="paper-card">Paper/Cardboard NFC Card</option><option value="sticker">NFC Sticker</option><option value="tag">NFC Tag</option><option value="keychain">NFC Keychain / Key Fob</option><option value="wristband">NFC Wristband</option><option value="bracelet">NFC Bracelet</option><option value="ring">NFC Ring</option><option value="plate">NFC Plate</option><option value="badge">NFC Badge</option><option value="id-badge">NFC ID Badge</option><option value="name-tag">NFC Name Tag</option><option value="token">NFC Token</option><option value="coin">NFC Coin</option><option value="disc">NFC Disc</option><option value="button">NFC Button</option><option value="label">NFC Label</option><option value="inlay">NFC Inlay</option><option value="wet-inlay">NFC Wet Inlay</option><option value="dry-inlay">NFC Dry Inlay</option><option value="epoxy-tag">NFC Epoxy Tag</option><option value="silicone-tag">NFC Silicone Tag</option><option value="laundry-tag">NFC Laundry Tag</option><option value="cable-tie-tag">NFC Cable Tie Tag</option><option value="nail-tag">NFC Nail Tag</option><option value="screw-tag">NFC Screw Tag</option><option value="anti-metal-tag">NFC Anti-Metal Tag</option><option value="on-metal-tag">NFC On-Metal Tag</option><option value="flexible-tag">NFC Flexible Tag</option><option value="smart-poster">NFC Smart Poster</option><option value="display-sign">NFC Display / Sign</option><option value="table-tent">NFC Table Tent</option><option value="stand">NFC Stand</option><option value="business-card">NFC Business Card</option><option value="access-card">NFC Access Card</option><option value="hotel-key-card">NFC Hotel Key Card</option><option value="membership-card">NFC Membership Card</option><option value="event-badge">NFC Event Badge</option><option value="luggage-tag">NFC Luggage Tag</option><option value="pet-tag">NFC Pet Tag</option><option value="phone-tag">NFC Phone Tag</option><option value="wearable">NFC Wearable</option><option value="other">Other NFC Device</option><option value="custom">Custom NFC Device</option></select></label><label><span>Plan</span><select id="nfcBatchPlan"><option value="Basic">JMX Basic</option><option value="Premium">JMX Premium</option><option value="Business">JMX Business</option></select></label>
+   <label><span>Quantity</span><input id="nfcBatchQuantity" type="number" min="1" max="5000" value="10" required></label>
+   
+   <label><span>Batch ID</span><div class="inline-field"><input id="nfcBatchId" readonly><button id="regenerateBatchId" class="mini" type="button">Random</button></div></label>
+   <label><span>Batch Activation Code</span><div class="inline-field"><input id="nfcBatchActivationCode" readonly><button id="regenerateBatchActivation" class="mini" type="button">Random</button></div></label>
+   <label class="full"><span>Internal Notes</span><textarea id="nfcBatchNotes" rows="3" placeholder="Order, supplier, customer or production notes"></textarea></label>
+  </div>
+  <div class="url-preview"><span>NFC Card URL pattern</span><strong>https://jmxdigitalcard.com/d/DEVICE-ID</strong></div>
+  <p id="nfcBatchStatus" class="status"></p>
+  <div class="dialog-actions"><button id="cancelNfcBatchButton" type="button" class="secondary-button">Cancel</button><button id="createNfcBatchButton" type="submit" class="primary-button">Create Batch</button></div>
+ </form>
+</dialog>
+
+<dialog id="nfcEncoderDialog" class="card-dialog nfc-encoder-dialog">
+ <div class="dialog-header"><div><p class="eyebrow">NFC PRODUCTION</p><h2 id="nfcEncoderTitle">Program / Encode Batch</h2><p id="nfcEncoderSubtitle" class="subtitle small"></p></div><button id="closeNfcEncoderDialog" type="button" class="icon-button" aria-label="Close">×</button></div>
+ <div class="nfc-encoder-progress"><div><strong id="nfcEncoderProgressText">0 / 0</strong><span id="nfcEncoderProgressLabel">cards encoded</span></div><progress id="nfcEncoderProgress" value="0" max="1"></progress></div>
+ <section class="nfc-encoder-current">
+  <div class="nfc-encoder-device-number"><span>CURRENT NFC DEVICE</span><strong id="nfcEncoderDeviceNumber">Device 001</strong></div>
+  <div class="detail-list">
+   <div><span>Device ID</span><strong id="nfcEncoderDeviceId">—</strong></div>
+   <div><span>Batch ID</span><strong id="nfcEncoderBatchId">—</strong></div>
+   <div><span>NFC Product</span><strong id="nfcEncoderDeviceType">—</strong></div>
+   <div><span>Status</span><strong id="nfcEncoderDeviceStatus">—</strong></div>
+  </div>
+  <label class="form-group full"><span>NFC Resolver URL — write this URL to this physical NFC device</span><div class="inline-field"><input id="nfcEncoderUrl" readonly><button id="copyNfcEncoderUrl" class="mini" type="button">Copy NFC URL</button></div></label>
+  <p class="subtitle small nfc-encoder-hardware-note"><strong>Manual / compatible mode:</strong> copy this URL into NFC Tools or your NFC writer software. This page keeps the encoding workflow focused on NFC cards and does not pretend to write to unsupported USB hardware.</p>
+ </section>
+ <div id="nfcEncoderStatus" class="status" aria-live="polite"></div>
+ <div class="dialog-actions nfc-encoder-actions"><button id="nfcEncoderPrevious" type="button" class="secondary-button">Previous</button><button id="nfcEncoderVerify" type="button" class="secondary-button">Verify</button><button id="nfcEncoderMarkError" type="button" class="secondary-button">Encoding Error</button><button id="nfcEncoderMarkNext" type="button" class="primary-button">Mark Encoded & Next</button></div>
+</dialog>
+
+<dialog id="nfcDeviceDialog" class="client-detail-dialog"><div class="client-detail-shell"><div class="dialog-header client-detail-header"><div><p class="eyebrow">NFC DEVICE DETAILS</p><h2 id="nfcDeviceDialogTitle">Device</h2><p id="nfcDeviceDialogSubtitle" class="subtitle small"></p></div><button id="closeNfcDeviceDialog" type="button" class="icon-button" aria-label="Close">×</button></div><div id="nfcDeviceDialogBody"></div><div id="nfcDeviceDialogActions" class="client-detail-actions"></div></div></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module" src="dashboard.js"></script>
+</body>
+</html>

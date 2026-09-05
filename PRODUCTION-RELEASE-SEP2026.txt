@@ -1,0 +1,12 @@
+JMX DIGITAL CARD — PRODUCTION RELEASE — SEP 2026
+
+This build is based on JMX-Digital-Card-2026-NFC-Hybrid-Clients-By-Plan.
+
+PRODUCTION CHANGES
+- Local Preview authentication bypass is disabled.
+- Local sample clients cannot be activated by localhost/127.0.0.1 in this build.
+- dashboard.html and admin.html require the normal Firebase/Google authentication flow.
+- Existing Basic, Premium, JMX Business, URL cards, QR, Google Wallet, NFC Device IDs, NFC Batches, clients-by-plan modules, encoding workflow, and mobile theme fix remain present.
+
+DEPLOYMENT
+This release includes frontend plus Firebase backend changes. Publishing the static site to GitHub Pages alone does NOT deploy Firestore Rules or Cloud Functions. Deploy the required Firebase resources from this same release before treating the new NFC backend as production-ready.

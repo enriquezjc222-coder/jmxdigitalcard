@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JMX Digital Card</title>
+</head>
+<body>
+<script>
+(function () {
+  const path = location.pathname;
+
+  if (/^\/(login|my-card)\/?$/i.test(path)) { location.replace("/login.html"); return; }
+
+  const cardMatch = path.match(/^\/c\/([A-Za-z0-9_-]+)\/?$/);
+  if (cardMatch) {
+    location.replace(
+      "/card.html?card=" +
+      encodeURIComponent(cardMatch[1]) +
+      "&pretty=1"
+    );
+    return;
+  }
+
+  const deviceMatch = path.match(/^\/d\/([A-Za-z0-9_-]+)\/?$/);
+  if (deviceMatch) {
+    location.replace(
+      "/device.html?device=" +
+      encodeURIComponent(deviceMatch[1])
+    );
+    return;
+  }
+  location.replace("/");
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function platformConfigured() {
+      return firestore.exists(/databases/(default)/documents/platform/config);
+    }
+    function isAdmin() {
+      return signedIn()
+        && platformConfigured()
+        && firestore.get(/databases/(default)/documents/platform/config).data.adminUid == request.auth.uid;
+    }
+    function isOwner(cardId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/cardOwners/$(cardId))
+        && firestore.get(/databases/(default)/documents/cardOwners/$(cardId)).data.ownerUid == request.auth.uid;
+    }
+
+    // Public-card media. Read access is public because these files are intentionally
+    // displayed on public JMX card URLs. Writes remain restricted to JMX admin/owner.
+    match /cards/{cardId}/{mediaId}/{fileName} {
+      allow read: if true;
+      allow create, update: if (isAdmin() || isOwner(cardId))
+        && request.resource.size < 12 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf'
+        );
+      allow delete: if isAdmin() || isOwner(cardId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

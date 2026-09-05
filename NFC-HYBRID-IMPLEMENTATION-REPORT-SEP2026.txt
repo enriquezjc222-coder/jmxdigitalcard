@@ -1,0 +1,68 @@
+JMX DIGITAL CARD — HYBRID URL + DEVICE ID NFC IMPLEMENTATION
+September 2026
+
+BASE
+- Work performed on the supplied jmxdigitalcard-main ZIP.
+- Existing URL/Card ID/Activation Code/QR/Google Wallet architecture was retained.
+- Existing Basic, Premium, JMX Business, inventory and client panels remain in place.
+
+NEW DEVICE-ID METHOD
+- Added NFC Devices & Batches administrator module.
+- Device types: Card, Sticker, Keychain, Bracelet, Ring, Plate, Tag, Other.
+- Batch creation supports quantity and optional immediate assignment to an existing activated/suspended profile.
+- Each physical device receives a unique Device ID.
+- Each batch receives one Batch ID and one Batch Activation Code.
+- Assigned unactivated batches stay Pending until the owner uses the single batch activation code.
+- Added device resolver route /d/DEVICE-ID.
+- Device resolution is validated by Cloud Function before a profile is opened.
+- Added batch activation page device-activate.html.
+- Added per-device tap count and batch aggregate tap count.
+
+ADMIN CONTROL
+- Compact NFC boxes show max six records until expanded.
+- Expanded boxes use internal scroll and overlay; same button becomes X; outside click closes.
+- Global NFC search searches clients, Card IDs, Device IDs, Batch IDs, batch activation codes, email, phone and notes.
+- Added Global + Basic + Premium + JMX Business NFC device-type controls.
+- Added per-client device-type controls inside client details.
+- Added per-batch enable/disable.
+- Added per-device enable/disable.
+- Added batch assignment/transfer to an existing profile.
+- Added device replacement with a brand-new Device ID; old ID becomes Replaced.
+- Existing admin notes remain searchable and can be edited from client details.
+
+SECURITY
+- nfcDevices, nfcBatches, nfcDevicePublic and nfcDeviceEvents direct Firestore access is administrator-only.
+- Device resolution is performed through trusted Cloud Functions.
+- Batch activation requires Firebase Authentication and verifies the signed-in user is the owner of the assigned card/profile.
+- Global, plan, client, batch and individual device controls are checked during resolution.
+
+FILES ADDED
+- device.html
+- device.js
+- device-activate.html
+- device-activate.js
+- NFC-HYBRID-IMPLEMENTATION-REPORT-SEP2026.txt
+
+FILES UPDATED
+- dashboard.html
+- dashboard.js
+- dashboard.css
+- firestore.rules
+- firebase.json
+- functions/index.js
+
+DEPLOYMENT REQUIRED
+The new system is not only static frontend code. To make Device IDs work online, deploy:
+1. Firebase Hosting (firebase.json includes /d/** rewrite).
+2. Firestore Rules.
+3. Cloud Functions (resolveNfcDevice, recordNfcTap, activateNfcBatch and NFC settings helpers).
+4. Existing Firebase project must remain the same jmx-digital-card project.
+
+GitHub Pages alone cannot execute the Firebase Cloud Functions. If GitHub Pages remains the public custom-domain host instead of Firebase Hosting, /d/DEVICE-ID clean-path routing will need an equivalent GitHub-compatible route/fallback strategy; device.html?device=DEVICE-ID can still be used. The current Firebase configuration already declares Hosting, so Firebase Hosting is the recommended route for the clean /d/DEVICE-ID resolver.
+
+VALIDATION PERFORMED IN THIS BUILD ENVIRONMENT
+- JavaScript syntax checked with node --check for dashboard.js, functions/index.js, device.js and device-activate.js.
+- firebase.json parsed successfully.
+- New HTML checked for duplicate IDs; none found.
+- No live Firebase deployment was performed from this environment.
+- Firebase CLI/node_modules were not installed in this build environment, so emulator/deployment tests could not be run here.
