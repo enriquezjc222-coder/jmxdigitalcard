@@ -1,0 +1,13 @@
+JMX DIGITAL CARD — PRODUCTION READY BUILD — SEP 2026
+
+- Temporary Local Development Mode has been removed from this build.
+- Browser-only preview/test data layer has been removed.
+- Google/Firebase Authentication is active again for dashboard and card editor.
+- Production Firebase/Firestore/Storage/Functions are used directly.
+- The NFC, mobile/tablet, tooltips, search, filters, activity log, and other Sep 2026 improvements remain in place.
+- This build is intended for GitHub/Firebase production deployment.
+
+Recommended pre-deploy commands from the project folder:
+  firebase.cmd deploy --only hosting
+
+If Firestore rules or Functions were intentionally changed and need deployment, deploy those components separately after review.

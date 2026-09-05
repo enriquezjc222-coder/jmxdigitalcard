@@ -1,15 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  getDocs,
-  collection,
-  setDoc,
-  deleteDoc,
-  serverTimestamp,
-  deleteField
-} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getFirestore, doc as fbDoc, getDoc as fbGetDoc, getDocs as fbGetDocs, collection as fbCollection, setDoc as fbSetDoc, deleteDoc as fbDeleteDoc, serverTimestamp as fbServerTimestamp, deleteField as fbDeleteField, writeBatch as fbWriteBatch, query as fbQuery, where as fbWhere } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import {
   getAuth,
   onAuthStateChanged,
@@ -18,13 +8,7 @@ import {
   signInWithPopup,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject
-} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+import { getStorage, ref as fbStorageRef, uploadBytes as fbUploadBytes, getDownloadURL as fbGetDownloadURL, deleteObject as fbDeleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
 
 const firebaseConfig = {
@@ -42,6 +26,22 @@ const auth = getAuth(app);
 
 const storage = getStorage(app);
 const functions = getFunctions(app);
+const doc = fbDoc;
+const collection = fbCollection;
+const getDoc = fbGetDoc;
+const getDocs = fbGetDocs;
+const setDoc = fbSetDoc;
+const deleteDoc = fbDeleteDoc;
+const serverTimestamp = fbServerTimestamp;
+const deleteField = fbDeleteField;
+const writeBatch = fbWriteBatch;
+const query = fbQuery;
+const where = fbWhere;
+const storageRef = fbStorageRef;
+const deleteObject = fbDeleteObject;
+const uploadBytes = fbUploadBytes;
+const getDownloadURL = fbGetDownloadURL;
+
 
 const LEGACY_STORAGE_KEY = "premiumDigitalCardProfile";
 const THEME_KEY = "digitalCardTheme";
