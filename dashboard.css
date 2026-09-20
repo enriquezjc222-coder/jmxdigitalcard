@@ -498,3 +498,21 @@ body.preview-modal-open{overflow:hidden!important}
 .client-detail-header{position:sticky;top:0;z-index:8;background:#fff;padding-bottom:10px}
 .client-detail-actions{position:sticky;bottom:0;z-index:8;background:#fff;border-top:1px solid var(--border);padding-top:10px}
 @media(max-width:700px){.preview-edit-grid{grid-template-columns:1fr}.client-detail-actions{display:grid;grid-template-columns:1fr}.client-detail-actions>button{width:100%;min-height:44px}.preview-warning-panel .dialog-actions{position:static}}
+
+/* Sep 20 2026: compact lists and modal scrolling without changing action handlers. */
+body:has(.client-detail-dialog[open]){overflow:hidden}
+.client-detail-dialog{overflow:hidden}
+.client-detail-shell{max-height:min(90dvh,900px);overscroll-behavior:contain;scrollbar-gutter:stable}
+.client-detail-header .icon-button{flex:0 0 44px;width:44px;height:44px;padding:0;line-height:1}
+.nfc-device-box.is-expanded .nfc-simple-card-record:nth-child(n+7){display:flex}
+@media(max-width:1024px){
+  .client-detail-actions{position:static;z-index:auto;background:transparent;padding-bottom:4px}
+  .client-detail-dialog .dialog-actions{position:static;z-index:auto;background:transparent}
+  .panel-expand-button{width:44px;height:44px}
+}
+@media(max-width:700px){
+  .client-detail-shell{max-height:calc(100dvh - 12px)}
+  .client-detail-header{align-items:flex-start;gap:10px}
+  .client-detail-header>div{min-width:0}
+  .client-detail-header h2,.client-detail-header .subtitle{overflow-wrap:anywhere}
+}
