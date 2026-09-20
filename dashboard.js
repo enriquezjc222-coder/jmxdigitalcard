@@ -304,6 +304,19 @@ function cardSearchText(card) {
   ].filter(Boolean).join(" ").toLowerCase();
 }
 
+// Keep legacy/public URL cards and official NFC-ID records in separate dashboard lanes.
+// Existing legacy records without recordType remain Public URL records unless their
+// established creation metadata proves they came from the official NFC-ID flow.
+function isNfcIdCard(card = {}) {
+  const explicit = String(card.recordType || card.inventory?.recordType || card.admin?.recordType || "").toLowerCase();
+  if (explicit === "nfc_id") return true;
+  if (explicit === "public_url") return false;
+  const creation = String(card.creationMethod || card.admin?.creationMethod || "").toLowerCase();
+  const physical = String(card.inventory?.physicalType || card.admin?.physicalType || "").toLowerCase();
+  return creation.startsWith("official-device-id") || physical.includes("device-id");
+}
+function isPublicUrlCard(card = {}) { return !isNfcIdCard(card); }
+
 function panelSearchValue(id) { return ($(id)?.value || "").trim().toLowerCase(); }
 function matchesPanelSearch(card, id) { const q = panelSearchValue(id); return !q || cardSearchText(card).includes(q); }
 function categoryForCard(card) {
@@ -319,7 +332,7 @@ function renderMasterSearchResults(query) {
   if (!query) { box.hidden = true; box.innerHTML = ""; return; }
   const statusFilter = $("statusFilter").value;
   const planFilter = $("planFilter")?.value || "all";
-  const matches = cards.filter(card => cardSearchText(card).includes(query) && (statusFilter === "all" || card.status === statusFilter) && (planFilter === "all" || effectivePlan(card) === planFilter));
+  const matches = cards.filter(isPublicUrlCard).filter(card => cardSearchText(card).includes(query) && (statusFilter === "all" || card.status === statusFilter) && (planFilter === "all" || effectivePlan(card) === planFilter));
   box.hidden = false;
   box.innerHTML = `<div class="master-search-results-head"><strong>${matches.length} result${matches.length===1?"":"s"}</strong><span class="subtitle small">Searches all five inventory/client categories</span></div><div class="master-search-result-list">${matches.length ? matches.map(card => {
     const name = card.profile?.fullName || card.admin?.clientName || card.owner?.ownerEmail || card.inventory?.notes || card.admin?.notes || card.id;
@@ -336,24 +349,27 @@ function render() {
   const search = $("searchCards").value.trim().toLowerCase();
   const filter = $("statusFilter").value;
   const planFilter = $("planFilter")?.value || "all";
-  const list = cards.filter((card) => {
+  const publicCards = cards.filter(isPublicUrlCard);
+  const list = publicCards.filter((card) => {
     return (!search || cardSearchText(card).includes(search)) && (filter === "all" || card.status === filter) && (planFilter === "all" || effectivePlan(card) === planFilter);
   });
 
-  $("totalCards").textContent = cards.length;
-  $("availableCards").textContent = cards.filter((c) => c.status === "available").length;
-  $("activatedCards").textContent = cards.filter((c) => c.status === "activated").length;
-  $("suspendedCards").textContent = cards.filter((c) => c.status === "suspended").length;
+  // These counters belong to the legacy/Public URL inventory only. NFC-ID records
+  // are counted independently in the NFC Cards & Batches section below.
+  $("totalCards").textContent = publicCards.length;
+  $("availableCards").textContent = publicCards.filter((c) => c.status === "available").length;
+  $("activatedCards").textContent = publicCards.filter((c) => c.status === "activated").length;
+  $("suspendedCards").textContent = publicCards.filter((c) => c.status === "suspended").length;
   const clientStatuses = new Set(["activated", "suspended"]);
   const unclaimedStatuses = new Set(["available", "sold"]);
-  $("basicCards").textContent = cards.filter(c=>clientStatuses.has(c.status) && effectivePlan(c)==="Basic").length;
-  $("premiumCards").textContent = cards.filter(c=>clientStatuses.has(c.status) && effectivePlan(c)==="Premium").length;
-  $("businessCards").textContent = cards.filter(businessCountsAsActive).length;
-  $("compCards").textContent = cards.filter(c=>c.complimentaryPremium===true).length;
-  $("compBusinessCards").textContent = cards.filter(c=>c.complimentaryBusiness===true).length;
-  $("businessAvailableCards").textContent = cards.filter(c=>effectivePlan(c)==="Business" && c.status==="available").length;
-  $("businessSoldCards").textContent = cards.filter(c=>effectivePlan(c)==="Business" && c.status==="sold").length;
-  $("inactiveCards").textContent = cards.filter(c=>unclaimedStatuses.has(c.status) || !c.status).length;
+  $("basicCards").textContent = publicCards.filter(c=>clientStatuses.has(c.status) && effectivePlan(c)==="Basic").length;
+  $("premiumCards").textContent = publicCards.filter(c=>clientStatuses.has(c.status) && effectivePlan(c)==="Premium").length;
+  $("businessCards").textContent = publicCards.filter(businessCountsAsActive).length;
+  $("compCards").textContent = publicCards.filter(c=>c.complimentaryPremium===true).length;
+  $("compBusinessCards").textContent = publicCards.filter(c=>c.complimentaryBusiness===true).length;
+  $("businessAvailableCards").textContent = publicCards.filter(c=>effectivePlan(c)==="Business" && c.status==="available").length;
+  $("businessSoldCards").textContent = publicCards.filter(c=>effectivePlan(c)==="Business" && c.status==="sold").length;
+  $("inactiveCards").textContent = publicCards.filter(c=>unclaimedStatuses.has(c.status) || !c.status).length;
 
   const inventoryRowMarkup = (card) => {
     const admin = card.admin || {};
@@ -514,6 +530,8 @@ async function openClientDialog(id, preserveDraft=false) {
         <h3>Client & Card</h3>
         <div class="detail-list">
           <div><span>Card code</span><strong>${esc(id)}</strong></div>
+          <div><span>Account ID</span><strong>${esc(card.accountId || "Pending identity sync")}</strong></div>
+          <div><span>Identity Profile ID</span><strong>${esc(card.identityProfileId || "Pending identity sync")}</strong></div>
           <div><span>Permanent URL</span><strong class="break-anywhere">${esc(friendlyUrl(id))}</strong></div>
           <div><span>Plan</span><strong>${esc(effective)}</strong></div><div><span>Subscription</span><strong>${esc(card.subscription?.status || "none")}</strong></div><div><span>Source</span><strong>${esc(viewCard.complimentaryBusiness?"complimentary business":viewCard.complimentaryPremium?"complimentary premium":(card.subscription?.source||"manual"))}</strong></div>
           <div><span>Status</span><strong>${esc(card.status || "activated")}</strong></div>
@@ -625,7 +643,7 @@ async function saveClientDialogChanges(id){
   try{
     const batch=writeBatch(db);batch.set(doc(db,"cards",id),payload,{merge:true});
     if(clientDialogDraft.basePlan!==basePlan(card))batch.set(doc(db,"inventory",id),{plan:clientDialogDraft.basePlan,updatedAt:serverTimestamp()},{merge:true});
-    await batch.commit();await loadCards();
+    await batch.commit();await loadCards();renderNfcCenter();
     clientDialogDraft=null;clientDialogOriginal=null;
     if($("clientDetailDialog").open)await openClientDialog(id,false);
     setDialogSaveState("Changes saved");
@@ -738,6 +756,9 @@ async function releaseForReuse(id) {
     complimentaryPremium: false,
     subscription: { status: "none", source: "manual" },
     nfcStatus: "not-programmed",
+    accountId: deleteField(),
+    identityProfileId: deleteField(),
+    identityMappedAt: deleteField(),
     activatedAt: deleteField(),
     soldAt: deleteField(),
     updatedAt: serverTimestamp()
@@ -756,6 +777,8 @@ async function releaseForReuse(id) {
   }, { merge: true });
   batch.set(doc(db, "cardAdmin", id), {
     clientName: deleteField(),
+    accountId: deleteField(),
+    identityProfileId: deleteField(),
     nfcStatus: "not-programmed",
     notes: `Released for reuse ${new Date().toLocaleDateString()}`,
     updatedAt: serverTimestamp()
@@ -801,7 +824,7 @@ async function setComplimentaryTier(id, card, tier, enabled){
     payload.preGiftSubscriptionSource=deleteField();
   }
   await setDoc(doc(db,"cards",id),payload,{merge:true});
-  await loadCards();
+  await loadCards();renderNfcCenter();
 }
 
 async function toggleComplimentary(id, card){
@@ -828,7 +851,7 @@ async function setBasePlan(id, card, next){
   },{merge:true});
   batch.set(doc(db,"inventory",id),{plan:next,updatedAt:serverTimestamp()},{merge:true});
   await batch.commit();
-  await loadCards();
+  await loadCards();renderNfcCenter();
 }
 
 async function changePlan(id, card) {
@@ -894,6 +917,7 @@ async function regenerate(id) {
   const batch = writeBatch(db);
   batch.set(doc(db, "cards", next), {
     inventoryVersion: 2,
+    recordType: "public_url",
     status: "available",
     plan: card.plan || "Basic",
     nfcStatus: card.nfcStatus || "not-programmed",
@@ -901,8 +925,8 @@ async function regenerate(id) {
     createdAt: serverTimestamp(), updatedAt: serverTimestamp()
   });
   if (profile.exists()) batch.set(doc(db, "profiles", next), profile.data());
-  batch.set(doc(db, "inventory", next), { activationCode: activationCode(), inventoryVersion: 2, status: "available", plan: card.plan || "Basic", physicalType: meta.exists() ? (meta.data().physicalType || "PVC") : "PVC", nfcStatus: card.nfcStatus || "not-programmed", notes: meta.exists() ? (meta.data().notes || "") : "", requiresActivationCode: card.requiresActivationCode !== false, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  if (meta.exists()) batch.set(doc(db, "cardAdmin", next), { ...meta.data(), updatedAt: serverTimestamp() });
+  batch.set(doc(db, "inventory", next), { activationCode: activationCode(), inventoryVersion: 2, recordType: "public_url", status: "available", plan: card.plan || "Basic", physicalType: meta.exists() ? (meta.data().physicalType || "PVC") : "PVC", nfcStatus: card.nfcStatus || "not-programmed", notes: meta.exists() ? (meta.data().notes || "") : "", requiresActivationCode: card.requiresActivationCode !== false, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  if (meta.exists()) batch.set(doc(db, "cardAdmin", next), { ...meta.data(), recordType: "public_url", updatedAt: serverTimestamp() });
   batch.delete(doc(db, "cards", id)); batch.delete(doc(db, "profiles", id)); batch.delete(doc(db, "inventory", id)); batch.delete(doc(db, "cardAdmin", id));
   await batch.commit();
   alert(`New NFC URL: ${friendlyUrl(next)}`);
@@ -942,9 +966,9 @@ async function createCard(event) {
       return setDialogStatus("That card code already exists. Choose another code or press Random.", "error");
     }
     const batch = writeBatch(db);
-    batch.set(doc(db, "cards", id), { inventoryVersion: 2, status: "available", plan, complimentaryPremium:false, complimentaryBusiness:false, subscription:{status:"none",source:"manual"}, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-    batch.set(doc(db, "inventory", id), { activationCode: code, inventoryVersion: 2, status: "available", plan, physicalType, nfcStatus, notes, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-    batch.set(doc(db, "cardAdmin", id), { physicalType, nfcStatus, notes, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "cards", id), { inventoryVersion: 2, recordType: "public_url", status: "available", plan, complimentaryPremium:false, complimentaryBusiness:false, subscription:{status:"none",source:"manual"}, nfcStatus, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "inventory", id), { activationCode: code, inventoryVersion: 2, recordType: "public_url", status: "available", plan, physicalType, nfcStatus, notes, requiresActivationCode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(doc(db, "cardAdmin", id), { recordType: "public_url", physicalType, nfcStatus, notes, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     batch.set(doc(db, "profiles", id), blankProfile());
     await batch.commit();
     setDialogStatus(`Card ${id} created successfully.`, "ok");
@@ -1026,6 +1050,9 @@ $("regenerateActivation").addEventListener("click", () => $("newActivationCode")
 
 function closeClientDetailSafely(){if(dialogDraftChanged()&&!confirm("Discard unsaved client changes?"))return;clientDialogDraft=null;clientDialogOriginal=null;$("clientDetailDialog").close();}
 $("closeClientDetailDialog")?.addEventListener("click", closeClientDetailSafely);
+// Prueba 5: close client details safely from the backdrop or Escape without click-through.
+$("clientDetailDialog")?.addEventListener("click",(event)=>{if(event.target===$("clientDetailDialog")){event.preventDefault();event.stopPropagation();closeClientDetailSafely();}});
+$("clientDetailDialog")?.addEventListener("cancel",(event)=>{event.preventDefault();closeClientDetailSafely();});
 $("clientDetailDialog")?.addEventListener("click", (event) => {if (event.target === $("clientDetailDialog")) closeClientDetailSafely();});
 $("clientDetailDialog")?.addEventListener("cancel",(event)=>{if(dialogDraftChanged()&&!confirm("Discard unsaved client changes?")){event.preventDefault();return;}clientDialogDraft=null;clientDialogOriginal=null;});
 async function handleDialogAction(event) {
@@ -1312,7 +1339,29 @@ function isNfcCardType(type){return ["card","pvc-card","metal-card","wood-card",
 
 function nfcRandom(prefix,length=12){return `${prefix}-${randomCode(length)}`}
 function nfcStatusClass(s){return s==="active"?"":s==="available"?"available":"disabled"}
-function nfcDeviceUrl(id){return `https://jmxdigitalcard.com/d/${encodeURIComponent(id)}`}
+function nfcDeviceBaseUrl(id){return `https://jmxdigitalcard.com/d/${encodeURIComponent(id)}`}
+function nfcDeviceUrl(id,token=""){const base=nfcDeviceBaseUrl(id);return token?`${base}?t=${encodeURIComponent(token)}`:base}
+function cachedNfcDeviceUrl(id){
+  const cached=nfcSecureUrlCache.get(id);if(cached)return cached;
+  const d=nfcDevices.find(x=>x.deviceId===id);
+  return d?.secureTokenRequired===true||d?.tokenHash?"SECURE_TOKEN_PROTECTED__ROTATE_OR_REISSUE_TO_REENCODE":nfcDeviceBaseUrl(id);
+}
+async function provisionNfcTokens(deviceIds,{rotateExisting=false}={}){
+  const ids=[...new Set((deviceIds||[]).filter(Boolean))],results=[];
+  for(let i=0;i<ids.length;i+=200){
+    const r=(await issueNfcDeviceTokensCall({deviceIds:ids.slice(i,i+200),rotateExisting})).data;
+    for(const item of (r?.results||[])){
+      results.push(item);
+      if(item?.ok&&item.rawToken)nfcSecureUrlCache.set(item.deviceId,nfcDeviceUrl(item.deviceId,item.rawToken));
+    }
+  }
+  return results;
+}
+async function rotateAndCacheNfcToken(deviceId){
+  const r=(await rotateNfcDeviceTokenCall({deviceId})).data;
+  if(!r?.rawToken)throw new Error("Secure token was not returned.");
+  const url=nfcDeviceUrl(deviceId,r.rawToken);nfcSecureUrlCache.set(deviceId,url);return url;
+}
 function nfcRecordSearchText(d){const c=cards.find(x=>x.id===d.cardId)||{},b=nfcBatches.find(x=>x.batchId===d.batchId)||{};return [d.deviceId,d.batchId,d.activationCode,b.activationCode,d.deviceType,d.material,d.plan,d.status,d.notes,d.cardId,c.profile?.fullName,c.profile?.company,c.profile?.email,c.profile?.phone,c.profile?.phone2,c.owner?.ownerEmail,c.admin?.clientName,c.admin?.notes].filter(Boolean).join(" ").toLowerCase()}
 function nfcBatchSearchText(b){const c=cards.find(x=>x.id===b.cardId)||{};return [b.batchId,b.activationCode,b.deviceType,b.status,b.notes,b.cardId,c.profile?.fullName,c.profile?.company,c.profile?.email,c.profile?.phone,c.owner?.ownerEmail,c.admin?.clientName,c.admin?.notes].filter(Boolean).join(" ").toLowerCase()}
 async function loadNfcData(){
@@ -1324,6 +1373,24 @@ async function loadNfcData(){
   }catch(e){console.error("NFC Device Center load failed",e)}
 }
 function nfcClientSearchText(card){return [cardSearchText(card),effectivePlan(card),card.admin?.notes,card.inventory?.notes].filter(Boolean).join(" ").toLowerCase()}
+
+// Single source of truth for the five NFC-ID dashboard buckets.
+// nfcDevices is itself an official ID collection, so legacy device records that
+// predate recordType are safely treated as nfc_id without migrating them.
+function getNfcInventoryCategory(record = {}) {
+  const status = String(record.status || record.lifecycleStatus || "available").toLowerCase();
+  if (["disabled","suspended","lost","stolen","replaced","retired","archived"].includes(status)) return "disabled";
+  const card = record.cardId ? cards.find(c => c.id === record.cardId) : null;
+  if (record.cardId && status === "active" && card && String(card.status || "").toLowerCase() === "activated") {
+    const plan = effectivePlan(card);
+    if (plan === "Premium") return "premium";
+    if (plan === "Business") return "business";
+    return "basic";
+  }
+  if (status === "sold" || (record.cardId && ["pending","available"].includes(status))) return "sold_pending_activation";
+  if (!record.cardId && ["available","pending"].includes(status)) return "available";
+  return "disabled";
+}
 function nfcClientPlanMarkup(items){
   return items.map(card=>{
     const devices=nfcDevices.filter(d=>d.cardId===card.id);
@@ -1335,9 +1402,16 @@ function nfcClientPlanMarkup(items){
 }
 function renderNfcPlanClients(){
   if(!$("nfcPlanClientBoard"))return;
-  const officialCardIds=new Set(nfcDevices.filter(d=>d.cardId).map(d=>d.cardId));
-  const activeCards=cards.filter(c=>officialCardIds.has(c.id)&&["activated","suspended"].includes(c.status));
-  const buckets={Basic:activeCards.filter(c=>effectivePlan(c)==="Basic"),Premium:activeCards.filter(c=>effectivePlan(c)==="Premium"),Business:activeCards.filter(c=>effectivePlan(c)==="Business")};
+  const bucketIds={
+    Basic:new Set(nfcDevices.filter(d=>getNfcInventoryCategory(d)==="basic").map(d=>d.cardId).filter(Boolean)),
+    Premium:new Set(nfcDevices.filter(d=>getNfcInventoryCategory(d)==="premium").map(d=>d.cardId).filter(Boolean)),
+    Business:new Set(nfcDevices.filter(d=>getNfcInventoryCategory(d)==="business").map(d=>d.cardId).filter(Boolean))
+  };
+  const buckets={
+    Basic:cards.filter(c=>bucketIds.Basic.has(c.id)),
+    Premium:cards.filter(c=>bucketIds.Premium.has(c.id)),
+    Business:cards.filter(c=>bucketIds.Business.has(c.id))
+  };
   const configs=[
     ["Basic","nfcBasicClientsCount","nfcBasicClientsSearch","nfcBasicClientsList"],
     ["Premium","nfcPremiumClientsCount","nfcPremiumClientsSearch","nfcPremiumClientsList"],
@@ -1365,15 +1439,17 @@ function nfcSimpleCardMarkup(items,state){
 function renderNfcCenter(){
   if(!$("nfcDeviceCenter"))return;
   const cardsOnly=nfcDevices;
-  const available=cardsOnly.filter(x=>["available","pending"].includes(x.status)&&!x.cardId),sold=cardsOnly.filter(x=>x.status==="sold"&&!x.cardId);
-  $("nfcDeviceTotal").textContent=cardsOnly.length;$("nfcDeviceAvailable").textContent=available.length;$("nfcDeviceActive").textContent=cardsOnly.filter(x=>x.status==="active").length;$("nfcDeviceDisabled").textContent=cardsOnly.filter(x=>["disabled","suspended","lost","stolen","retired","archived"].includes(x.status)).length;$("nfcBatchTotal").textContent=nfcBatches.length;
+  const available=cardsOnly.filter(x=>getNfcInventoryCategory(x)==="available"),sold=cardsOnly.filter(x=>getNfcInventoryCategory(x)==="sold_pending_activation");
+  const active=cardsOnly.filter(x=>["basic","premium","business"].includes(getNfcInventoryCategory(x)));
+  const disabled=cardsOnly.filter(x=>getNfcInventoryCategory(x)==="disabled");
+  $("nfcDeviceTotal").textContent=cardsOnly.length;$("nfcDeviceAvailable").textContent=available.length;$("nfcDeviceActive").textContent=active.length;$("nfcDeviceDisabled").textContent=disabled.length;$("nfcBatchTotal").textContent=nfcBatches.length;
   const aq=$("nfcAvailableCardsSearch")?.value.trim().toLowerCase()||"",sq=$("nfcSoldCardsSearch")?.value.trim().toLowerCase()||"";
   $("nfcAvailableCardsCount").textContent=available.length;$("nfcSoldCardsCount").textContent=sold.length;
   $("nfcAvailableCardsList").innerHTML=nfcSimpleCardMarkup(available.filter(x=>!aq||nfcRecordSearchText(x).includes(aq)),"available");$("nfcSoldCardsList").innerHTML=nfcSimpleCardMarkup(sold.filter(x=>!sq||nfcRecordSearchText(x).includes(sq)),"sold");
   document.querySelectorAll("[data-nfc-device]").forEach(b=>b.onclick=()=>openNfcDeviceDialog(b.dataset.nfcDevice));document.querySelectorAll("[data-mark-nfc-sold]").forEach(b=>b.onclick=()=>markNfcCardSold(b.dataset.markNfcSold));
   renderNfcPlanClients();renderNfcGlobalSearch();
 }
-async function markNfcCardSold(deviceId){const d=nfcDevices.find(x=>x.deviceId===deviceId);if(!d)return;if(!confirm("Mark this NFC card as SOLD and waiting for customer activation?"))return;const wb=writeBatch(db),now=serverTimestamp();wb.set(doc(db,"nfcDevices",deviceId),{status:"sold",lifecycleStatus:"sold",soldAt:now,updatedAt:now},{merge:true});wb.set(doc(db,"nfcDevicePublic",deviceId),{status:"sold",updatedAt:now},{merge:true});if(d.batchId)wb.set(doc(db,"nfcBatches",d.batchId),{status:"sold",soldAt:now,updatedAt:now},{merge:true});wb.set(doc(db,"nfcDeviceEvents",`${Date.now()}-${deviceId}`),{event:"NFC Device Marked Sold",deviceId,batchId:d.batchId||null,deviceType:d.deviceType||"card",adminUid:user?.uid||"",createdAt:serverTimestamp()});await wb.commit();await loadNfcData();loadActivityLog();}
+async function markNfcCardSold(deviceId){const d=nfcDevices.find(x=>x.deviceId===deviceId);if(!d)return;if(!confirm("Mark this NFC card as SOLD and waiting for customer activation?"))return;const wb=writeBatch(db),now=serverTimestamp();wb.set(doc(db,"nfcDevices",deviceId),{recordType:"nfc_id",status:"sold",lifecycleStatus:"sold",soldAt:now,updatedAt:now},{merge:true});wb.set(doc(db,"nfcDevicePublic",deviceId),{status:"sold",updatedAt:now},{merge:true});if(d.batchId)wb.set(doc(db,"nfcBatches",d.batchId),{status:"sold",soldAt:now,updatedAt:now},{merge:true});wb.set(doc(db,"nfcDeviceEvents",`${Date.now()}-${deviceId}`),{event:"NFC Device Marked Sold",deviceId,batchId:d.batchId||null,deviceType:d.deviceType||"card",adminUid:user?.uid||"",createdAt:serverTimestamp()});await wb.commit();await loadNfcData();loadActivityLog();}
 function renderNfcGlobalSearch(){
   const q=$("nfcGlobalSearch")?.value.trim().toLowerCase()||"",box=$("nfcGlobalResults");if(!box)return;if(!q){box.hidden=true;box.innerHTML="";return}
   const dm=nfcDevices.filter(x=>nfcRecordSearchText(x).includes(q)).slice(0,10),bm=nfcBatches.filter(x=>nfcBatchSearchText(x).includes(q)).slice(0,10),officialIds=new Set(nfcDevices.filter(d=>d.cardId).map(d=>d.cardId)),cm=cards.filter(x=>officialIds.has(x.id)&&cardSearchText(x).includes(q)).slice(0,10);
@@ -1395,12 +1471,12 @@ async function createNfcQuickDevice(e){
   try{
   {
       const wb=writeBatch(db),now=serverTimestamp();
-      wb.set(doc(db,"nfcBatches",batchId),{batchId,activationCode,activationMode:"individual-device",deviceType:choice.deviceType,material:choice.material,quantity:1,plan,cardId:null,status:"available",enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",encodedCount:0,createdBy:user?.uid||"",createdAt:now,updatedAt:now});
-      wb.set(doc(db,"nfcDevices",deviceId),{deviceId,batchId,activationCodeRef:batchId,deviceType:choice.deviceType,material:choice.material,plan,deviceNumber:1,cardId:null,status:"available",lifecycleStatus:"available",enabled:true,deviceEnabled:true,tapCount:0,encodingStatus:"not-encoded",notes,createdAt:now,updatedAt:now});
-      wb.set(doc(db,"nfcDevicePublic",deviceId),{deviceId,batchId,deviceType:choice.deviceType,material:choice.material,plan,status:"available",enabled:true,updatedAt:now});wb.set(doc(db,"nfcDeviceEvents",`${Date.now()}-${deviceId}`),{event:"NFC Device Created",deviceId,batchId,deviceType:choice.deviceType,adminUid:user?.uid||"",createdAt:now});await wb.commit();await loadNfcData();loadActivityLog();
+      wb.set(doc(db,"nfcBatches",batchId),{batchId,recordType:"nfc_id",activationCode,activationMode:"individual-device",deviceType:choice.deviceType,material:choice.material,quantity:1,plan,cardId:null,status:"available",enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",encodedCount:0,createdBy:user?.uid||"",createdAt:now,updatedAt:now});
+      wb.set(doc(db,"nfcDevices",deviceId),{deviceId,batchId,recordType:"nfc_id",activationCodeRef:batchId,deviceType:choice.deviceType,material:choice.material,plan,deviceNumber:1,cardId:null,status:"available",lifecycleStatus:"available",enabled:true,deviceEnabled:true,secureTokenRequired:true,securityMode:"STANDARD_TOKEN",deviceSecurityType:"legacy",chipModel:"NTAG21X_OR_STANDARD_NFC",secureUid:null,secureKeyVersion:null,sunEnabled:false,lastVerifiedCounter:null,lastVerifiedAt:null,tapCount:0,encodingStatus:"not-encoded",notes,createdAt:now,updatedAt:now});
+      wb.set(doc(db,"nfcDevicePublic",deviceId),{deviceId,batchId,recordType:"nfc_id",deviceType:choice.deviceType,material:choice.material,plan,status:"available",enabled:true,updatedAt:now});wb.set(doc(db,"nfcDeviceEvents",`${Date.now()}-${deviceId}`),{event:"NFC Device Created",deviceId,batchId,deviceType:choice.deviceType,adminUid:user?.uid||"",createdAt:now});await wb.commit();await provisionNfcTokens([deviceId]);await loadNfcData();loadActivityLog();
     }
     statusEl.innerHTML=`Created <strong>${esc(deviceId)}</strong> · Activation Code <strong>${esc(activationCode)}</strong>`;
-    await copyText(nfcDeviceUrl(deviceId));
+    await copyText(cachedNfcDeviceUrl(deviceId));
     setTimeout(()=>{$("nfcQuickDeviceDialog")?.close();openNfcBatchEncoder(batchId)},650);
   }catch(err){console.error(err);statusEl.textContent="Could not create device: "+(err?.message||"unknown error")}
   finally{button.disabled=false;button.textContent="Create Device"}
@@ -1411,9 +1487,9 @@ async function createNfcBatch(e){
   if((await getDoc(doc(db,"nfcBatches",batchId))).exists()){statusEl.textContent="Batch ID already exists. Generate another.";return}
   const now=serverTimestamp();
   try{
-    await setDoc(doc(db,"nfcBatches",batchId),{batchId,activationCode,deviceType,quantity,plan,cardId,status:initialStatus,enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",encodedCount:0,createdBy:user?.uid||"",createdAt:now,updatedAt:now});
-    for(let start=0;start<deviceIds.length;start+=180){const wb=writeBatch(db);for(const [offset,deviceId] of deviceIds.slice(start,start+180).entries()){const deviceNumber=start+offset+1;wb.set(doc(db,"nfcDevices",deviceId),{deviceId,batchId,deviceType,deviceNumber,plan,cardId,status:initialStatus,enabled:true,tapCount:0,encodingStatus:"not-encoded",notes:"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});wb.set(doc(db,"nfcDevicePublic",deviceId),{deviceId,batchId,deviceType,plan,cardId,status:initialStatus,enabled:true,updatedAt:serverTimestamp()})}await wb.commit()}
-    await setDoc(doc(db,"nfcDeviceEvents",`${Date.now()}-${batchId}`),{event:"NFC Batch Created",batchId,deviceType,quantity,adminUid:user?.uid||"",createdAt:serverTimestamp()});loadActivityLog();
+    await setDoc(doc(db,"nfcBatches",batchId),{batchId,recordType:"nfc_id",activationCode,deviceType,quantity,plan,cardId,status:initialStatus,enabled:true,notes,activationCodeStatus:"unused",encodingStatus:"not-started",encodedCount:0,createdBy:user?.uid||"",createdAt:now,updatedAt:now});
+    for(let start=0;start<deviceIds.length;start+=180){const wb=writeBatch(db);for(const [offset,deviceId] of deviceIds.slice(start,start+180).entries()){const deviceNumber=start+offset+1;wb.set(doc(db,"nfcDevices",deviceId),{deviceId,batchId,recordType:"nfc_id",deviceType,deviceNumber,plan,cardId,status:initialStatus,enabled:true,secureTokenRequired:true,securityMode:"STANDARD_TOKEN",deviceSecurityType:"legacy",chipModel:"NTAG21X_OR_STANDARD_NFC",secureUid:null,secureKeyVersion:null,sunEnabled:false,lastVerifiedCounter:null,lastVerifiedAt:null,tapCount:0,encodingStatus:"not-encoded",notes:"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});wb.set(doc(db,"nfcDevicePublic",deviceId),{deviceId,batchId,recordType:"nfc_id",deviceType,plan,cardId,status:initialStatus,enabled:true,updatedAt:serverTimestamp()})}await wb.commit()}
+    await setDoc(doc(db,"nfcDeviceEvents",`${Date.now()}-${batchId}`),{event:"NFC Batch Created",batchId,deviceType,quantity,adminUid:user?.uid||"",createdAt:serverTimestamp()});await provisionNfcTokens(deviceIds);loadActivityLog();
     statusEl.textContent=`Created ${quantity} ${nfcTypeLabel(deviceType)}(s). Activation code: ${activationCode}`;await copyText(activationCode);setTimeout(()=>{$("nfcBatchDialog")?.close();openNfcBatchEncoder(batchId)},700);await loadNfcData();
   }catch(err){console.error(err);statusEl.textContent="Could not create the batch: "+(err?.message||"unknown error")}
 }
@@ -1455,10 +1531,10 @@ async function replaceNfcDevice(deviceId){
   const next=nfcRandom("JMX",14),batch=nfcBatches.find(x=>x.batchId===d.batchId),status=d.cardId?(batch?.activationCodeStatus==="used"?"active":"pending"):"available",wb=writeBatch(db);
   wb.set(doc(db,"nfcDevices",deviceId),{enabled:false,deviceEnabled:false,status:"replaced",lifecycleStatus:"replaced",replacedBy:next,updatedAt:serverTimestamp()},{merge:true});
   wb.set(doc(db,"nfcDevicePublic",deviceId),{enabled:false,status:"replaced",updatedAt:serverTimestamp()},{merge:true});
-  const clean={...d};delete clean.lifecycleStatus;delete clean.replacedBy;delete clean.deviceEnabled;delete clean.replaces;
-  wb.set(doc(db,"nfcDevices",next),{...clean,deviceId:next,status,lifecycleStatus:status,enabled:true,deviceEnabled:true,replaces:deviceId,tapCount:0,encodingStatus:"not-encoded",createdAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:false});
+  const clean={...d};delete clean.lifecycleStatus;delete clean.replacedBy;delete clean.deviceEnabled;delete clean.replaces;delete clean.tokenHash;delete clean.tokenCreatedAt;delete clean.tokenRotatedAt;delete clean.tokenRotatedBy;
+  wb.set(doc(db,"nfcDevices",next),{...clean,deviceId:next,status,lifecycleStatus:status,enabled:true,deviceEnabled:true,secureTokenRequired:true,securityMode:"STANDARD_TOKEN",deviceSecurityType:clean.deviceSecurityType||"legacy",chipModel:clean.chipModel||"NTAG21X_OR_STANDARD_NFC",secureUid:null,secureKeyVersion:null,sunEnabled:false,lastVerifiedCounter:null,lastVerifiedAt:null,replaces:deviceId,tapCount:0,encodingStatus:"not-encoded",createdAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:false});
   wb.set(doc(db,"nfcDevicePublic",next),{deviceId:next,batchId:d.batchId||null,deviceType:d.deviceType,cardId:d.cardId||null,status,enabled:true,updatedAt:serverTimestamp()},{merge:false});
-  wb.set(doc(db,"nfcDeviceEvents",`${Date.now()}-${next}`),{event:"Device Replaced",deviceId:next,previousDeviceId:deviceId,batchId:d.batchId||null,cardId:d.cardId||null,adminUid:user?.uid||"",createdAt:serverTimestamp()});await wb.commit();await loadNfcData();alert(`Replacement created: ${next}`)
+  wb.set(doc(db,"nfcDeviceEvents",`${Date.now()}-${next}`),{event:"Device Replaced",deviceId:next,previousDeviceId:deviceId,batchId:d.batchId||null,cardId:d.cardId||null,adminUid:user?.uid||"",createdAt:serverTimestamp()});await wb.commit();await provisionNfcTokens([next]);await loadNfcData();alert(`Replacement created: ${next}`)
 }
 async function setClientNfcTypeEnabled(cardId,type,enabled){
   const card=cards.find(c=>c.id===cardId);const controls={...(card?.nfcDeviceControls||{}),[type]:enabled};
@@ -1474,11 +1550,19 @@ function renderNfcEncoder(){
   nfcEncoderIndex=Math.max(0,Math.min(nfcEncoderIndex,items.length-1));const d=items[nfcEncoderIndex],done=items.filter(nfcEncodingDone).length;
   $("nfcEncoderTitle").textContent="Program / Encode Batch";$("nfcEncoderSubtitle").textContent=`${batch.batchId} · ${nfcTypeLabel(batch.deviceType)} · ${batch.cardId||"Unassigned inventory"}`;
   $("nfcEncoderProgressText").textContent=`${done} / ${items.length}`;$("nfcEncoderProgressLabel").textContent="devices encoded / verified";$("nfcEncoderProgress").max=items.length;$("nfcEncoderProgress").value=done;
-  $("nfcEncoderDeviceNumber").textContent=`Device ${String(d.deviceNumber||nfcEncoderIndex+1).padStart(3,"0")}`;$("nfcEncoderDeviceId").textContent=d.deviceId;$("nfcEncoderBatchId").textContent=d.batchId;$("nfcEncoderDeviceType").textContent=NFC_TYPE_LABELS[d.deviceType]||d.deviceType;$("nfcEncoderDeviceStatus").textContent=nfcEncodingLabel(d);$("nfcEncoderUrl").value=nfcDeviceUrl(d.deviceId);
+  $("nfcEncoderDeviceNumber").textContent=`Device ${String(d.deviceNumber||nfcEncoderIndex+1).padStart(3,"0")}`;$("nfcEncoderDeviceId").textContent=d.deviceId;$("nfcEncoderBatchId").textContent=d.batchId;$("nfcEncoderDeviceType").textContent=NFC_TYPE_LABELS[d.deviceType]||d.deviceType;$("nfcEncoderDeviceStatus").textContent=nfcEncodingLabel(d);$("nfcEncoderUrl").value=cachedNfcDeviceUrl(d.deviceId);
   $("nfcEncoderPrevious").disabled=nfcEncoderIndex===0;$("nfcEncoderMarkNext").textContent=nfcEncoderIndex===items.length-1?"Mark Encoded & Finish":"Mark Encoded & Next";
   $("nfcEncoderStatus").textContent=done===items.length?"Batch production complete. You can re-open any device to verify or re-copy its URL.":"Manual mode: write the URL shown above to this physical NFC device, then mark it encoded.";
 }
-function openNfcBatchEncoder(batchId){const items=nfcBatchDevices(batchId);if(!items.length)return alert("This batch contains no devices.");nfcEncoderBatchId=batchId;const firstPending=items.findIndex(d=>!nfcEncodingDone(d));nfcEncoderIndex=firstPending>=0?firstPending:0;renderNfcEncoder();$("nfcEncoderDialog")?.showModal()}
+async function openNfcBatchEncoder(batchId){
+  const items=nfcBatchDevices(batchId);if(!items.length)return alert("This batch contains no devices.");
+  nfcEncoderBatchId=batchId;const firstPending=items.findIndex(d=>!nfcEncodingDone(d));nfcEncoderIndex=firstPending>=0?firstPending:0;
+  try{
+    const need=items.filter(d=>!d.tokenHash&&!nfcSecureUrlCache.has(d.deviceId)).map(d=>d.deviceId);
+    if(need.length)await provisionNfcTokens(need);
+  }catch(e){console.warn("Secure NFC token provisioning deferred",e?.message)}
+  renderNfcEncoder();$("nfcEncoderDialog")?.showModal();
+}
 async function updateNfcEncoding(deviceId,encodingStatus){
   const d=nfcDevices.find(x=>x.deviceId===deviceId);if(!d)return;const stamp=new Date().toISOString();
   const payload={encodingStatus,encodedBy:user?.uid||"",updatedAt:serverTimestamp()};if(["encoded","verified"].includes(encodingStatus))payload.encodedAt=serverTimestamp();await setDoc(doc(db,"nfcDevices",deviceId),payload,{merge:true});
@@ -1487,8 +1571,15 @@ async function updateNfcEncoding(deviceId,encodingStatus){
   const items=nfcBatchDevices(d.batchId),encodedCount=items.filter(nfcEncodingDone).length;await setDoc(doc(db,"nfcBatches",d.batchId),{encodedCount,encodingStatus:encodedCount===items.length?"complete":encodedCount?"in-progress":"not-started",updatedAt:serverTimestamp()},{merge:true});renderNfcEncoder();renderNfcCenter();
 }
 async function markCurrentNfcEncoded(next=true){const items=nfcBatchDevices(nfcEncoderBatchId),d=items[nfcEncoderIndex];if(!d)return;await updateNfcEncoding(d.deviceId,"encoded");if(next&&nfcEncoderIndex<items.length-1){nfcEncoderIndex++;renderNfcEncoder()}}
-async function verifyCurrentNfcDevice(){const items=nfcBatchDevices(nfcEncoderBatchId),d=items[nfcEncoderIndex];if(!d)return;const expected=nfcDeviceUrl(d.deviceId);const entered=prompt("Verify the URL written/read from this NFC device. Paste or type it here:",expected);if(entered===null)return;if(entered.trim()!==expected){$("nfcEncoderStatus").textContent="Verification failed: the URL does not match this Device ID.";await updateNfcEncoding(d.deviceId,"error");return}await updateNfcEncoding(d.deviceId,"verified");$("nfcEncoderStatus").textContent="Verified: URL matches the expected Device ID."}
-function exportNfcBatchCsv(batchId){const batch=nfcBatches.find(b=>b.batchId===batchId),items=nfcBatchDevices(batchId);if(!batch||!items.length)return;const rows=[["Batch ID","Device Number","Device Type","Device ID","NFC Resolver URL","Device Status","Encoding Status","Profile/Card","Encoded At"],...items.map((d,i)=>[batchId,d.deviceNumber||i+1,NFC_TYPE_LABELS[d.deviceType]||d.deviceType,d.deviceId,nfcDeviceUrl(d.deviceId),d.status||"",nfcEncodingLabel(d),d.cardId||"",d.encodedAt?.toDate?.()?.toISOString?.()||d.encodedAt||""])];const csv=rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`${batchId}-nfc-production.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+async function verifyCurrentNfcDevice(){
+  const items=nfcBatchDevices(nfcEncoderBatchId),d=items[nfcEncoderIndex];if(!d)return;
+  const expected=nfcSecureUrlCache.get(d.deviceId);
+  if(!expected){$("nfcEncoderStatus").textContent="Secure token is protected and is not available in this browser session. Rotate/Get Secure URL before re-encoding or verifying.";return}
+  const entered=prompt("Verify the secure URL written/read from this NFC device. Paste or type it here:",expected);if(entered===null)return;
+  if(entered.trim()!==expected){$("nfcEncoderStatus").textContent="Verification failed: the secure URL does not match this authorized Device ID/token.";await updateNfcEncoding(d.deviceId,"error");return}
+  await updateNfcEncoding(d.deviceId,"verified");$("nfcEncoderStatus").textContent="Verified: secure URL matches the authorized Device ID/token.";
+}
+function exportNfcBatchCsv(batchId){const batch=nfcBatches.find(b=>b.batchId===batchId),items=nfcBatchDevices(batchId);if(!batch||!items.length)return;const rows=[["Batch ID","Device Number","Device Type","Device ID","NFC Resolver URL","Device Status","Encoding Status","Profile/Card","Encoded At"],...items.map((d,i)=>[batchId,d.deviceNumber||i+1,NFC_TYPE_LABELS[d.deviceType]||d.deviceType,d.deviceId,(nfcSecureUrlCache.get(d.deviceId)||"SECURE_TOKEN_NOT_AVAILABLE_IN_THIS_SESSION"),d.status||"",nfcEncodingLabel(d),d.cardId||"",d.encodedAt?.toDate?.()?.toISOString?.()||d.encodedAt||""])];const csv=rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`${batchId}-nfc-production.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 
 async function deleteNfcBatch(batchId,{reopenCardId=null}={}){
   const batch=nfcBatches.find(x=>x.batchId===batchId);if(!batch)return alert("NFC batch not found. Reload and try again.");
@@ -1580,10 +1671,10 @@ async function createNfcProfile(e){
   try{
 if((await getDoc(doc(db,"cards",cardId))).exists())throw new Error("Card ID already exists. Press Random and try again.");
     const wb=writeBatch(db);const profile=blankProfile();profile.fullName=fullName;profile.company=company;profile.email=email;profile.phone=phone;profile.phoneRaw=phone;profile.profileId=profileId;
-    wb.set(doc(db,"cards",cardId),{inventoryVersion:2,status:"activated",profileStatus:"active",profileId,creationMethod:"official-device-id-profile",plan,complimentaryPremium:false,complimentaryBusiness:false,subscription:{status:"none",source:"manual"},nfcStatus:"not-programmed",requiresActivationCode:false,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    wb.set(doc(db,"cards",cardId),{inventoryVersion:2,recordType:"nfc_id",status:"activated",profileStatus:"active",profileId,creationMethod:"official-device-id-profile",plan,complimentaryPremium:false,complimentaryBusiness:false,subscription:{status:"none",source:"manual"},nfcStatus:"not-programmed",requiresActivationCode:false,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
     wb.set(doc(db,"profiles",cardId),profile);
-    wb.set(doc(db,"inventory",cardId),{inventoryVersion:2,status:"activated",plan,physicalType:"Profile / Device-ID",nfcStatus:"not-programmed",notes,requiresActivationCode:false,activationCode:"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-    wb.set(doc(db,"cardAdmin",cardId),{profileId,profileStatus:"active",creationMethod:"official-device-id-profile",clientName:fullName,physicalType:"Profile / Device-ID",nfcStatus:"not-programmed",notes,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    wb.set(doc(db,"inventory",cardId),{inventoryVersion:2,recordType:"nfc_id",status:"activated",plan,physicalType:"Profile / Device-ID",nfcStatus:"not-programmed",notes,requiresActivationCode:false,activationCode:"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    wb.set(doc(db,"cardAdmin",cardId),{recordType:"nfc_id",profileId,profileStatus:"active",creationMethod:"official-device-id-profile",clientName:fullName,physicalType:"Profile / Device-ID",nfcStatus:"not-programmed",notes,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
     wb.set(doc(db,"nfcDeviceEvents",`${Date.now()}-${cardId}`),{event:"Profile Created",cardId,profileId,plan,adminUid:user?.uid||"",createdAt:serverTimestamp()});
     await wb.commit();status.textContent=`Profile ${fullName} created successfully.`;await loadCards();renderNfcCenter();setTimeout(()=>{$("nfcProfileDialog")?.close();$("nfcProfileForm")?.reset();prepareNfcProfileDialog();openClientDialog(cardId)},450);
   }catch(err){console.error(err);status.textContent="Could not create profile: "+(err?.message||"Unknown error")}finally{button.disabled=false;button.textContent="Create Profile"}
@@ -1600,17 +1691,21 @@ async function setNfcDeviceLifecycle(deviceId,next){
 async function openNfcDeviceDialog(deviceId){
   const d=nfcDevices.find(x=>x.deviceId===deviceId);if(!d)return;const batch=nfcBatches.find(x=>x.batchId===d.batchId),card=cards.find(x=>x.id===d.cardId),dialog=$("nfcDeviceDialog"),life=String(d.lifecycleStatus||d.status||"available").toLowerCase();
   $("nfcDeviceDialogTitle").textContent=card?.profile?.fullName||d.notes||batch?.notes||"NFC Device";$("nfcDeviceDialogSubtitle").textContent=`${nfcTypeLabel(d.deviceType)}${d.material?" · "+d.material:""} · ${life}`;
-  $("nfcDeviceDialogBody").innerHTML=`<div class="client-detail-grid"><section class="detail-panel"><h3>NFC Device</h3><div class="detail-list"><div><span>Plan</span><strong>${esc(card?effectivePlan(card):(d.plan||batch?.plan||"Basic"))}</strong></div><div><span>Status</span><strong>${esc(life.toUpperCase())}</strong></div><div><span>Client</span><strong>${esc(card?.profile?.fullName||card?.admin?.clientName||"Unassigned — customer activates later")}</strong></div><div><span>Private Note</span><strong>${esc(d.notes||batch?.notes||"—")}</strong></div><div><span>Total taps</span><strong>${Number(d.tapCount||0).toLocaleString()}</strong></div></div><details class="nfc-advanced-details"><summary>Advanced Details</summary><div class="detail-list"><div><span>Internal Device ID</span><strong class="break-anywhere">${esc(deviceId)}</strong></div><div><span>Resolver URL</span><strong class="break-anywhere">${esc(nfcDeviceUrl(deviceId))}</strong></div><div><span>Activation Code</span><strong>${esc(batch?.activationCode||"—")}</strong></div><div><span>Batch</span><strong>${esc(d.batchId||"—")}</strong></div><div><span>Encoding</span><strong>${esc(d.encodingStatus||"not-encoded")}</strong></div></div></details><div id="nfcDeliveryKitQr" class="nfc-delivery-qr" hidden></div></section></div>`;
+  $("nfcDeviceDialogBody").innerHTML=`<div class="client-detail-grid"><section class="detail-panel"><h3>NFC Device</h3><div class="detail-list"><div><span>Plan</span><strong>${esc(card?effectivePlan(card):(d.plan||batch?.plan||"Basic"))}</strong></div><div><span>Status</span><strong>${esc(life.toUpperCase())}</strong></div><div><span>Client</span><strong>${esc(card?.profile?.fullName||card?.admin?.clientName||"Unassigned — customer activates later")}</strong></div><div><span>Private Note</span><strong>${esc(d.notes||batch?.notes||"—")}</strong></div><div><span>Total taps</span><strong>${Number(d.tapCount||0).toLocaleString()}</strong></div></div><details class="nfc-advanced-details"><summary>Advanced Details</summary><div class="detail-list"><div><span>Internal Device ID</span><strong class="break-anywhere">${esc(deviceId)}</strong></div><div><span>Security Type</span><strong>${esc(String(d.deviceSecurityType||"legacy").toUpperCase())}</strong></div><div><span>Chip Model</span><strong>${esc(d.chipModel||"Legacy / Standard NFC")}</strong></div><div><span>Secure NFC Future Mode</span><strong>${d.deviceSecurityType==="secure"?"Configured — backend cryptographic verification required":"Legacy token authorization (current hardware)"}</strong></div><div><span>Resolver URL</span><strong class="break-anywhere">${esc(nfcSecureUrlCache.get(deviceId)||"Protected — open encoder and rotate/get secure URL to reprogram")}</strong></div><div><span>Activation Code</span><strong>${esc(batch?.activationCode||"—")}</strong></div><div><span>Batch</span><strong>${esc(d.batchId||"—")}</strong></div><div><span>Encoding</span><strong>${esc(d.encodingStatus||"not-encoded")}</strong></div></div></details><div id="nfcDeliveryKitQr" class="nfc-delivery-qr" hidden></div></section></div>`;
   const canReactivate=["suspended","disabled"].includes(life),canSuspend=["active","pending","available"].includes(life);
   $("nfcDeviceDialogActions").innerHTML=`<button class="primary-button" data-nfc-copy-url>Copy NFC URL</button><button class="secondary-button" data-delivery-kit>Delivery Kit</button>${canReactivate?'<button class="secondary-button" data-device-life="active">Reactivate</button>':""}${canSuspend?'<button class="secondary-button" data-device-life="suspended">Suspend</button>':""}${!["lost","stolen","replaced","retired","archived"].includes(life)?'<button class="danger-button" data-device-life="lost">Lost</button><button class="danger-button" data-device-life="stolen">Stolen</button>':""}${!["replaced","retired","archived"].includes(life)?'<button class="secondary-button" data-replace-device>Replace Device</button><button class="secondary-button" data-device-life="retired">Retire</button>':""}${life!=="archived"?'<button class="secondary-button" data-device-life="archived">Archive</button>':""}${batch?`<button class="secondary-button" data-open-batch="${esc(batch.batchId)}">Open Batch</button>`:""}`;
   dialog.showModal();
-  dialog.querySelector("[data-nfc-copy-url]")?.addEventListener("click",()=>copyText(nfcDeviceUrl(deviceId)));
+  dialog.querySelector("[data-nfc-copy-url]")?.addEventListener("click",async()=>{let url=nfcSecureUrlCache.get(deviceId);if(!url){if(!confirm("The raw secure token is not stored. Rotate the token and invalidate any previously encoded copy for this Device ID?"))return;url=await rotateAndCacheNfcToken(deviceId);await loadNfcData();}await copyText(url)});
   dialog.querySelector("[data-delivery-kit]")?.addEventListener("click",()=>{const host=$("nfcDeliveryKitQr");if(!host)return;host.hidden=false;host.innerHTML=`<div class="delivery-kit"><h3>Customer Delivery Kit</h3><p><strong>Activate:</strong> ${esc(`${location.origin}/device-activate.html?device=${encodeURIComponent(deviceId)}`)}</p><p><strong>Activation Code:</strong> ${esc(batch?.activationCode||"—")}</p><p><strong>Manage/Edit:</strong> ${esc(`${location.origin}/login`)}</p><div id="deliveryActivationQr"></div><div class="dialog-actions"><button type="button" class="mini" data-copy-activation>Copy Activation Link</button><button type="button" class="mini" data-copy-code>Copy Code</button><button type="button" class="mini" data-copy-login>Copy Login Link</button></div></div>`;if(window.QRCode)new QRCode(host.querySelector("#deliveryActivationQr"),{text:`${location.origin}/device-activate.html?device=${encodeURIComponent(deviceId)}`,width:150,height:150});host.querySelector("[data-copy-activation]")?.addEventListener("click",()=>copyText(`${location.origin}/device-activate.html?device=${encodeURIComponent(deviceId)}`));host.querySelector("[data-copy-code]")?.addEventListener("click",()=>copyText(batch?.activationCode||""));host.querySelector("[data-copy-login]")?.addEventListener("click",()=>copyText(`${location.origin}/login`));});
   dialog.querySelectorAll("[data-device-life]").forEach(b=>b.onclick=async()=>{await setNfcDeviceLifecycle(deviceId,b.dataset.deviceLife);dialog.close()});dialog.querySelector("[data-open-batch]")?.addEventListener("click",()=>{dialog.close();openNfcBatchDetails(batch.batchId)});dialog.querySelector("[data-replace-device]")?.addEventListener("click",async()=>{dialog.close();await replaceNfcDevice(deviceId)})
 }
 
 const returnNfcCardToInventoryCall=httpsCallable(functions,"returnNfcCardToInventory");
 const deleteNfcClientCardCall=httpsCallable(functions,"deleteNfcClientCard");
+const issueNfcDeviceTokensCall=httpsCallable(functions,"issueNfcDeviceTokens");
+const rotateNfcDeviceTokenCall=httpsCallable(functions,"rotateNfcDeviceToken");
+const setAccountAllowedDeviceCountCall=httpsCallable(functions,"setAccountAllowedDeviceCount");
+const nfcSecureUrlCache=new Map();
 async function returnNfcClientCardToInventory(cardId){
   const linked=nfcDevices.filter(d=>d.cardId===cardId&&d.deviceType==="card");
   if(!linked.length)return alert("No hay una tarjeta NFC vinculada a este cliente.");
@@ -1640,7 +1735,7 @@ async function deleteNfcClientCard(cardId){
 function initNfcDeviceCenter(){
   $("newNfcDeviceButton")?.addEventListener("click",openNfcQuickDeviceCreate);$("closeNfcQuickDeviceDialog")?.addEventListener("click",()=>$("nfcQuickDeviceDialog")?.close());$("cancelNfcQuickDeviceButton")?.addEventListener("click",()=>$("nfcQuickDeviceDialog")?.close());$("nfcQuickDeviceForm")?.addEventListener("submit",createNfcQuickDevice);
   $("newNfcProfileButton")?.addEventListener("click",()=>{prepareNfcProfileDialog();$("nfcProfileDialog")?.showModal()});$("closeNfcProfileDialog")?.addEventListener("click",()=>$("nfcProfileDialog")?.close());$("cancelNfcProfileButton")?.addEventListener("click",()=>$("nfcProfileDialog")?.close());$("nfcProfileForm")?.addEventListener("submit",createNfcProfile);$("regenerateNfcProfileCardId")?.addEventListener("click",()=>{const id=randomCode();$("nfcProfileCardId").value=id;$("nfcProfileUrlPreview").textContent=friendlyUrl(id)});
-  $("newNfcBatchButton")?.addEventListener("click",openNfcBatchCreate);$("closeNfcBatchDialog")?.addEventListener("click",()=>$("nfcBatchDialog")?.close());$("cancelNfcBatchButton")?.addEventListener("click",()=>$("nfcBatchDialog")?.close());$("nfcBatchForm")?.addEventListener("submit",createNfcBatch);$("regenerateBatchId")?.addEventListener("click",()=>$("nfcBatchId").value=nfcRandom("BATCH",8));$("regenerateBatchActivation")?.addEventListener("click",()=>$("nfcBatchActivationCode").value=nfcRandom("ACT",8));$("closeNfcDeviceDialog")?.addEventListener("click",()=>$("nfcDeviceDialog")?.close());$("closeNfcEncoderDialog")?.addEventListener("click",()=>$("nfcEncoderDialog")?.close());$("nfcEncoderDialog")?.addEventListener("click",e=>{if(e.target===$("nfcEncoderDialog"))$("nfcEncoderDialog").close()});$("copyNfcEncoderUrl")?.addEventListener("click",()=>copyText($("nfcEncoderUrl")?.value||""));$("nfcEncoderPrevious")?.addEventListener("click",()=>{if(nfcEncoderIndex>0){nfcEncoderIndex--;renderNfcEncoder()}});$("nfcEncoderMarkNext")?.addEventListener("click",()=>markCurrentNfcEncoded(true));$("nfcEncoderVerify")?.addEventListener("click",verifyCurrentNfcDevice);$("nfcEncoderMarkError")?.addEventListener("click",async()=>{const d=nfcBatchDevices(nfcEncoderBatchId)[nfcEncoderIndex];if(d)await updateNfcEncoding(d.deviceId,"error")});$("nfcDeviceDialog")?.addEventListener("click",e=>{if(e.target===$("nfcDeviceDialog"))$("nfcDeviceDialog").close()});document.querySelectorAll("[data-nfc-expand]").forEach(b=>b.addEventListener("click",()=>expandNfcBox(b.dataset.nfcExpand)));["nfcAvailableCardsSearch","nfcSoldCardsSearch","nfcBasicClientsSearch","nfcPremiumClientsSearch","nfcBusinessClientsSearch"].forEach(id=>$(id)?.addEventListener("input",renderNfcCenter));let timer;$("nfcGlobalSearch")?.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(renderNfcGlobalSearch,220)});$("nfcGlobalSearchButton")?.addEventListener("click",renderNfcGlobalSearch);document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNfcExpanded()});
+  $("newNfcBatchButton")?.addEventListener("click",openNfcBatchCreate);$("closeNfcBatchDialog")?.addEventListener("click",()=>$("nfcBatchDialog")?.close());$("cancelNfcBatchButton")?.addEventListener("click",()=>$("nfcBatchDialog")?.close());$("nfcBatchForm")?.addEventListener("submit",createNfcBatch);$("regenerateBatchId")?.addEventListener("click",()=>$("nfcBatchId").value=nfcRandom("BATCH",8));$("regenerateBatchActivation")?.addEventListener("click",()=>$("nfcBatchActivationCode").value=nfcRandom("ACT",8));$("closeNfcDeviceDialog")?.addEventListener("click",()=>$("nfcDeviceDialog")?.close());$("closeNfcEncoderDialog")?.addEventListener("click",()=>$("nfcEncoderDialog")?.close());$("nfcEncoderDialog")?.addEventListener("click",e=>{if(e.target===$("nfcEncoderDialog"))$("nfcEncoderDialog").close()});$("copyNfcEncoderUrl")?.addEventListener("click",()=>copyText($("nfcEncoderUrl")?.value||""));$("nfcEncoderRotateToken")?.addEventListener("click",async()=>{const d=nfcBatchDevices(nfcEncoderBatchId)[nfcEncoderIndex];if(!d)return;if(!confirm("Rotate this secure token? Any previously encoded copy of this Device ID will stop resolving until reprogrammed with the new secure URL."))return;try{const url=await rotateAndCacheNfcToken(d.deviceId);$("nfcEncoderUrl").value=url;$("nfcEncoderStatus").textContent="Secure token rotated. Reprogram this physical NFC device with the new URL.";await loadNfcData()}catch(e){console.error(e);alert(e?.message||"Could not rotate secure token.")}});$("nfcEncoderPrevious")?.addEventListener("click",()=>{if(nfcEncoderIndex>0){nfcEncoderIndex--;renderNfcEncoder()}});$("nfcEncoderMarkNext")?.addEventListener("click",()=>markCurrentNfcEncoded(true));$("nfcEncoderVerify")?.addEventListener("click",verifyCurrentNfcDevice);$("nfcEncoderMarkError")?.addEventListener("click",async()=>{const d=nfcBatchDevices(nfcEncoderBatchId)[nfcEncoderIndex];if(d)await updateNfcEncoding(d.deviceId,"error")});$("nfcDeviceDialog")?.addEventListener("click",e=>{if(e.target===$("nfcDeviceDialog"))$("nfcDeviceDialog").close()});document.querySelectorAll("[data-nfc-expand]").forEach(b=>b.addEventListener("click",()=>expandNfcBox(b.dataset.nfcExpand)));["nfcAvailableCardsSearch","nfcSoldCardsSearch","nfcBasicClientsSearch","nfcPremiumClientsSearch","nfcBusinessClientsSearch"].forEach(id=>$(id)?.addEventListener("input",renderNfcCenter));let timer;$("nfcGlobalSearch")?.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(renderNfcGlobalSearch,220)});$("nfcGlobalSearchButton")?.addEventListener("click",renderNfcGlobalSearch);document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNfcExpanded()});
 }
 initNfcDeviceCenter();
 // load when authenticated; the existing admin check protects the collections in Firestore rules.

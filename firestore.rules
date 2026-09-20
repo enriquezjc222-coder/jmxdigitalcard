@@ -223,6 +223,36 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
+
+    // Normalized identity registry. These collections are written by trusted
+    // Cloud Functions/Admin SDK. Owners may read only their own account/user
+    // record; they cannot promote roles or rewrite account ownership.
+    match /users/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /accounts/{accountId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Canonical identity layer introduced by the unified data architecture.
+    // Owners can read the identity profile for their own account; only trusted
+    // administration/backend code may create or change mappings.
+    match /identityProfiles/{identityProfileId} {
+      allow read: if isAdmin() || (signedIn()
+        && resource.data.accountId is string
+        && exists(/databases/$(database)/documents/accounts/$(resource.data.accountId))
+        && get(/databases/$(database)/documents/accounts/$(resource.data.accountId)).data.ownerUid == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /identityAuditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
     // Legacy collection retained during migration.
     match /cardAccess/{cardId} {
       allow read, write: if isAdmin();

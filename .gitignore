@@ -1,4 +1,11 @@
 
+node_modules/
+functions/node_modules/
+.firebase/
+.env
+.env.*
 *.service-account.json
 google-wallet-key.json
 service-account*.json
+firebase-debug.log
+*.log

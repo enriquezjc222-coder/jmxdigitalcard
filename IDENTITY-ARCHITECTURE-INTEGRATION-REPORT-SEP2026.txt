@@ -1,0 +1,46 @@
+JMX DIGITAL CARD — IDENTITY ARCHITECTURE INTEGRATION
+September 2026
+
+BASE
+- JMX Digital Card.com prueba 1 (GitHub copy supplied by user)
+
+REFERENCE MODULE
+- JMX-Digital-Card-Identity-Resolver-Module (Claude)
+
+RESULT
+- Production project remains the source of truth.
+- Existing Card IDs, Device IDs, NFC /d/ resolver, activation flow, QR, Wallet,
+  public card, editor, JMX Business, Leads and Analytics are preserved.
+- Added normalized users/accounts identity registry.
+- Added stable identityProfileId without replacing profiles/{cardId}.
+- Linked existing nfcDevices to account/profile identity additively.
+- Added cleanup when ownership is removed so reused cards do not inherit a
+  previous customer's account identity.
+- Replaced the existing Math.random-based backend Card/Profile ID helper with
+  crypto.randomBytes.
+- Added Firestore rules/indexes for the new registry.
+- Existing client detail view now shows Account ID and Identity Profile ID.
+
+NEW CLOUD FUNCTIONS
+- onCardOwnerIdentitySync (Firestore trigger)
+- onCardIdentitySync (Firestore trigger)
+- onProfileIdentitySync (Firestore trigger)
+- onNfcDeviceIdentitySync (Firestore trigger)
+- rebuildIdentityRegistry (admin callable)
+- getIdentityRecord (admin/owner callable)
+
+NEW COLLECTIONS
+- users
+- accounts
+- identityAuditLogs
+
+IMPORTANT
+Do not replace /d/** with Claude's resolver.html. The real project already has
+its own production Device-ID resolver and lifecycle.
+
+DEPLOYMENT ORDER
+1. firebase deploy --only functions
+2. firebase deploy --only firestore:rules,firestore:indexes
+3. Run rebuildIdentityRegistry once as the platform administrator.
+4. Inspect Firestore.
+5. firebase deploy --only hosting (only after verification).

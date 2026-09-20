@@ -1,0 +1,33 @@
+JMX DIGITAL CARD — PRUEBA 6 DEVICE AUTHORIZATION AUDIT
+Date: 2026-09-19
+
+BASE
+- Built on Prueba 5 ID Client Controls — LOCAL PREVIEW.
+- Existing public URL inventory and /c/{cardId} behavior preserved.
+- Existing NFC Device IDs, batches, activation codes, Account IDs and Identity Profile IDs preserved.
+
+STANDALONE CLAUDE MODULE REVIEW
+- Source module automated test suite executed before integration.
+- Result: 43 passed / 0 failed.
+- Reviewed architecture, security, integration guide, lifecycle and hardware notes.
+
+INTEGRATED CHECKS
+- Node syntax check passed for all root JavaScript files and functions/index.js.
+- No duplicate Cloud Function export names found.
+- dashboard.html: no duplicate HTML IDs.
+- dashboard-local-preview.html: no duplicate HTML IDs.
+- admin.html/card.html/device.html: no duplicate HTML IDs.
+- firebase.json, firestore.indexes.json and functions/package.json parse correctly.
+- Firestore access for nfcDevices remains admin-only.
+- Secure token hash is not written to nfcDevicePublic.
+- Raw secure token is not stored in Firestore by the new functions.
+- Replacement devices explicitly drop inherited token fields and receive a new token.
+- New NFC IDs are marked secureTokenRequired=true before token provisioning; resolver fails closed if provisioning is incomplete.
+- Legacy existing NFC devices without secureTokenRequired/tokenHash remain backward compatible.
+- Resolver and tap analytics pass/validate the token for protected devices.
+- Local preview remains present and isolated from Firebase writes.
+
+IMPORTANT
+Static-token authorization is NOT a cryptographic guarantee against cloning standard NFC memory tags. A complete copy of the NDEF URL also copies the static token. Strong anti-clone requires cryptographic/dynamic NFC hardware (for example NTAG 424 DNA/SUN) or equivalent server-verifiable dynamic authentication.
+
+NO FIREBASE DEPLOYMENT WAS PERFORMED.

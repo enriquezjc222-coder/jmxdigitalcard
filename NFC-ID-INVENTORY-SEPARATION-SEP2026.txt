@@ -1,0 +1,18 @@
+JMX DIGITAL CARD — NFC ID INVENTORY SEPARATION
+
+This version separates the legacy/Public URL dashboard lane from the official NFC-ID lane.
+
+Public URL lane:
+- Existing legacy cards without recordType remain public_url by compatibility fallback.
+- Records proven to come from official-device-id creation are excluded from Public URL counters/lists.
+
+NFC-ID lane:
+- New nfcDevices, nfcBatches and generated NFC customer cards are tagged recordType: nfc_id.
+- Central getNfcInventoryCategory() drives Available, Sold/Waiting, Basic, Premium and Business buckets.
+- Plan changes are reflected from the linked card's effective plan without changing stable IDs.
+- Existing nfcDevices without recordType are treated as nfc_id because collection membership is authoritative.
+
+Local Preview:
+- Create Test NFC ID adds a demo ID only in memory.
+- It increments the NFC ID Available counter/list and does not change Public URL counters.
+- No Firebase/auth writes occur in dashboard-local-preview.html.

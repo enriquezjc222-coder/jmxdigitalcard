@@ -198,26 +198,26 @@ Advanced Analytics"></textarea></label>
   <div id="nfcGlobalResults" class="master-search-results" hidden></div>
 
   <div class="nfc-plan-clients-head">
-    <div><p class="eyebrow">CLIENTS BY PLAN</p><h3>Official NFC Clients</h3><p class="subtitle small">Clients stay separated by Basic, Premium and JMX Business. Open any client to manage that client's NFC cards, batches and individual Device IDs.</p></div>
+    <div><p class="eyebrow">CLIENTS BY PLAN</p><h3>Official NFC Clients</h3><p class="subtitle small">This board is exclusively for NFC IDs. Available IDs, sold IDs awaiting activation, and activated clients stay separated from the Public URL inventory.</p></div>
     <button id="newNfcProfileButton" class="primary-button" type="button"><i class="fa-solid fa-user-plus"></i> Create New Profile</button>
   </div>
   <div class="nfc-simple-inventory-board" id="nfcSimpleInventoryBoard">
-    <section class="nfc-device-box nfc-simple-state-box" data-nfc-box="available-cards"><div class="nfc-device-box-head"><div><p class="eyebrow">INVENTORY</p><h3>Available NFC Cards</h3></div><div class="panel-head-actions"><strong id="nfcAvailableCardsCount">0</strong></div></div><div class="panel-search"><input id="nfcAvailableCardsSearch" type="search" placeholder="Search available cards"></div><div id="nfcAvailableCardsList" class="nfc-compact-list"></div></section>
-    <section class="nfc-device-box nfc-simple-state-box" data-nfc-box="sold-cards"><div class="nfc-device-box-head"><div><p class="eyebrow">SOLD</p><h3>Sold — Waiting for Activation</h3></div><div class="panel-head-actions"><strong id="nfcSoldCardsCount">0</strong></div></div><div class="panel-search"><input id="nfcSoldCardsSearch" type="search" placeholder="Search sold cards"></div><div id="nfcSoldCardsList" class="nfc-compact-list"></div></section>
+    <section class="nfc-device-box nfc-simple-state-box" data-nfc-box="available-cards"><div class="nfc-device-box-head"><div><p class="eyebrow">INVENTORY</p><h3>NFC ID Cards Available</h3></div><div class="panel-head-actions"><strong id="nfcAvailableCardsCount">0</strong></div></div><div class="panel-search"><input id="nfcAvailableCardsSearch" type="search" placeholder="Search available cards"></div><div id="nfcAvailableCardsList" class="nfc-compact-list"></div></section>
+    <section class="nfc-device-box nfc-simple-state-box" data-nfc-box="sold-cards"><div class="nfc-device-box-head"><div><p class="eyebrow">SOLD</p><h3>NFC IDs Sold — Waiting for Activation</h3></div><div class="panel-head-actions"><strong id="nfcSoldCardsCount">0</strong></div></div><div class="panel-search"><input id="nfcSoldCardsSearch" type="search" placeholder="Search sold cards"></div><div id="nfcSoldCardsList" class="nfc-compact-list"></div></section>
   </div>
   <div class="nfc-plan-client-board" id="nfcPlanClientBoard">
     <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-basic">
-      <div class="nfc-device-box-head"><div><p class="eyebrow">BASIC</p><h3>Basic Clients</h3></div><div class="panel-head-actions"><strong id="nfcBasicClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-basic" aria-label="Expand Basic NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="nfc-device-box-head"><div><p class="eyebrow">BASIC</p><h3>Basic Clients — ID</h3></div><div class="panel-head-actions"><strong id="nfcBasicClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-basic" aria-label="Expand Basic NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
       <div class="panel-search"><input id="nfcBasicClientsSearch" type="search" enterkeyhint="search" placeholder="Search Basic clients"></div>
       <div id="nfcBasicClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
     </section>
     <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-premium">
-      <div class="nfc-device-box-head"><div><p class="eyebrow">PREMIUM</p><h3>Premium Clients</h3></div><div class="panel-head-actions"><strong id="nfcPremiumClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-premium" aria-label="Expand Premium NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="nfc-device-box-head"><div><p class="eyebrow">PREMIUM</p><h3>Premium Clients — ID</h3></div><div class="panel-head-actions"><strong id="nfcPremiumClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-premium" aria-label="Expand Premium NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
       <div class="panel-search"><input id="nfcPremiumClientsSearch" type="search" enterkeyhint="search" placeholder="Search Premium clients"></div>
       <div id="nfcPremiumClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
     </section>
     <section class="nfc-device-box nfc-plan-client-box" data-nfc-box="client-business">
-      <div class="nfc-device-box-head"><div><p class="eyebrow">JMX BUSINESS</p><h3>JMX Business Clients</h3></div><div class="panel-head-actions"><strong id="nfcBusinessClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-business" aria-label="Expand JMX Business NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
+      <div class="nfc-device-box-head"><div><p class="eyebrow">JMX BUSINESS</p><h3>JMX Business Clients — ID</h3></div><div class="panel-head-actions"><strong id="nfcBusinessClientsCount">0</strong><button class="panel-expand-button" type="button" data-nfc-expand="client-business" aria-label="Expand JMX Business NFC clients" title="Expand"><i class="fa-solid fa-expand"></i></button></div></div>
       <div class="panel-search"><input id="nfcBusinessClientsSearch" type="search" enterkeyhint="search" placeholder="Search JMX Business clients"></div>
       <div id="nfcBusinessClientsList" class="nfc-compact-list nfc-client-plan-list"></div>
     </section>
@@ -326,7 +326,7 @@ Advanced Analytics"></textarea></label>
    <div><span>NFC Product</span><strong id="nfcEncoderDeviceType">—</strong></div>
    <div><span>Status</span><strong id="nfcEncoderDeviceStatus">—</strong></div>
   </div>
-  <label class="form-group full"><span>NFC Resolver URL — write this URL to this physical NFC device</span><div class="inline-field"><input id="nfcEncoderUrl" readonly><button id="copyNfcEncoderUrl" class="mini" type="button">Copy NFC URL</button></div></label>
+  <label class="form-group full"><span>NFC Resolver URL — write this URL to this physical NFC device</span><div class="inline-field"><input id="nfcEncoderUrl" readonly><button id="copyNfcEncoderUrl" class="mini" type="button">Copy Secure NFC URL</button><button id="nfcEncoderRotateToken" class="mini" type="button">Rotate / Get Secure URL</button></div></label>
   <p class="subtitle small nfc-encoder-hardware-note"><strong>Manual / compatible mode:</strong> copy this URL into NFC Tools or your NFC writer software. This page keeps the encoding workflow focused on NFC cards and does not pretend to write to unsupported USB hardware.</p>
  </section>
  <div id="nfcEncoderStatus" class="status" aria-live="polite"></div>

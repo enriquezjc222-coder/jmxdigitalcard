@@ -485,3 +485,16 @@ body.feature-panel-open{overflow:hidden}
 
 /* NFC batch permanent-delete control — preserves primary client card/profile */
 .nfc-delete-batch-button{border-color:#fecaca!important;background:#fff1f2!important;color:#b42318!important;font-weight:800}.nfc-batch-client-row{grid-template-columns:minmax(0,1fr) auto auto auto}@media(max-width:800px){.nfc-batch-client-row{grid-template-columns:minmax(0,1fr) auto}.nfc-batch-client-row .mini-button{grid-column:1/-1;width:100%}}
+
+/* Prueba 5 LOCAL PREVIEW — modal safety + client controls */
+body.preview-modal-open{overflow:hidden!important}
+.preview-warning-panel{border:2px solid #fca5a5!important;background:#fff7f7!important;margin-bottom:14px}
+.preview-warning-panel.final{border-color:#dc2626!important;background:#fff1f2!important}
+.preview-warning-panel h3{color:#991b1b!important;margin-top:0}
+.preview-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.client-detail-dialog::backdrop,.card-dialog::backdrop{background:rgba(15,23,42,.58);backdrop-filter:blur(2px)}
+.client-detail-dialog[open],.card-dialog[open]{pointer-events:auto}
+.client-detail-shell{max-height:min(92vh,900px);overflow:auto;overscroll-behavior:contain}
+.client-detail-header{position:sticky;top:0;z-index:8;background:#fff;padding-bottom:10px}
+.client-detail-actions{position:sticky;bottom:0;z-index:8;background:#fff;border-top:1px solid var(--border);padding-top:10px}
+@media(max-width:700px){.preview-edit-grid{grid-template-columns:1fr}.client-detail-actions{display:grid;grid-template-columns:1fr}.client-detail-actions>button{width:100%;min-height:44px}.preview-warning-panel .dialog-actions{position:static}}

@@ -1,0 +1,22 @@
+JMX DIGITAL CARD — PRUEBA 8 PRODUCTION READY
+
+This release removes the LOCAL PREVIEW authentication bypass and demo-only runtime.
+Production dashboard.html loads dashboard.js with Firebase/Google authentication.
+
+Preserved:
+- Public URL system and /c/** route
+- NFC /d/** route and Device IDs
+- Card IDs, Account IDs, Identity Profile IDs
+- JMX Basic / Premium / Business
+- Leads, Analytics, QR, Wallet, feature controls
+- Unified accounts + identityProfiles architecture
+- Legacy NFC authorization
+- Future secure-NFC schema fields remain prepared but production cryptographic NTAG 424 verification is NOT enabled.
+
+Removed from deployable root:
+- dashboard-local-preview.html
+- dashboard-local-preview.js
+- local preview README/audit artifacts
+- reference-only architecture demo modules and future secure-NFC mock/test harness
+
+Deployment should still be performed carefully: deploy Functions/Firestore rules/indexes and Hosting in the intended order, and verify current Firebase backups before any migration/backfill operation.

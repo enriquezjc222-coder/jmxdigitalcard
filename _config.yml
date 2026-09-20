@@ -1,0 +1,13 @@
+exclude:
+  - functions
+  - docs
+  - "*.txt"
+  - "*.md"
+  - "*.ps1"
+  - firebase.json
+  - firestore.rules
+  - firestore.indexes.json
+  - storage.rules
+  - firebase-debug.log
+  - "google-wallet-jmx (1).jpg"
+  - google-wallet-jmx.jpg.jpg
