@@ -516,3 +516,10 @@ body:has(.client-detail-dialog[open]){overflow:hidden}
   .client-detail-header>div{min-width:0}
   .client-detail-header h2,.client-detail-header .subtitle{overflow-wrap:anywhere}
 }
+
+/* Sep 2026 — unified JMX card QR panel (client detail) */
+.jmx-card-qr-panel h4{margin:14px 0 8px;font-size:.92rem}.jmx-card-qr-admin-row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;min-width:0}.jmx-card-qr-admin-shell{position:relative;flex:0 0 auto;padding:8px;border-radius:16px;background:#fff;border:1px solid var(--border)}.jmx-card-qr-admin-shell.jmx-qr-accent{border:2px solid transparent;padding:7px;background:linear-gradient(#fff,#fff) padding-box,var(--jmxqr-accent-gradient) border-box}.jmx-card-qr-admin-canvas{width:160px;height:160px;display:grid;place-items:center}.jmx-card-qr-admin-canvas canvas{display:block}.jmx-card-qr-admin-facts{flex:1 1 220px;min-width:0}.jmx-card-qr-admin-logo-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.jmx-card-qr-admin-thumb{width:56px;height:56px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:#fff}.jmx-card-qr-upload{cursor:pointer}.jmx-card-qr-mode{display:flex;flex-direction:column;gap:6px;margin-top:12px;max-width:260px}.jmx-card-qr-mode select{min-height:40px;border-radius:10px;border:1px solid var(--border);padding:6px 10px;font:inherit;background:#fff}
+.client-detail-grid>.jmx-card-qr-panel{grid-column:1/-1;align-self:start}
+.jmx-card-qr-mode-row{display:flex;flex-wrap:wrap;gap:0 16px}
+.jmx-card-qr-mode-row .jmx-card-qr-mode{flex:1 1 200px;min-width:0}
+.jmx-card-qr-mode select:disabled{opacity:.6;cursor:not-allowed}

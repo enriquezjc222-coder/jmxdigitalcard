@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JMX card QR bench</title>
+<style>body{font-family:system-ui;margin:16px;background:#f4f4f4}.b{display:flex;flex-wrap:wrap;gap:10px}.t{background:#fff;padding:8px;border-radius:8px}.t p{margin:4px 0 0;font:10px monospace;max-width:170px;overflow-wrap:anywhere}</style>
+</head><body><h1>JMX card QR bench (integrated engine: js/jmx-qr/card-qr.js)</h1><p id="s">Rendering…</p><div class="b" id="b"></div>
+<script type="module">
+import { buildVerifiedCardQr, cardQrTargetUrl, recommendedCardQrSize } from '/js/jmx-qr/card-qr.js';
+import { configureCardQr } from '/js/jmx-qr/qr-config.js';
+const q = new URLSearchParams(location.search);
+if (q.has('budget')) configureCardQr({ qr: { logoErrorBudget: Number(q.get('budget')) } });
+if (q.has('minv')) configureCardQr({ qr: { minVersionWithLogo: Number(q.get('minv')) } });
+const mobile = q.get('mode') !== 'desktop';
+// Card IDs of every length the project allows (sanitizeCardId caps at 64) → QR versions 6…10
+const ids = ['A1', 'JMXB01', 'JMXZ03', 'CARD-2026-ABCDEFGHIJ', 'CARD-2026-ABCDEFGHIJKLMNOP', 'CARD-2026-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123', 'CARD-2026-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789-ABCDEFG', 'JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-012345678'];
+const colors = { black: '#000000', pink: '#B8586F', orange: '#C2410C', blue: '#1D4ED8' };
+const logos = { jmx: 'jmx', business: 'business', none: 'none' };
+const biz = '/docs/qr-integration-tests/fixtures/abc-remodeling-logo.png';
+const out = []; let n = 0;
+for (const id of ids) for (const [ck, fg] of Object.entries(colors)) for (const [lk, mode] of Object.entries(logos)) {
+  const url = cardQrTargetUrl(id); const size = recommendedCardQrSize(url, { mobile });
+  // the no-logo baseline uses the same QR version as the logo variants (fair comparison)
+  const { canvas, result } = await buildVerifiedCardQr({ targetUrl: url, customization: { foregroundColor: fg }, logoMode: mode, businessLogoUrl: biz, pixelSize: size * devicePixelRatio, minVersion: mode === 'none' ? 6 : undefined });
+  canvas.style.width = canvas.style.height = `${size}px`;
+  const t = document.createElement('div'); t.className = 't'; t.id = `c${n}`;
+  const p = document.createElement('p'); p.textContent = `c${n} ${id.slice(0, 12)} ${ck} ${lk} v${result.version} ${(result.logoScaleOfTotal * 100).toFixed(1)}%`;
+  t.append(canvas, p); document.getElementById('b').append(t);
+  out.push({ id: `c${n}`, url, cssSize: size, color: ck, logo: lk, version: result.version, logoPct: +(result.logoScaleOfTotal * 100).toFixed(1), worstBlock: result.worstBlockUsage, verified: result.verification, fallback: result.fallback });
+  n++;
+}
+document.getElementById('s').textContent = `${out.length} QR codes rendered and verified in-page.`;
+window.__bench = out; window.__done = true;
+</script></body></html>

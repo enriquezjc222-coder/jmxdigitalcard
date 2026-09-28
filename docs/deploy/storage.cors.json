@@ -1,0 +1,13 @@
+[
+  {
+    "origin": [
+      "https://jmxdigitalcard.com",
+      "https://www.jmxdigitalcard.com",
+      "https://jmx-digital-card.web.app",
+      "https://jmx-digital-card.firebaseapp.com"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Cache-Control"],
+    "maxAgeSeconds": 3600
+  }
+]

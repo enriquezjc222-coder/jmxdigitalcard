@@ -1,0 +1,9 @@
+{
+  "name": "jmx-rules-emulator-tests",
+  "private": true,
+  "description": "Firebase Emulator tests for storage.rules / firestore.rules. Uses demo project id 'demo-jmx' (never production).",
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.10.0"
+  }
+}

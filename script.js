@@ -1,5 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getFirestore, doc, getDoc, getDocs, collection, setDoc, addDoc, increment, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { cardQrTargetUrl, resolveCardQrCustomization, renderCardQr, exportCardQrPng, recommendedCardQrSize } from "./js/jmx-qr/card-qr.js";
+import { defaultFeatureControls as fcDefaults, mergeFeatureControls as fcMerge, resolveFeature } from "./js/feature-controls.js";
+import { basePlanName, effectivePlanName } from "./js/plan-resolver.js";
 
 const firebaseConfig={apiKey:"AIzaSyDf12K0m93K4cWSotDcSg2fIS-s3uaLW_Y",authDomain:"jmx-digital-card.firebaseapp.com",projectId:"jmx-digital-card",storageBucket:"jmx-digital-card.firebasestorage.app",messagingSenderId:"411133047344",appId:"1:411133047344:web:07c250e162cde4d63cb3f5"};
 const app=initializeApp(firebaseConfig),db=getFirestore(app);
@@ -10,11 +13,13 @@ const CARD_ID=sanitizeCardId(pathMatch?.[1]||params.get("card")||"main");
 if(params.get("pretty")==="1"&&CARD_ID!=="main"&&!(["localhost","127.0.0.1"].includes(location.hostname)||location.hostname.endsWith("github.io"))) history.replaceState({},"",`/c/${CARD_ID}`);
 const fallback={fullName:"",position:"",company:"",city:"",state:"",description:"",phone:"",phoneRaw:"",phone2:"",phone2Raw:"",whatsapp:"",whatsappRaw:"",email:"",website:"",facebook:"",instagram:"",linkedin:"",twitter:"",tiktok:"",youtube:"",catalog:"",catalogFile:"",customBusinessLabel:"",customBusinessSubtitle:"",customBusinessUrl:"",profileImage:"",coverImage:"",logoImage:"",galleryImages:[],videoUrl:"",service1Title:"",service1Description:"",service1Icon:"fa-house",service2Title:"",service2Description:"",service2Icon:"fa-screwdriver-wrench",service3Title:"",service3Description:"",service3Icon:"fa-paint-roller",finalCtaTitle:"Let's Connect",finalCtaText:"",finalCtaLabel:"Contact Now",theme:"gold",qrCardTheme:"default",googleWalletTheme:"default",qrDarkColor:"#111111",qrLightColor:"#ffffff",removeJmxBranding:false,status:"active",visibility:{}}
 let p={...fallback};
-const FEATURE_KEYS=["description","saveContact","quickActions","phone","phone2","whatsapp","email","website","location","facebook","instagram","linkedin","twitter","tiktok","youtube","services","gallery","video","qr","customQR","qrDownload","finalCTA","businessLinks","catalog","customBusiness","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","profileThemes","brandingRemoval","advancedNetworkingInsights"];
+const FEATURE_KEYS=["description","saveContact","quickActions","phone","phone2","whatsapp","email","website","location","facebook","instagram","linkedin","twitter","tiktok","youtube","services","gallery","video","qr","customQR","qrDownload","businessLogoQr","finalCTA","businessLinks","catalog","customBusiness","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","profileThemes","brandingRemoval","advancedNetworkingInsights"];
 const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr","profileThemes"]);
-function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};const businessOnly=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=!businessOnly.has(k);Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
+const BUSINESS_ONLY_FEATURES=new Set(["customQR","qrDownload","businessLogoQr","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);
+// Feature permissions: one shared resolver (js/feature-controls.js) — GLOBAL → OVERRIDE → PLAN.
+function defaultFeatureControls(){return fcDefaults(FEATURE_KEYS,{basicDefaults:BASIC_FEATURE_DEFAULTS,businessOnly:BUSINESS_ONLY_FEATURES})}
 let platformFeatureControls=defaultFeatureControls();
-function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
+function mergeFeatureControls(raw={}){return fcMerge(raw,defaultFeatureControls())}
 
 function sanitizeCardId(v){const raw=String(v||"main").trim();if(raw.toLowerCase()==="main")return "main";return raw.toUpperCase().replace(/[^A-Z0-9_-]/g,"-").slice(0,64)||"main"}
 function $id(id){return document.getElementById(id)} function text(id,v){const e=$id(id);if(e)e.textContent=v||""} function link(id,v){const e=$id(id);if(e)e.href=v||"#"} function visible(id,on){const e=$id(id);if(e)e.style.display=on?"":"none"} function has(v){return Boolean(v&&v!=="#")}
@@ -31,7 +36,7 @@ async function getOnlineProfile(){
   if(["suspended","paused"].includes(meta.status))return {__suspended:true,__meta:meta};
   const profileSnap=await getDoc(doc(db,"profiles",CARD_ID));
   const data=profileSnap.exists()?profileSnap.data():meta;
-  const out={...fallback,...data,status:meta.status||data.status||"activated",plan:meta.plan||"Premium",complimentaryPremium:meta.complimentaryPremium===true,complimentaryBusiness:meta.complimentaryBusiness===true,subscription:meta.subscription||{},featureOverrides:(meta.featureOverrides&&typeof meta.featureOverrides==="object")?meta.featureOverrides:{},visibility:{...(fallback.visibility||{}),...(data.visibility||{})},galleryImages:[]};
+  const out={...fallback,...data,status:meta.status||data.status||"activated",plan:basePlanName(meta),complimentaryPremium:meta.complimentaryPremium===true,complimentaryBusiness:meta.complimentaryBusiness===true,subscription:meta.subscription||{},featureOverrides:(meta.featureOverrides&&typeof meta.featureOverrides==="object")?meta.featureOverrides:{},qrBusinessLogo:null,qrLogoMode:null,__qrBusinessLogo:(meta.qrBusinessLogo&&typeof meta.qrBusinessLogo==="object")?meta.qrBusinessLogo:null,visibility:{...(fallback.visibility||{}),...(data.visibility||{})},galleryImages:[]};
   const gallery=[],manifest=(data.media&&typeof data.media==="object")?data.media:{};
   const applyMedia=(id,m={})=>{const u=m.url||m.data||"";if(!u)return;if(id==="logo")out.logoImage=u;else if(id==="profile")out.profileImage=u;else if(id==="cover")out.coverImage=u;else if(id==="catalog")out.catalogFile=u;else if(id.startsWith("gallery-")){const i=Number(id.split("-")[1]);if(Number.isInteger(i))gallery[i]=u}};
   Object.entries(manifest).forEach(([id,m])=>applyMedia(id,m));
@@ -93,12 +98,7 @@ for(let i=1;i<=3;i++){text(`service${i}Title`,p[`service${i}Title`]);text(`servi
 const vid=$id("featuredVideo");if(vid){if(p.videoUrl){vid.src=youtubeEmbed(p.videoUrl);vid.style.display=""}else vid.removeAttribute("src")};text("finalCtaTitle",p.finalCtaTitle);text("finalCtaText",p.finalCtaText);text("finalCtaLabel",p.finalCtaLabel);link("final-cta-button","tel:"+p.phoneRaw);loadGallery();applyVisibility(cat);applyTheme(planAllows("profileThemes")?(p.theme||"gold"):"gold")}
 function loadGallery(){const imgs=Array.isArray(p.galleryImages)?p.galleryImages:[];document.querySelectorAll(".gallery-item").forEach((item,i)=>{const im=item.querySelector("img");if(imgs[i]){if(im)im.src=imgs[i];item.dataset.image=imgs[i];item.style.display=""}else item.style.display="none"})}
 function planAllows(feature){
-  const planName=p.complimentaryBusiness===true?"Business":(p.complimentaryPremium===true?"Premium":(p.plan||"Premium"));
-  if(platformFeatureControls.global?.[feature]===false)return false;
-  const override=p.featureOverrides?.[feature];if(override===true)return true;if(override===false)return false;
-  if(platformFeatureControls.enabled===false){if(String(planName).toLowerCase()==="business")return true;if(String(planName).toLowerCase()==="premium")return !["quickCapture","leads","advancedAnalytics"].includes(feature);return BASIC_FEATURE_DEFAULTS.has(feature)}
-  const bucket=String(planName).toLowerCase()==="basic"?platformFeatureControls.Basic:String(planName).toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
-  return bucket?.[feature]!==false;
+  return resolveFeature({controls:platformFeatureControls,plan:effectivePublicPlan(),overrides:p.featureOverrides,key:feature,basicDefaults:BASIC_FEATURE_DEFAULTS});
 }
 function applyVisibility(cat){const v=p.visibility||{};visible("profileDescription",planAllows("description")&&v.description!==false&&has(p.description));visible("saveContactButton",planAllows("saveContact")&&v.saveContact!==false);visible("phoneButton",planAllows("quickActions")&&planAllows("phone")&&v.quickActions!==false&&v.phone!==false&&has(p.phoneRaw));visible("textButton",planAllows("quickActions")&&planAllows("phone")&&v.quickActions!==false&&v.phone!==false&&has(p.phoneRaw));visible("emailButton",planAllows("quickActions")&&planAllows("email")&&v.quickActions!==false&&v.email!==false&&has(p.email));visible("websiteButton",planAllows("quickActions")&&planAllows("website")&&v.quickActions!==false&&v.website!==false&&has(p.website));visible("whatsappButton",planAllows("quickActions")&&planAllows("whatsapp")&&v.quickActions!==false&&v.whatsapp!==false&&has(p.whatsappRaw||p.phoneRaw));visible("quickActions",planAllows("quickActions")&&v.quickActions!==false&&["phoneButton","textButton","whatsappButton","emailButton","websiteButton"].some(id=>$id(id)?.style.display!=="none"));visible("phone1Row",planAllows("phone")&&v.phone!==false&&has(p.phoneRaw));visible("phone2Row",planAllows("phone2")&&v.phone2!==false&&has(p.phone2Raw));visible("whatsappRow",planAllows("whatsapp")&&v.whatsapp!==false&&has(p.whatsappRaw||p.phoneRaw));visible("emailRow",planAllows("email")&&v.email!==false&&has(p.email));visible("websiteRow",planAllows("website")&&v.website!==false&&has(p.website));visible("locationRow",planAllows("location")&&v.location!==false&&(has(p.city)||has(p.state)));visible("contactSection",["phone1Row","phone2Row","whatsappRow","emailRow","websiteRow","locationRow"].some(id=>$id(id)?.style.display!=="none"));const socials=[["facebookLink","facebook",p.facebook],["instagramLink","instagram",p.instagram],["linkedinLink","linkedin",p.linkedin],["twitterLink","twitter",p.twitter],["tiktokLink","tiktok",p.tiktok],["youtubeLink","youtube",p.youtube]];socials.forEach(([id,k,u])=>visible(id,planAllows(k)&&v[k]!==false&&has(u)));visible("socialSection",socials.some(([id])=>$id(id)?.style.display!=="none"));visible("services",planAllows("services")&&v.services!==false);visible("gallery",planAllows("gallery")&&v.gallery!==false&&Array.isArray(p.galleryImages)&&p.galleryImages.length>0);visible("videoSection",planAllows("video")&&v.video!==false&&has(p.videoUrl));visible("qrSection",planAllows("qr")&&v.qr!==false);visible("finalCtaSection",planAllows("finalCTA")&&v.finalCTA!==false);visible("businessServicesLink",planAllows("services")&&v.services!==false);visible("businessGalleryLink",planAllows("gallery")&&v.gallery!==false&&Array.isArray(p.galleryImages)&&p.galleryImages.length>0);visible("catalogLink",planAllows("catalog")&&v.catalog!==false&&has(cat));visible("customBusinessLink",planAllows("customBusiness")&&v.customBusiness!==false&&has(p.customBusinessUrl));visible("businessLinksSection",planAllows("businessLinks")&&v.businessLinks!==false&&["businessServicesLink","businessGalleryLink","catalogLink","customBusinessLink"].some(id=>$id(id)?.style.display!=="none"));visible("quickCaptureSection",effectivePublicPlan()==="Business"&&planAllows("quickCapture"))}
 const themes={gold:["#b88a2b","#e7cc84","#745317","184, 138, 43"],blue:["#2563eb","#93c5fd","#1e3a8a","37, 99, 235"],emerald:["#059669","#6ee7b7","#065f46","5, 150, 105"],purple:["#7c3aed","#c4b5fd","#4c1d95","124, 58, 237"],red:["#dc2626","#fca5a5","#7f1d1d","220, 38, 38"],black:["#171717","#a3a3a3","#050505","23, 23, 23"],cyan:["#06b6d4","#a5f3fc","#155e75","6, 182, 212"],midnight_gold:["#d4af37","#ffe9a6","#4b3505","212, 175, 55"],silver_ice:["#94a3b8","#f8fafc","#334155","148, 163, 184"],electric_violet:["#8b5cf6","#ddd6fe","#4c1d95","139, 92, 246"],neon_lime:["#65a30d","#d9f99d","#365314","101, 163, 13"],ocean_teal:["#0d9488","#99f6e4","#134e4a","13, 148, 136"],royal_navy:["#1d4ed8","#bfdbfe","#172554","29, 78, 216"],rose_champagne:["#be5f76","#fce7f3","#6b2135","190, 95, 118"],burnished_copper:["#c2410c","#fed7aa","#7c2d12","194, 65, 12"],burgundy_gold:["#9f1239","#fde68a","#4c0519","159, 18, 57"],graphite_cyan:["#0891b2","#cffafe","#164e63","8, 145, 178"],emerald_gold:["#059669","#fde68a","#064e3b","5, 150, 105"],ruby_neon:["#e11d48","#fecdd3","#881337","225, 29, 72"],arctic_blue:["#0284c7","#e0f2fe","#0c4a6e","2, 132, 199"],amethyst_rose:["#a855f7","#f5d0fe","#581c87","168, 85, 247"],titanium:["#64748b","#f1f5f9","#1e293b","100, 116, 139"],sunset_orange:["#ea580c","#fed7aa","#7c2d12","234, 88, 12"],aqua_purple:["#06b6d4","#e0e7ff","#4338ca","6, 182, 212"],white_gold:["#b88a2b","#fff8dc","#745317","184, 138, 43"],black_chrome:["#3f3f46","#d4d4d8","#09090b","63, 63, 70"],cosmic_blue:["#4f46e5","#c7d2fe","#312e81","79, 70, 229"]};
@@ -110,7 +110,8 @@ async function shareCard(){const data={title:`${p.fullName} | ${p.company}`,text
 function escapeVC(v){return String(v||"").replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;")}
 function saveContact(){const lines=["BEGIN:VCARD","VERSION:3.0",`FN:${escapeVC(p.fullName)}`,`ORG:${escapeVC(p.company)}`,`TITLE:${escapeVC(p.position)}`,p.phoneRaw?`TEL;TYPE=CELL:${p.phoneRaw}`:"",p.phone2Raw?`TEL;TYPE=CELL:${p.phone2Raw}`:"",p.email?`EMAIL;TYPE=INTERNET:${p.email}`:"",p.website?`URL:${p.website}`:"",`ADR;TYPE=WORK:;;;${escapeVC(p.city)};${escapeVC(p.state)};;;`,"END:VCARD"].filter(Boolean).join("\r\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines],{type:"text/vcard;charset=utf-8"}));a.download=(p.fullName||"contact").replace(/[^a-z0-9]+/gi,"-")+".vcf";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
 
-function effectivePublicPlan(){return p.complimentaryBusiness===true?"Business":(p.complimentaryPremium===true?"Premium":(p.plan||"Premium"))}
+// Plan: one shared resolver (js/plan-resolver.js). Missing/unrecognised plan → Premium, as always shown publicly.
+function effectivePublicPlan(){return effectivePlanName(p)}
 function showBusinessPolicy(kind){const d=window.__jmxPublicSettings?.business||{};const title=kind==="terms"?"JMX Business Terms & Conditions":"JMX Business Privacy Policy";const body=kind==="terms"?d.terms:d.privacyPolicy;text("businessPolicyTitle",title);text("businessPolicyBody",body||"Policy content has not been published yet.");$id("businessPolicyDialog")?.showModal()}
 async function submitQuickCapture(event){
   event.preventDefault();
@@ -223,21 +224,7 @@ function selectedPublicTheme(){
   const id=qrThemeAllowed?(p.qrCardTheme||"default"):"default";
   return QR_CARD_THEMES.find(x=>x.id===id)||QR_CARD_THEMES[0];
 }
-function qrColorSourceTheme(){
-  const walletAllowed=planAllows("googleWallet")&&planAllows("googleWalletThemes");
-  const id=walletAllowed?(p.googleWalletTheme||"default"):(p.qrCardTheme||"default");
-  return QR_CARD_THEMES.find(x=>x.id===id)||QR_CARD_THEMES[0];
-}
-function themedQrColors(theme){
-  const walletAllowed=planAllows("googleWallet")&&planAllows("googleWalletThemes");
-  if(!walletAllowed&&effectivePublicPlan()==="Business"&&planAllows("customQR"))return validQrColors();
-  const base=/^#[0-9a-f]{6}$/i.test(theme?.hex||"")?theme.hex:"#1f2937";
-  const light=mixHex(base,"#ffffff",.93);
-  let dark=mixHex(base,"#000000",.22);
-  for(let t=.22;colorContrast(dark,light)<7&&t<.82;t+=.08)dark=mixHex(base,"#000000",t);
-  if(colorContrast(dark,light)<4.5)return["#111111","#ffffff"];
-  return[dark,light];
-}
+// QR colours are resolved by the unified card QR layer (js/jmx-qr/card-qr.js).
 function renderPublicShareCard(){
   const host=$id("publicShareThemeCard");if(!host)return QR_CARD_THEMES[0];
   const theme=selectedPublicTheme();host.style.background=theme.css;host.dataset.walletTheme=theme.id;
@@ -250,45 +237,28 @@ function renderPublicShareCard(){
   return theme;
 }
 
-function qrShareURL(){const canonical=CARD_ID==="main"?"https://jmxdigitalcard.com/":`https://jmxdigitalcard.com/c/${encodeURIComponent(CARD_ID)}`;const u=new URL(canonical);u.searchParams.set("src","qr");return u.href}
-function validQrColors(){
-  const valid=h=>/^#[0-9a-f]{6}$/i.test(h||"");const dark=valid(p.qrDarkColor)?p.qrDarkColor:"#111111",light=valid(p.qrLightColor)?p.qrLightColor:"#ffffff";
-  const rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];const hex=a=>"#"+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("");
-  const lum=h=>{const c=rgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*c[0]+.7152*c[1]+.0722*c[2]};const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
-  if(ratio(dark,light)>=4.5)return[dark,light];
-  const base=rgb(dark);for(let f=.85;f>=.2;f-=.05){const candidate=hex(base.map(v=>v*f));if(ratio(candidate,light)>=4.5)return[candidate,light]}
-  return["#111111","#ffffff"];
-}
-function publicQrSize(){return window.matchMedia("(max-width:390px)").matches?86:window.matchMedia("(max-width:640px)").matches?94:128}
-function buildQr(host,url,size,dark,light){
-  host.innerHTML="";
-  // Use qrcode.js only to calculate the QR matrix, then rasterize that matrix ourselves.
-  // This prevents desktop/tablet CSS or the library's fallback <img> from resampling/replacing
-  // the modules. The URL alone determines the matrix; viewport size only changes raster size.
-  const scratch=document.createElement("div");
-  const qr=new QRCode(scratch,{text:url,width:size,height:size,colorDark:dark,colorLight:light,correctLevel:QRCode.CorrectLevel.H});
-  const model=qr?._oQRCode,count=model?.getModuleCount?.();
-  if(!model||!count){host.append(...scratch.childNodes);return qr}
-  const quiet=4,total=count+quiet*2,canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{alpha:false});
-  canvas.width=size;canvas.height=size;ctx.imageSmoothingEnabled=false;ctx.fillStyle=light;ctx.fillRect(0,0,size,size);ctx.fillStyle=dark;
-  for(let row=0;row<count;row++)for(let col=0;col<count;col++)if(model.isDark(row,col)){
-    const x1=Math.round((col+quiet)*size/total),x2=Math.round((col+quiet+1)*size/total),y1=Math.round((row+quiet)*size/total),y2=Math.round((row+quiet+1)*size/total);
-    ctx.fillRect(x1,y1,Math.max(1,x2-x1),Math.max(1,y2-y1));
-  }
-  canvas.style.display="block";canvas.style.width=`${size}px`;canvas.style.height=`${size}px`;canvas.style.imageRendering="pixelated";canvas.setAttribute("aria-label",`QR code for ${url}`);canvas.dataset.qrUrl=url;canvas.dataset.qrModules=String(count);host.replaceChildren(canvas);return qr;
+// Unified QR layer (Sep 2026): the SAME targetUrl as before — cardQrTargetUrl() is the former
+// qrShareURL() body moved verbatim into js/jmx-qr/card-qr.js so the public card, the customer
+// editor preview and the platform dashboard preview all encode exactly the same URL.
+function qrShareURL(){return cardQrTargetUrl(CARD_ID)}
+// Business Logo QR comes ONLY from the admin-only card document (cards/{id}.qrBusinessLogo), never from the owner-writable profile.
+function publicQrCustomization(){return resolveCardQrCustomization({profile:p,allows:planAllows,businessLogo:p.__qrBusinessLogo||null})}
+function publicQrSize(){return recommendedCardQrSize(qrShareURL(),{mobile:window.matchMedia("(max-width:640px)").matches})}
+function publicQrOptions(theme,size){
+  const custom=publicQrCustomization();
+  return{targetUrl:qrShareURL(),customization:custom,logoMode:custom.logoMode,businessLogoUrl:custom.businessLogoUrl,themeColors:{primary:theme?.hex||"#1f2937"},size,label:"QR code for this digital business card"};
 }
 let publicQrRenderedSize=0,publicQrResizeInstalled=false;
-function initQR(){
-  const q=$id("qrCode");if(!q||typeof QRCode==="undefined")return;
-  const theme=renderPublicShareCard(),url=qrShareURL(),[dark,light]=themedQrColors(qrColorSourceTheme()),size=publicQrSize();
-  publicQrRenderedSize=size;buildQr(q,url,size,dark,light);
+async function initQR(){
+  const q=$id("qrCode");if(!q)return;
+  const theme=renderPublicShareCard(),size=publicQrSize(),opts=publicQrOptions(theme,size);
+  publicQrRenderedSize=size;
+  const shell=q.closest(".public-share-qr-shell");if(shell)shell.style.setProperty("--jmx-qr-size",`${size}px`);
+  try{window.__jmxCardQr=await renderCardQr(q,{...opts,accentHost:shell})}catch(e){console.error("JMX QR render failed",e)}
   if(!publicQrResizeInstalled){publicQrResizeInstalled=true;window.addEventListener("resize",()=>{const next=publicQrSize();if(next!==publicQrRenderedSize){window.clearTimeout(initQR._resizeTimer);initQR._resizeTimer=window.setTimeout(initQR,120)}})}
   const btn=$id("downloadQrButton");
-  if(btn){btn.hidden=!(effectivePublicPlan()==="Business"&&planAllows("qrDownload"));btn.onclick=()=>{
-    const exportHost=document.createElement("div");exportHost.style.cssText="position:fixed;left:-10000px;top:-10000px";document.body.appendChild(exportHost);
-    buildQr(exportHost,url,512,dark,light);
-    const canvas=exportHost.querySelector("canvas"),a=document.createElement("a");
-    a.download=`JMX-${CARD_ID}-QR.png`;a.href=canvas?.toDataURL("image/png")||"";if(a.href)a.click();exportHost.remove();trackMetric("qrDownload")
+  if(btn){btn.hidden=!(effectivePublicPlan()==="Business"&&planAllows("qrDownload"));btn.onclick=async()=>{
+    try{const {dataUrl}=await exportCardQrPng(publicQrOptions(theme,1024),1024);const a=document.createElement("a");a.download=`JMX-${CARD_ID}-QR.png`;a.href=dataUrl;a.click();trackMetric("qrDownload")}catch(e){console.error("QR download failed",e)}
   }}
 }
 function toast(m){let e=$id("toastMessage");if(!e){e=document.createElement("div");e.id="toastMessage";e.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:11px 16px;border-radius:12px;z-index:9999";document.body.appendChild(e)}e.textContent=m;e.style.display="block";clearTimeout(window._toast);window._toast=setTimeout(()=>e.style.display="none",2200)}

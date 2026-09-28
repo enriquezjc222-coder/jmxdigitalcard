@@ -1,7 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getFirestore, collection as fbCollection, doc as fbDoc, getDoc as fbGetDoc, getDocs as fbGetDocs, setDoc as fbSetDoc, deleteDoc as fbDeleteDoc, serverTimestamp as fbServerTimestamp, writeBatch as fbWriteBatch, query as fbQuery, where as fbWhere, deleteField as fbDeleteField } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-import { getStorage, ref as fbStorageRef, deleteObject as fbDeleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+import { getFirestore, collection as fbCollection, doc as fbDoc, getDoc as fbGetDoc, getDocs as fbGetDocs, setDoc as fbSetDoc, deleteDoc as fbDeleteDoc, serverTimestamp as fbServerTimestamp, writeBatch as fbWriteBatch, query as fbQuery, where as fbWhere, deleteField as fbDeleteField, limit as fbLimit } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getStorage, ref as fbStorageRef, deleteObject as fbDeleteObject, uploadBytes as fbUploadBytes, getDownloadURL as fbGetDownloadURL } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+import { cardQrTargetUrl, resolveCardQrCustomization, renderCardQr, cardThemeHex } from "./js/jmx-qr/card-qr.js";
+import { prepareBusinessLogo } from "./js/jmx-qr/qr-logo-upload.js";
+import { defaultFeatureControls as fcDefaults, mergeFeatureControls as fcMerge, resolveFeature, inheritedFeature } from "./js/feature-controls.js";
+import { basePlanName, effectivePlanName, resolveBasePlan } from "./js/plan-resolver.js";
+import { classifyCard } from "./js/inventory-classifier.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
 
 const firebaseConfig = {
@@ -39,7 +44,7 @@ let user = null;
 let cards = [];
 const PROTECTED_CARD_IDS = new Set(["BOSS"]);
 const FEATURE_DEFS = [
-  ["description","Description"],["saveContact","Save Contact"],["quickActions","Quick Actions"],["phone","Primary Phone"],["phone2","Second Phone"],["whatsapp","WhatsApp"],["email","Email"],["website","Website"],["location","Location"],["facebook","Facebook"],["instagram","Instagram"],["linkedin","LinkedIn"],["twitter","X / Twitter"],["tiktok","TikTok"],["youtube","YouTube"],["services","Services"],["gallery","Gallery"],["video","Featured Video"],["qr","QR Code"],["customQR","Custom QR"],["qrDownload","QR Download"],["finalCTA","Final CTA"],["businessLinks","Business Links"],["catalog","Catalog / PDF"],["customBusiness","Custom Business Link"],["analytics","Analytics"],["advancedAnalytics","Advanced Analytics"],["quickCapture","Quick Capture"],["leads","Leads / My Contacts"],["contactNotes","Contact Notes"],["meetingNotes","Meeting Notes"],["followUp","Follow-Up"],["csvExport","CSV Export"],["vcfDownload","VCF Download"],["contactMap","Contact Map"],["aiScanner","AI Business Card Scanner"],["autoIntroEmail","Auto-Intro Email"],["appleWallet","Apple Wallet"],["googleWallet","Google Wallet"],["googleWalletThemes","Google Wallet Themes"],["qrCardThemes","QR Card Themes"],["profileThemes","Profile Theme Colors"],["brandingRemoval","Branding Removal"],["advancedNetworkingInsights","Advanced Networking Insights"]
+  ["description","Description"],["saveContact","Save Contact"],["quickActions","Quick Actions"],["phone","Primary Phone"],["phone2","Second Phone"],["whatsapp","WhatsApp"],["email","Email"],["website","Website"],["location","Location"],["facebook","Facebook"],["instagram","Instagram"],["linkedin","LinkedIn"],["twitter","X / Twitter"],["tiktok","TikTok"],["youtube","YouTube"],["services","Services"],["gallery","Gallery"],["video","Featured Video"],["qr","QR Code"],["customQR","Custom QR (QR Visual Customization)"],["qrDownload","QR Download"],["businessLogoQr","Business Logo QR"],["finalCTA","Final CTA"],["businessLinks","Business Links"],["catalog","Catalog / PDF"],["customBusiness","Custom Business Link"],["analytics","Analytics"],["advancedAnalytics","Advanced Analytics"],["quickCapture","Quick Capture"],["leads","Leads / My Contacts"],["contactNotes","Contact Notes"],["meetingNotes","Meeting Notes"],["followUp","Follow-Up"],["csvExport","CSV Export"],["vcfDownload","VCF Download"],["contactMap","Contact Map"],["aiScanner","AI Business Card Scanner"],["autoIntroEmail","Auto-Intro Email"],["appleWallet","Apple Wallet"],["googleWallet","Google Wallet"],["googleWalletThemes","Google Wallet Themes"],["qrCardThemes","QR Card Themes"],["profileThemes","Profile Theme Colors"],["brandingRemoval","Branding Removal"],["advancedNetworkingInsights","Advanced Networking Insights"]
 ];
 const BASIC_FEATURE_DEFAULTS = new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr","profileThemes"]);
 const EXTERNAL_PENDING_FEATURES = new Set(["contactMap","autoIntroEmail","appleWallet","advancedNetworkingInsights"]);
@@ -65,19 +70,23 @@ function setDialogSaveState(message=""){
   if(b)b.disabled=!dialogDraftChanged();
   const st=$("clientDetailSaveStatus");if(st)st.textContent=message|| (dialogDraftChanged()?"Unsaved changes":"All changes saved");
 }
+const BUSINESS_ONLY_FEATURES=new Set(["customQR","qrDownload","businessLogoQr","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);
+// Feature permissions: one shared resolver (js/feature-controls.js) — GLOBAL → OVERRIDE → PLAN.
 function defaultFeatureControls(){
-  const global={},Basic={},Premium={},Business={};
-  const businessOnly=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);
-  FEATURE_DEFS.forEach(([key])=>{global[key]=true;Basic[key]=BASIC_FEATURE_DEFAULTS.has(key);Premium[key]=!businessOnly.has(key);Business[key]=true});
-  return {enabled:true,global,Basic,Premium,Business};
+  return fcDefaults(FEATURE_DEFS.map(([key])=>key),{basicDefaults:BASIC_FEATURE_DEFAULTS,businessOnly:BUSINESS_ONLY_FEATURES});
 }
+// Plan: one shared resolver (js/plan-resolver.js) — same answer as the public card,
+// the editor and Cloud Functions. Missing/unrecognised plan → Premium (legacy; what the
+// client has always seen publicly). Nothing is written unless an admin changes the plan.
 function basePlan(card){
-  return ["Basic","Premium","Business"].includes(card?.plan) ? card.plan : "Basic";
+  return basePlanName(card);
 }
 function effectivePlan(card){
-  if(card?.complimentaryBusiness===true) return "Business";
-  if(card?.complimentaryPremium===true) return "Premium";
-  return basePlan(card);
+  return effectivePlanName(card);
+}
+function legacyPlanNote(card){
+  const r=resolveBasePlan(card);
+  return r.source==="missing"?"legacy: no plan saved":r.source==="invalid"?`legacy: unrecognised plan "${String(r.raw).slice(0,24)}"`:"";
 }
 function complimentaryTier(card){
   if(card?.complimentaryBusiness===true) return "Business";
@@ -86,20 +95,14 @@ function complimentaryTier(card){
 }
 function businessCountsAsActive(card){return effectivePlan(card)==="Business" && ["activated","suspended"].includes(card?.status) && card?.subscription?.status!=="canceled";}
 let featureControls = defaultFeatureControls();
+// What the card inherits with no client override: GLOBAL OFF wins, then the plan.
 function platformAllowsForCard(card,key){
-  // Hierarchy is always GLOBAL -> PLAN -> CLIENT. A client override may restrict a
-  // feature, but it can never bypass a Global or Plan OFF setting.
-  if(featureControls.enabled===false){const plan=effectivePlan(card);if(plan==="Business")return true;if(plan==="Premium")return !new Set(["quickCapture","leads","advancedAnalytics"]).has(key);return BASIC_FEATURE_DEFAULTS.has(key)}
-  if(featureControls.global?.[key]===false)return false;
-  const plan=effectivePlan(card),bucket=plan==="Basic"?featureControls.Basic:plan==="Business"?featureControls.Business:featureControls.Premium;
-  return bucket?.[key]!==false;
+  return inheritedFeature({controls:featureControls,plan:effectivePlan(card),key,basicDefaults:BASIC_FEATURE_DEFAULTS});
 }
+// Effective permission: GLOBAL OFF → client override (ENABLED/DISABLED) → plan (INHERIT).
+// A Global OFF can never be bypassed; a client override can grant or restrict a plan feature.
 function clientAllowsFeature(card,key){
-  if(featureControls.global?.[key]===false)return false;
-  const override=card?.featureOverrides?.[key];
-  if(override===true)return true;
-  if(override===false)return false;
-  return platformAllowsForCard(card,key);
+  return resolveFeature({controls:featureControls,plan:effectivePlan(card),overrides:card?.featureOverrides,key,basicDefaults:BASIC_FEATURE_DEFAULTS});
 }
 
 
@@ -212,7 +215,7 @@ async function loadCards() {
     const base = cardData || {
       inventoryVersion: inventoryData.inventoryVersion || 2,
       status: inventoryData.status || "available",
-      plan: inventoryData.plan || "Basic",
+      plan: inventoryData.plan,
       nfcStatus: inventoryData.nfcStatus || admin.nfcStatus || "not-programmed",
       requiresActivationCode: inventoryData.requiresActivationCode !== false,
       complimentaryPremium: false,
@@ -512,6 +515,7 @@ async function openClientDialog(id, preserveDraft=false) {
   const viewCard=dialogCardFromDraft(card);
   const claimSnap = await getDoc(doc(db, "cardClaims", id));
   const profile = card.profile || {};
+  const bizLogo = (card.qrBusinessLogo && typeof card.qrBusinessLogo === "object" && card.qrBusinessLogo.url) ? card.qrBusinessLogo : null;
   const claim = claimSnap.exists() ? claimSnap.data() : {};
   const admin = card.admin || {};
   const owner = card.owner || {};
@@ -549,7 +553,7 @@ async function openClientDialog(id, preserveDraft=false) {
         <h3>Plan & Complimentary Access</h3>
         <p class="subtitle small">Changes below are staged until you press Save Changes. Complimentary access never erases the client's base plan or profile data.</p>
         <div class="access-status-grid">
-          <div><span>Base plan</span><strong>${esc(basePlan(viewCard))}</strong></div>
+          <div><span>Base plan</span><strong>${esc(basePlan(viewCard))}</strong>${legacyPlanNote(card)&&clientDialogDraft?.basePlan===clientDialogOriginal?.basePlan?`<small class="legacy-plan-note" data-legacy-plan-note>${esc(legacyPlanNote(card))}</small>`:""}</div>
           <div><span>Current access</span><strong>${esc(effective)}</strong></div>
         </div>
         <div class="plan-choice-row" role="group" aria-label="Change base plan">
@@ -581,6 +585,38 @@ async function openClientDialog(id, preserveDraft=false) {
             const inherited=platformAllowsForCard(viewCard,key),raw=viewCard.featureOverrides?.[key],clientOn=raw===true?true:raw===false?false:inherited,globalOn=featureControls.global?.[key]!==false;
             return `<label class="feature-switch-row ${globalOn?"":"master-off"} ${pending?"integration-pending":""}"><span><strong>${esc(label)}</strong><small>${pending?"External integration pending — setting can be stored for this client":(raw===true?"CLIENT OVERRIDE ON":raw===false?"CLIENT OVERRIDE OFF":`Inherited from ${effectivePlan(viewCard)}: ${inherited?"ON":"OFF"}`)}</small></span><input type="checkbox" data-client-feature="${esc(key)}" ${clientOn?"checked":""} ${globalOn&&!pending?"":"disabled"}><i class="switch-ui" aria-hidden="true"></i></label>`
           }).join("")}
+        </div>
+      </section>
+      <section class="detail-panel jmx-card-qr-panel" data-card-qr-panel>
+        <h3>Card QR (JMX)</h3>
+        <p class="subtitle small">Same QR engine as the public card and the customer editor. The QR always opens <strong class="break-anywhere">${esc(cardQrTargetUrl(id))}</strong> — styling never changes the URL, Card ID, NFC or identity.</p>
+        <div class="jmx-card-qr-admin-row">
+          <div class="jmx-card-qr-admin-shell"><div id="clientCardQrPreview" class="jmx-card-qr-admin-canvas" data-card-qr-preview></div></div>
+          <div class="detail-list jmx-card-qr-admin-facts" id="clientCardQrFacts"><div><span>QR</span><strong>Preparing…</strong></div></div>
+        </div>
+        <div class="jmx-card-qr-admin-logo">
+          <h4>Business Logo QR <span class="subtitle small">(platform admin only)</span></h4>
+          <div class="jmx-card-qr-admin-logo-row">
+            ${bizLogo?.url?`<img class="jmx-card-qr-admin-thumb" src="${esc(bizLogo.url)}" alt="Current business logo for the QR">`:`<span class="subtitle small">No business logo uploaded.</span>`}
+            <label class="secondary-button jmx-card-qr-upload"><i class="fa-solid fa-upload"></i> ${bizLogo?.url?"Replace logo":"Upload logo"}<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-qr-logo-file hidden></label>
+            ${bizLogo?.url?`<button type="button" class="secondary-button" data-qr-logo-remove>Remove logo</button>`:""}
+          </div>
+          <div class="jmx-card-qr-mode-row">
+            <label class="jmx-card-qr-mode"><span>QR center logo</span>
+              <select data-qr-logo-mode ${bizLogo?.url?"":"disabled"}>
+                <option value="jmx" ${bizLogo?.url&&bizLogo.mode!=="jmx"?"":"selected"}>Use JMX emblem</option>
+                <option value="business" ${bizLogo?.url&&bizLogo.mode!=="jmx"?"selected":""}>Use business logo</option>
+              </select>
+            </label>
+            <label class="jmx-card-qr-mode"><span>Logo colours</span>
+              <select data-qr-logo-colormode ${bizLogo?.url&&bizLogo.maskUrl?"":"disabled"}>
+                <option value="original" ${bizLogo?.colorMode==="monochrome"?"":"selected"}>Preserve original colours</option>
+                <option value="monochrome" ${bizLogo?.colorMode==="monochrome"?"selected":""}>Monochrome (QR colour)</option>
+              </select>
+            </label>
+          </div>
+          <p class="subtitle small">Saved on the card record (admin-only): cards/${esc(id)}.qrBusinessLogo. The client cannot upload, replace or switch it. It is shown only while “Business Logo QR” is ON for this client; turning the feature OFF keeps the logo and its settings and shows the JMX emblem.</p>
+          <p id="clientCardQrStatus" class="client-save-status" aria-live="polite"></p>
         </div>
       </section>
       <section class="detail-panel ai-client-limit-panel">
@@ -620,6 +656,7 @@ async function openClientDialog(id, preserveDraft=false) {
   `;
   if (!dialog.open) dialog.showModal();
   setDialogSaveState();
+  mountClientCardQr(id, card, viewCard);
 }
 
 async function saveClientDialogChanges(id){
@@ -632,7 +669,9 @@ async function saveClientDialogChanges(id){
   const baseStatus=originalHadGift?(card.preGiftSubscriptionStatus||"none"):(card.subscription?.status||"none");
   const baseSource=originalHadGift?(card.preGiftSubscriptionSource||"manual"):(card.subscription?.source||"manual");
   const tier=clientDialogDraft.complimentaryBusiness?"Business":clientDialogDraft.complimentaryPremium?"Premium":null;
-  const payload={plan:clientDialogDraft.basePlan,featureOverrides:{...clientDialogDraft.featureOverrides},aiScannerMonthlyLimit:{...(clientDialogDraft.aiScannerMonthlyLimit||{mode:"disabled",count:0})},complimentaryPremium:tier==="Premium",complimentaryBusiness:tier==="Business",updatedAt:serverTimestamp()};
+  const planChanged=clientDialogDraft.basePlan!==clientDialogOriginal.basePlan;
+  // plan is written only when the admin changed it (a legacy card without plan keeps its data as-is)
+  const payload={...(planChanged?{plan:clientDialogDraft.basePlan}:{}),featureOverrides:{...clientDialogDraft.featureOverrides},aiScannerMonthlyLimit:{...(clientDialogDraft.aiScannerMonthlyLimit||{mode:"disabled",count:0})},complimentaryPremium:tier==="Premium",complimentaryBusiness:tier==="Business",updatedAt:serverTimestamp()};
   if(tier){
     payload.complimentaryBasePlan=clientDialogDraft.basePlan;payload.preGiftSubscriptionStatus=baseStatus;payload.preGiftSubscriptionSource=baseSource;
     payload.subscription={...(card.subscription||{}),status:"active",source:"complimentary",complimentaryTier:tier};
@@ -642,7 +681,7 @@ async function saveClientDialogChanges(id){
   }
   try{
     const batch=writeBatch(db);batch.set(doc(db,"cards",id),payload,{merge:true});
-    if(clientDialogDraft.basePlan!==basePlan(card))batch.set(doc(db,"inventory",id),{plan:clientDialogDraft.basePlan,updatedAt:serverTimestamp()},{merge:true});
+    if(planChanged)batch.set(doc(db,"inventory",id),{plan:clientDialogDraft.basePlan,updatedAt:serverTimestamp()},{merge:true});
     await batch.commit();await loadCards();renderNfcCenter();
     clientDialogDraft=null;clientDialogOriginal=null;
     if($("clientDetailDialog").open)await openClientDialog(id,false);
@@ -747,6 +786,7 @@ async function releaseForReuse(id) {
     previousClaim: claimSnap.exists() ? claimSnap.data() : null,
     previousProfile: profileSnap.exists() ? profileSnap.data() : null,
     previousAdmin: adminSnap.exists() ? adminSnap.data() : null,
+    previousQrBusinessLogo: card.qrBusinessLogo || null,
     previousStats: card.stats || {},
     analyticsTransitionDate: "2026-08-26"
   });
@@ -761,6 +801,9 @@ async function releaseForReuse(id) {
     identityMappedAt: deleteField(),
     activatedAt: deleteField(),
     soldAt: deleteField(),
+    // the next client must not inherit the previous client's Business Logo QR
+    // (kept in the release snapshot above; the files stay in Storage for audit)
+    qrBusinessLogo: deleteField(),
     updatedAt: serverTimestamp()
   }, { merge: true });
   batch.set(doc(db, "profiles", id), blankProfile(), { merge: false });
@@ -890,11 +933,53 @@ async function updateStatus(id, next) {
   await loadCards();
 }
 
+// ---------------------------------------------------------------------------
+// Inventory safety guard (delete / regenerate). Reads EVERY relationship of the card
+// fresh from Firestore and classifies it with the shared read-only classifier
+// (js/inventory-classifier.js). Any reference (owner, used code, NFC device/batch,
+// identity, Wallet, leads, analytics, history, client data, programmed physical tag…)
+// blocks the action. Nothing is written by the guard.
+// ---------------------------------------------------------------------------
+async function loadCardBundle(id){
+  const one=(ref)=>getDoc(ref).then(s=>s.exists()?s.data():null);
+  const many=(q)=>getDocs(q).then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
+  const n=(q)=>getDocs(q).then(s=>s.size??s.docs.length);
+  const [card,inventory,profile,admin,owner,claim,stats,aiTotals,activity,nfcDevices,nfcBatches,accounts,identityProfiles,leads,contacts,aiHistory,releases,monthly,daily,media,events,prevEvents]=await Promise.all([
+    one(doc(db,"cards",id)),one(doc(db,"inventory",id)),one(doc(db,"profiles",id)),one(doc(db,"cardAdmin",id)),one(doc(db,"cardOwners",id)),one(doc(db,"cardClaims",id)),one(doc(db,"cardStats",id)),one(doc(db,"aiScannerTotals",id)),one(doc(db,"ownerActivity",id)),
+    many(query(collection(db,"nfcDevices"),where("cardId","==",id))),many(query(collection(db,"nfcBatches"),where("cardId","==",id))),
+    many(query(collection(db,"accounts"),where("cardIds","array-contains",id))),many(query(collection(db,"identityProfiles"),where("primaryCardId","==",id))),
+    n(query(collection(db,"leads",id,"items"),fbLimit(1))),n(query(collection(db,"contacts",id,"items"),fbLimit(1))),n(query(collection(db,"aiScannerHistory",id,"items"),fbLimit(1))),
+    n(query(collection(db,"cardHistory",id,"releases"),fbLimit(1))),n(query(collection(db,"monthlyStats"),where("cardId","==",id),fbLimit(1))),n(query(collection(db,"dailyStats"),where("cardId","==",id),fbLimit(1))),
+    n(query(collection(db,"cards",id,"media"),fbLimit(1))),n(query(collection(db,"nfcDeviceEvents"),where("cardId","==",id),fbLimit(1))),n(query(collection(db,"nfcDeviceEvents"),where("previousCardId","==",id),fbLimit(1)))
+  ]);
+  return {id,card,inventory,profile,admin,owner,claim,stats,nfcDevices,nfcBatches,accounts,identityProfiles,counts:{leads,contacts,aiScannerHistory:aiHistory,aiScannerTotals:aiTotals?1:0,releases,monthlyStats:monthly,dailyStats:daily,media,storageFiles:0,nfcEvents:events+prevEvents,identityAuditLogs:0,ownerActivity:activity?1:0}};
+}
+async function guardInventoryAction(id,action){
+  let bundle,result;
+  try{bundle=await loadCardBundle(id);result=classifyCard(bundle)}catch(e){console.error("Inventory guard failed",e?.code||e?.message);alert(`${action} cancelled: the card's references could not be verified (${e?.code||"read error"}). Nothing was changed.`);return null}
+  if(result.blockers.length||!["IN_STOCK","ORPHAN_FRAGMENT","UNREACHABLE_ID","UNREACHABLE_FRAGMENT"].includes(result.category)){
+    alert(`${action} blocked for ${id} (${result.category}).\n\nThis card is still referenced or is not unused stock:\n• ${(result.blockers.length?result.blockers:result.reasons).slice(0,12).join("\n• ")}\n\nNothing was changed.`);
+    return null;
+  }
+  return {bundle,result};
+}
+function downloadDeletionBackup(id,bundle,reason){
+  const payload={kind:"jmx-card-deletion-backup",cardId:id,url:`https://jmxdigitalcard.com/c/${id}`,reason,exportedAt:new Date().toISOString(),exportedBy:user?.uid||"",documents:{[`cards/${id}`]:bundle.card,[`inventory/${id}`]:bundle.inventory,[`profiles/${id}`]:bundle.profile,[`cardAdmin/${id}`]:bundle.admin}};
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,(k,v)=>v&&typeof v==="object"&&typeof v.toDate==="function"?v.toDate().toISOString():v,2)],{type:"application/json"}));a.download=`JMX-backup-${id}-${Date.now()}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  window.__jmxLastDeletionBackup=payload;
+}
+
 async function removeAvailable(id) {
   const card = cards.find((c) => c.id === id);
   if (PROTECTED_CARD_IDS.has(id)) return alert(`${id} is protected and cannot be deleted.`);
   if (!card || card.status !== "available") return;
-  if (!confirm(`Delete unused NFC ${id}?`)) return;
+  const guard = await guardInventoryAction(id, "Delete");
+  if (!guard) return;
+  if (!confirm(`Delete ${id}?\n\n${guard.result.category==="IN_STOCK"?"This is VALID unused stock (not programmed, no client, no references). Delete it only if this URL will never be sold.":guard.result.reasons[0]}\n\nA JSON backup of the 4 documents is downloaded first.`)) return;
+  // re-validate right before writing (never trust the first read)
+  const again = await guardInventoryAction(id, "Delete");
+  if (!again || JSON.stringify(again.result.references) !== JSON.stringify(guard.result.references)) return alert(`Delete cancelled: ${id} changed while you were confirming. Nothing was changed.`);
+  downloadDeletionBackup(id, again.bundle, `manual delete from dashboard (${again.result.category})`);
   const batch = writeBatch(db);
   batch.delete(doc(db, "cards", id));
   batch.delete(doc(db, "profiles", id));
@@ -908,6 +993,7 @@ async function regenerate(id) {
   const card = cards.find((c) => c.id === id);
   if (PROTECTED_CARD_IDS.has(id)) return alert(`${id} is protected and cannot be regenerated.`);
   if (!card || card.status !== "available") return;
+  if (!await guardInventoryAction(id, "Regenerate")) return;
   const next = randomCode();
   if (!confirm(`Regenerate ${id} as ${next}? The old NFC URL will stop working.`)) return;
   const [profile, meta] = await Promise.all([
@@ -1083,10 +1169,10 @@ $("clientDetailBody")?.addEventListener("change", async (event) => {
     const featureKey=walletSelect.dataset.clientFeatureSelect;
     if(walletSelect.value==="inherit") delete clientDialogDraft.featureOverrides[featureKey];
     else clientDialogDraft.featureOverrides[featureKey]=walletSelect.value==="on";
-    setDialogSaveState();return;
+    setDialogSaveState();refreshClientCardQrFromDraft();return;
   }
   const featureInput=event.target.closest("[data-client-feature]");
-  if(featureInput){clientDialogDraft.featureOverrides[featureInput.dataset.clientFeature]=featureInput.checked;setDialogSaveState();return;}
+  if(featureInput){clientDialogDraft.featureOverrides[featureInput.dataset.clientFeature]=featureInput.checked;setDialogSaveState();refreshClientCardQrFromDraft();return;}
   const limitMode=event.target.closest("[data-ai-client-limit-mode]");
   if(limitMode){clientDialogDraft.aiScannerMonthlyLimit={mode:limitMode.value,count:Number(document.querySelector("[data-ai-client-limit-count]")?.value||50)};const count=document.querySelector("[data-ai-client-limit-count]");if(count)count.disabled=limitMode.value!=="number";setDialogSaveState();return;}
   const limitCount=event.target.closest("[data-ai-client-limit-count]");
@@ -1100,8 +1186,7 @@ $("clientDetailBody")?.addEventListener("change", async (event) => {
 
 
 function mergeFeatureControls(raw={}){
-  const d=defaultFeatureControls();
-  return {enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}};
+  return fcMerge(raw,defaultFeatureControls());
 }
 function renderFeatureControls(){
   const enabled=$("featureControlsEnabled"); if(enabled) enabled.checked=featureControls.enabled!==false;
@@ -1783,7 +1868,8 @@ $("refreshActivityLog")?.addEventListener("click",loadActivityLog);$("activitySe
     gallery:"Muestra u oculta la Galería de Fotos del perfil.",
     video:"Muestra u oculta la sección de video destacado del perfil.",
     qr:"Muestra u oculta el código QR del perfil.",
-    customQR:"Permite o bloquea las opciones para personalizar el código QR.",
+    customQR:"QR Visual Customization: permite personalizar el color del código QR (y del emblema JMX). Apagado = QR negro, fondo blanco, JMX centrado.",
+    businessLogoQr:"Business Logo QR: permite mostrar el logo de la empresa (subido solo por el administrador de la plataforma) en el centro del QR en lugar del emblema JMX. Apagarlo no borra el logo: se muestra JMX y se restaura al encenderlo. La URL del QR no cambia.",
     qrDownload:"Permite o bloquea la descarga del código QR.",
     finalCTA:"Muestra u oculta la llamada a la acción final del perfil.",
     businessLinks:"Muestra u oculta los enlaces comerciales adicionales del perfil.",
@@ -1928,3 +2014,79 @@ $("refreshActivityLog")?.addEventListener("click",loadActivityLog);$("activitySe
   document.addEventListener("click",e=>{if(!suppressNextClick)return;suppressNextClick=false;e.preventDefault();e.stopImmediatePropagation();},{capture:true});
   window.addEventListener("scroll",()=>{if(current&&tip?.classList.contains("is-visible"))place(current)},true);window.addEventListener("resize",()=>{if(current&&tip?.classList.contains("is-visible"))place(current)});
 })();
+
+// ---------------------------------------------------------------------------
+// Unified JMX card QR — platform dashboard preview + Business Logo QR controls.
+// Uses the SAME engine as the public card (js/jmx-qr/card-qr.js).
+// Business Logo QR is ADMIN-ONLY end to end:
+//   • settings: cards/{id}.qrBusinessLogo (firestore.rules: card writes are admin-only)
+//   • files:    cards/{id}/qrBusinessLogo/{ts}-optimized.png + {ts}-mask.png
+//               (storage.rules: admin-only path; the owner keeps all other media permissions)
+// Only the qrBusinessLogo field is written (merge); nothing else on the card changes.
+// ---------------------------------------------------------------------------
+const clientCardQrStatus={};
+// Staged (unsaved) override toggles are reflected in the QR preview immediately.
+function refreshClientCardQrFromDraft(){const id=$("clientDetailDialog")?.dataset.cardId;const card=cards.find(c=>c.id===id);if(card&&$("clientCardQrPreview"))mountClientCardQr(id,card,dialogCardFromDraft(card),{previewOnly:true})}
+function friendlyQrLogoError(err){
+  if(err?.name==="LogoError")return err.message;
+  const code=String(err?.code||"");
+  if(code.includes("permission-denied")||code.includes("unauthorized"))return "Permission denied (platform admin only).";
+  if(code.includes("quota")||code.includes("retry-limit"))return "Storage is busy — try again.";
+  return "Unexpected error — nothing was changed.";
+}
+async function mountClientCardQr(id, card, viewCard, {previewOnly=false}={}){
+  const host=$("clientCardQrPreview"),facts=$("clientCardQrFacts");if(!host||!facts)return;
+  const profile=card.profile||{},allows=(key)=>clientAllowsFeature(viewCard,key);
+  const bizLogo=(card.qrBusinessLogo&&typeof card.qrBusinessLogo==="object"&&card.qrBusinessLogo.url)?card.qrBusinessLogo:null;
+  const custom=resolveCardQrCustomization({profile,allows,businessLogo:bizLogo}),url=cardQrTargetUrl(id);
+  const status=$("clientCardQrStatus");
+  const setStatus=(m,t="")=>{clientCardQrStatus[id]={m,t};const el=$("clientCardQrStatus");if(el){el.textContent=m;el.className=`client-save-status ${t}`}};
+  if(clientCardQrStatus[id]&&status){status.textContent=clientCardQrStatus[id].m;status.className=`client-save-status ${clientCardQrStatus[id].t}`}
+  try{
+    const r=await renderCardQr(host,{targetUrl:url,customization:custom,logoMode:custom.logoMode,businessLogoUrl:custom.businessLogoUrl,themeColors:{primary:cardThemeHex(profile,allows)},size:160,accentHost:host.parentElement,label:`QR code for card ${id}`});
+    if(r.superseded)return;
+    const row=(k,v)=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`;
+    const bizState=!allows("businessLogoQr")?(bizLogo?"OFF (logo kept, JMX shown)":"OFF"):!bizLogo?"ON (no logo uploaded)":bizLogo.mode==="jmx"?"ON (JMX selected)":"ON";
+    facts.innerHTML=row("QR Visual Customization",custom.enabled?"ON":"OFF (default black & white)")+row("Business Logo QR",bizState)+row("Center logo",r.logo==="business"?`Business logo${r.logoColorMode==="monochrome"?" (monochrome)":""}`:r.logo==="jmx"?"JMX emblem":"none")+row("Logo size",r.logo==="none"?"—":`${Math.round(r.logoScaleOfTotal*100)}% of QR width${r.logoReduced?" (auto-reduced)":""}`)+row("QR version",`${r.version} · ECC ${r.errorCorrection}`)+row("QR colour",r.foregroundColor)+row("Verification",`${r.verification==="model"?"decoded (model)":"decoded (pixels + model)"} → exact URL`)+(r.usedFallback?row("Fallback",r.fallback||"yes"):"");
+  }catch(e){console.error("Card QR preview failed",e?.message||e);facts.innerHTML=`<div><span>QR</span><strong>Preview unavailable</strong></div>`}
+  if(previewOnly)return; // handlers are already bound for this render of the dialog
+  const panel=host.closest("[data-card-qr-panel]");
+  const cardRecordExists=!card.recoveredInventory;
+  const refresh=async(next)=>{if(next)card.qrBusinessLogo=next;else delete card.qrBusinessLogo;await openClientDialog(id,true)};
+  // merge write of the qrBusinessLogo map only (deep merge keeps the other logo fields)
+  const saveBiz=(patch)=>setDoc(doc(db,"cards",id),{qrBusinessLogo:{...patch,updatedAt:new Date().toISOString(),updatedBy:user?.uid||""}},{merge:true});
+  const guard=()=>{if(!cardRecordExists){setStatus("This card has no card record yet — activate or repair it first.","error");return false}return true};
+  panel?.querySelector("[data-qr-logo-mode]")?.addEventListener("change",async(e)=>{
+    if(!guard()||!bizLogo)return;const mode=e.target.value==="business"?"business":"jmx";setStatus("Saving…");
+    try{await saveBiz({mode});setStatus("Saved","ok");await refresh({...bizLogo,mode})}catch(err){console.error("QR logo mode not saved",err?.code||err?.message);setStatus(`Not saved: ${friendlyQrLogoError(err)}`,"error");e.target.value=bizLogo.mode==="jmx"?"jmx":"business"}
+  });
+  panel?.querySelector("[data-qr-logo-colormode]")?.addEventListener("change",async(e)=>{
+    if(!guard()||!bizLogo)return;const colorMode=e.target.value==="monochrome"?"monochrome":"original";setStatus("Saving…");
+    try{await saveBiz({colorMode});setStatus("Saved","ok");await refresh({...bizLogo,colorMode})}catch(err){console.error("QR logo colour not saved",err?.code||err?.message);setStatus(`Not saved: ${friendlyQrLogoError(err)}`,"error");e.target.value=bizLogo.colorMode==="monochrome"?"monochrome":"original"}
+  });
+  panel?.querySelector("[data-qr-logo-file]")?.addEventListener("change",async(e)=>{
+    const file=e.target.files?.[0];e.target.value="";if(!file||!guard())return;setStatus("Checking image…");
+    const uploaded=[];
+    try{
+      const prepared=await prepareBusinessLogo(file);
+      setStatus("Uploading…");
+      const stamp=Date.now(),path=`cards/${id}/qrBusinessLogo/${stamp}-optimized.png`,maskPath=`cards/${id}/qrBusinessLogo/${stamp}-mask.png`;
+      const meta={contentType:"image/png",cacheControl:"public,max-age=31536000"};
+      const ref=storageRef(storage,path);await fbUploadBytes(ref,prepared.blob,meta);uploaded.push(path);
+      const maskRef=storageRef(storage,maskPath);await fbUploadBytes(maskRef,prepared.maskBlob,meta);uploaded.push(maskPath);
+      const [logoUrl,maskUrl]=await Promise.all([fbGetDownloadURL(ref),fbGetDownloadURL(maskRef)]);
+      const previous=[bizLogo?.storagePath,bizLogo?.maskStoragePath].filter(Boolean);
+      const next={url:logoUrl,maskUrl,storagePath:path,maskStoragePath:maskPath,mode:"business",colorMode:bizLogo?.colorMode==="monochrome"?"monochrome":"original",width:prepared.metadata.width,height:prepared.metadata.height,bytes:prepared.metadata.bytes,hasTransparency:prepared.metadata.hasTransparency,sourceName:String(prepared.metadata.source?.name||"").slice(0,120),uploadedAt:new Date().toISOString(),uploadedBy:user?.uid||""};
+      await saveBiz(next);
+      // replaced files are removed only after the new record is saved
+      previous.filter(pth=>!uploaded.includes(pth)).forEach(pth=>deleteObject(storageRef(storage,pth)).catch(()=>{}));
+      setStatus(prepared.metadata.sanitized?.length?"Logo saved (unsafe SVG content removed).":"Logo saved","ok");
+      await refresh({...(bizLogo||{}),...next});
+    }catch(err){console.error("QR business logo upload failed",err?.code||err?.message);uploaded.forEach(pth=>deleteObject(storageRef(storage,pth)).catch(()=>{}));setStatus(`Upload rejected: ${friendlyQrLogoError(err)}`,"error")}
+  });
+  panel?.querySelector("[data-qr-logo-remove]")?.addEventListener("click",async(e)=>{
+    const btn=e.currentTarget;if(btn.dataset.armed!=="1"){btn.dataset.armed="1";btn.textContent="Click again to remove";setTimeout(()=>{if(btn.isConnected){btn.dataset.armed="";btn.textContent="Remove logo"}},5000);return}
+    if(!guard())return;setStatus("Removing…");
+    try{const previous=[bizLogo?.storagePath,bizLogo?.maskStoragePath].filter(Boolean);await setDoc(doc(db,"cards",id),{qrBusinessLogo:deleteField()},{merge:true});previous.forEach(pth=>deleteObject(storageRef(storage,pth)).catch(()=>{}));setStatus("Logo removed — the QR shows the JMX emblem","ok");await refresh(null)}catch(err){console.error("QR business logo not removed",err?.code||err?.message);setStatus(`Not removed: ${friendlyQrLogoError(err)}`,"error")}
+  });
+}

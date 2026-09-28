@@ -1,6 +1,7 @@
 exclude:
   - functions
   - docs
+  - tools
   - "*.txt"
   - "*.md"
   - "*.ps1"

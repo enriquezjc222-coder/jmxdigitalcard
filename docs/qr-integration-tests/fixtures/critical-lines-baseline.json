@@ -1,0 +1,52 @@
+{
+ "auth:admin.js": {
+  "lines": 18,
+  "sha256": "05a7041cba96e98f1b9c03c9062b7048ffb6b5be0be4459e8158666018c9d11c",
+  "re": "getAuth|onAuthStateChanged|GoogleAuthProvider|signInWith|signOut|setPersistence|browserLocalPersistence|authDomain|firebaseConfig|initializeApp\\("
+ },
+ "auth:dashboard.js": {
+  "lines": 15,
+  "sha256": "7d597e65121ec761b8dd847b15c25e8235254cdaf785a3739de9796ac1ca7d95",
+  "re": "getAuth|onAuthStateChanged|GoogleAuthProvider|signInWith|signOut|setPersistence|browserLocalPersistence|authDomain|firebaseConfig|initializeApp\\("
+ },
+ "auth:login.js": {
+  "lines": 10,
+  "sha256": "b3abe1a96c2d3a29ad4f233279f17fdf198d2014420a70cd0fcd886177017ddd",
+  "re": "getAuth|onAuthStateChanged|GoogleAuthProvider|signInWith|signOut|setPersistence|browserLocalPersistence|authDomain|firebaseConfig|initializeApp\\("
+ },
+ "auth:activate.js": {
+  "lines": 8,
+  "sha256": "444baf6d789c1c5171588ddc39f04f1926c05aac319ead025ce5b692a46afcdb",
+  "re": "getAuth|onAuthStateChanged|GoogleAuthProvider|signInWith|signOut|setPersistence|browserLocalPersistence|authDomain|firebaseConfig|initializeApp\\("
+ },
+ "auth:device-activate.js": {
+  "lines": 4,
+  "sha256": "3b6cda3b59dfebdf4ec2ee9bd2e5a0e50915c2c26ea95930e8178bd135c3d24c",
+  "re": "getAuth|onAuthStateChanged|GoogleAuthProvider|signInWith|signOut|setPersistence|browserLocalPersistence|authDomain|firebaseConfig|initializeApp\\("
+ },
+ "auth:landing.js": {
+  "lines": 2,
+  "sha256": "83edb76f3703554f7afffab665be359c4ca5df8c563041a0fd45c7d34c8f9bd0",
+  "re": "getAuth|onAuthStateChanged|GoogleAuthProvider|signInWith|signOut|setPersistence|browserLocalPersistence|authDomain|firebaseConfig|initializeApp\\("
+ },
+ "wallet:functions/index.js": {
+  "lines": 50,
+  "sha256": "bec715c5126d5b2612e7082a7d98e0d051e471f1005dba8b0f1c443ece7a1072",
+  "re": "[Ww]allet"
+ },
+ "walletClient:admin.js": {
+  "lines": 5,
+  "sha256": "0646cf2c3cc360d010eedb7f44ab002f277d8a3e3f12b2b931a37fed3595d40e",
+  "re": "createGoogleWalletPass|saveGoogleWalletTheme|googleWalletObjectId|googleWalletStatus"
+ },
+ "nfc:functions/index.js": {
+  "lines": 19,
+  "sha256": "efca2ce8ec5ec503cbe7e62d1a6b29d7fab2083d12c605a237bedbefdb3d8576",
+  "re": "resolveNfcDevice|activateNfcDevice|activateNfcBatch|issueNfcDeviceTokens|recordNfcTap|nfcDevicePublic|returnNfcCardToInventory|deleteNfcClientCard|tokenHash"
+ },
+ "nfc:dashboard.js": {
+  "lines": 21,
+  "sha256": "d0da9e116729806ad70bddf351f0fc33a24c7ce42b0e17d7a630587623c1d770",
+  "re": "resolveNfcDevice|activateNfcDevice|activateNfcBatch|issueNfcDeviceTokens|recordNfcTap|nfcDevicePublic|returnNfcCardToInventory|deleteNfcClientCard|tokenHash"
+ }
+}

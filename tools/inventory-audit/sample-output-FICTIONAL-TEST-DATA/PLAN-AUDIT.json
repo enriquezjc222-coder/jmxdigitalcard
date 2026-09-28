@@ -1,0 +1,101 @@
+{
+ "count": 2,
+ "missing": 1,
+ "invalid": 1,
+ "nfcTypes": [
+  "card",
+  "sticker",
+  "keychain",
+  "bracelet",
+  "ring",
+  "plate",
+  "tag",
+  "other"
+ ],
+ "rows": [
+  {
+   "id": "LEG09",
+   "status": "activated",
+   "rawPlan": null,
+   "source": "missing",
+   "complimentary": null,
+   "hints": {
+    "inventoryPlan": null,
+    "cardAdminPlan": null,
+    "complimentaryBasePlan": null,
+    "accountPlan": "Basic"
+   },
+   "before": {
+    "publicCard": "Premium",
+    "editor": "Premium",
+    "dashboard": "Basic",
+    "cloudFunctions": "Basic"
+   },
+   "after": {
+    "everywhere": "Premium"
+   },
+   "dashboardAndServerFeatureChanges": [
+    "phone2",
+    "website",
+    "instagram",
+    "linkedin",
+    "twitter",
+    "tiktok",
+    "youtube",
+    "services",
+    "gallery",
+    "video",
+    "finalCTA",
+    "businessLinks",
+    "catalog",
+    "customBusiness",
+    "analytics"
+   ],
+   "serverGatedChanges": [],
+   "nfcImpact": [],
+   "recommendation": "no action needed (public behaviour unchanged)"
+  },
+  {
+   "id": "LEG10",
+   "status": "activated",
+   "rawPlan": "gold",
+   "source": "invalid",
+   "complimentary": null,
+   "hints": {
+    "inventoryPlan": null,
+    "cardAdminPlan": null,
+    "complimentaryBasePlan": null,
+    "accountPlan": "gold"
+   },
+   "before": {
+    "publicCard": "Premium",
+    "editor": "Premium",
+    "dashboard": "Basic",
+    "cloudFunctions": "Basic"
+   },
+   "after": {
+    "everywhere": "Premium"
+   },
+   "dashboardAndServerFeatureChanges": [
+    "phone2",
+    "website",
+    "instagram",
+    "linkedin",
+    "twitter",
+    "tiktok",
+    "youtube",
+    "services",
+    "gallery",
+    "video",
+    "finalCTA",
+    "businessLinks",
+    "catalog",
+    "customBusiness",
+    "analytics"
+   ],
+   "serverGatedChanges": [],
+   "nfcImpact": [],
+   "recommendation": "no action needed (public behaviour unchanged)"
+  }
+ ]
+}

@@ -1,0 +1,869 @@
+﻿{
+    "projectId":  "jmx-digital-card",
+    "createdAt":  "2026-09-20T12:35:17.6249287-05:00",
+    "reason":  "Backup before precise deletion of six confirmed NFC test devices",
+    "deviceIds":  [
+                      "JMX-2ZSC2YKFPCUL5Y",
+                      "JMX-PP3YVCZVC6JN4V",
+                      "JMX-43TLREFKSVXTJF",
+                      "JMX-H6AJ9QBPW4VHKS",
+                      "JMX-8UPU9XYEUSCANP",
+                      "JMX-VFF5ZFKENQFC6M"
+                  ],
+    "batchIds":  [
+                     "BATCH-2G78JX6L",
+                     "BATCH-VFVF9J28"
+                 ],
+    "documents":  {
+                      "nfcDevices":  [
+                                         {
+                                             "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevices/JMX-2ZSC2YKFPCUL5Y",
+                                             "fields":  {
+                                                            "deviceType":  {
+                                                                               "stringValue":  "sticker"
+                                                                           },
+                                                            "deviceId":  {
+                                                                             "stringValue":  "JMX-2ZSC2YKFPCUL5Y"
+                                                                         },
+                                                            "encodedBy":  {
+                                                                              "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                          },
+                                                            "notes":  {
+                                                                          "stringValue":  ""
+                                                                      },
+                                                            "updatedAt":  {
+                                                                              "timestampValue":  "2026-09-02T13:29:45.028Z"
+                                                                          },
+                                                            "deviceNumber":  {
+                                                                                 "integerValue":  "1"
+                                                                             },
+                                                            "cardId":  {
+                                                                           "stringValue":  "LE9J"
+                                                                       },
+                                                            "tapCount":  {
+                                                                             "integerValue":  "0"
+                                                                         },
+                                                            "enabled":  {
+                                                                            "booleanValue":  true
+                                                                        },
+                                                            "encodedAt":  {
+                                                                              "timestampValue":  "2026-09-02T13:29:45.028Z"
+                                                                          },
+                                                            "batchId":  {
+                                                                            "stringValue":  "BATCH-2G78JX6L"
+                                                                        },
+                                                            "encodingStatus":  {
+                                                                                   "stringValue":  "encoded"
+                                                                               },
+                                                            "createdAt":  {
+                                                                              "timestampValue":  "2026-09-02T03:06:24.102Z"
+                                                                          },
+                                                            "status":  {
+                                                                           "stringValue":  "pending"
+                                                                       },
+                                                            "lifecycleStatus":  {
+                                                                                    "stringValue":  "pending"
+                                                                                }
+                                                        },
+                                             "createTime":  "2026-09-02T03:06:24.182266Z",
+                                             "updateTime":  "2026-09-02T13:29:45.135356Z"
+                                         },
+                                         {
+                                             "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevices/JMX-43TLREFKSVXTJF",
+                                             "fields":  {
+                                                            "updatedAt":  {
+                                                                              "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                          },
+                                                            "cardId":  {
+                                                                           "stringValue":  "LE9J"
+                                                                       },
+                                                            "deviceNumber":  {
+                                                                                 "integerValue":  "3"
+                                                                             },
+                                                            "batchId":  {
+                                                                            "stringValue":  "BATCH-2G78JX6L"
+                                                                        },
+                                                            "deviceType":  {
+                                                                               "stringValue":  "sticker"
+                                                                           },
+                                                            "notes":  {
+                                                                          "stringValue":  ""
+                                                                      },
+                                                            "encodingStatus":  {
+                                                                                   "stringValue":  "not-encoded"
+                                                                               },
+                                                            "deviceId":  {
+                                                                             "stringValue":  "JMX-43TLREFKSVXTJF"
+                                                                         },
+                                                            "enabled":  {
+                                                                            "booleanValue":  true
+                                                                        },
+                                                            "status":  {
+                                                                           "stringValue":  "pending"
+                                                                       },
+                                                            "lifecycleStatus":  {
+                                                                                    "stringValue":  "pending"
+                                                                                },
+                                                            "createdAt":  {
+                                                                              "timestampValue":  "2026-09-02T03:06:24.102Z"
+                                                                          },
+                                                            "tapCount":  {
+                                                                             "integerValue":  "0"
+                                                                         }
+                                                        },
+                                             "createTime":  "2026-09-02T03:06:24.182266Z",
+                                             "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                         },
+                                         {
+                                             "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevices/JMX-8UPU9XYEUSCANP",
+                                             "fields":  {
+                                                            "deviceType":  {
+                                                                               "stringValue":  "sticker"
+                                                                           },
+                                                            "updatedAt":  {
+                                                                              "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                          },
+                                                            "cardId":  {
+                                                                           "stringValue":  "LE9J"
+                                                                       },
+                                                            "enabled":  {
+                                                                            "booleanValue":  true
+                                                                        },
+                                                            "batchId":  {
+                                                                            "stringValue":  "BATCH-2G78JX6L"
+                                                                        },
+                                                            "lifecycleStatus":  {
+                                                                                    "stringValue":  "pending"
+                                                                                },
+                                                            "deviceId":  {
+                                                                             "stringValue":  "JMX-8UPU9XYEUSCANP"
+                                                                         },
+                                                            "encodingStatus":  {
+                                                                                   "stringValue":  "not-encoded"
+                                                                               },
+                                                            "status":  {
+                                                                           "stringValue":  "pending"
+                                                                       },
+                                                            "deviceNumber":  {
+                                                                                 "integerValue":  "5"
+                                                                             },
+                                                            "tapCount":  {
+                                                                             "integerValue":  "0"
+                                                                         },
+                                                            "createdAt":  {
+                                                                              "timestampValue":  "2026-09-02T03:06:24.102Z"
+                                                                          },
+                                                            "notes":  {
+                                                                          "stringValue":  ""
+                                                                      }
+                                                        },
+                                             "createTime":  "2026-09-02T03:06:24.182266Z",
+                                             "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                         },
+                                         {
+                                             "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevices/JMX-H6AJ9QBPW4VHKS",
+                                             "fields":  {
+                                                            "status":  {
+                                                                           "stringValue":  "pending"
+                                                                       },
+                                                            "enabled":  {
+                                                                            "booleanValue":  true
+                                                                        },
+                                                            "deviceNumber":  {
+                                                                                 "integerValue":  "4"
+                                                                             },
+                                                            "updatedAt":  {
+                                                                              "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                          },
+                                                            "encodingStatus":  {
+                                                                                   "stringValue":  "not-encoded"
+                                                                               },
+                                                            "deviceType":  {
+                                                                               "stringValue":  "sticker"
+                                                                           },
+                                                            "createdAt":  {
+                                                                              "timestampValue":  "2026-09-02T03:06:24.102Z"
+                                                                          },
+                                                            "tapCount":  {
+                                                                             "integerValue":  "0"
+                                                                         },
+                                                            "cardId":  {
+                                                                           "stringValue":  "LE9J"
+                                                                       },
+                                                            "batchId":  {
+                                                                            "stringValue":  "BATCH-2G78JX6L"
+                                                                        },
+                                                            "deviceId":  {
+                                                                             "stringValue":  "JMX-H6AJ9QBPW4VHKS"
+                                                                         },
+                                                            "lifecycleStatus":  {
+                                                                                    "stringValue":  "pending"
+                                                                                },
+                                                            "notes":  {
+                                                                          "stringValue":  ""
+                                                                      }
+                                                        },
+                                             "createTime":  "2026-09-02T03:06:24.182266Z",
+                                             "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                         },
+                                         {
+                                             "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevices/JMX-PP3YVCZVC6JN4V",
+                                             "fields":  {
+                                                            "notes":  {
+                                                                          "stringValue":  ""
+                                                                      },
+                                                            "tapCount":  {
+                                                                             "integerValue":  "0"
+                                                                         },
+                                                            "lifecycleStatus":  {
+                                                                                    "stringValue":  "pending"
+                                                                                },
+                                                            "deviceId":  {
+                                                                             "stringValue":  "JMX-PP3YVCZVC6JN4V"
+                                                                         },
+                                                            "batchId":  {
+                                                                            "stringValue":  "BATCH-2G78JX6L"
+                                                                        },
+                                                            "deviceNumber":  {
+                                                                                 "integerValue":  "2"
+                                                                             },
+                                                            "createdAt":  {
+                                                                              "timestampValue":  "2026-09-02T03:06:24.102Z"
+                                                                          },
+                                                            "cardId":  {
+                                                                           "stringValue":  "LE9J"
+                                                                       },
+                                                            "status":  {
+                                                                           "stringValue":  "pending"
+                                                                       },
+                                                            "updatedAt":  {
+                                                                              "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                          },
+                                                            "encodingStatus":  {
+                                                                                   "stringValue":  "not-encoded"
+                                                                               },
+                                                            "enabled":  {
+                                                                            "booleanValue":  true
+                                                                        },
+                                                            "deviceType":  {
+                                                                               "stringValue":  "sticker"
+                                                                           }
+                                                        },
+                                             "createTime":  "2026-09-02T03:06:24.182266Z",
+                                             "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                         },
+                                         {
+                                             "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevices/JMX-VFF5ZFKENQFC6M",
+                                             "fields":  {
+                                                            "createdAt":  {
+                                                                              "timestampValue":  "2026-09-05T22:48:44.950Z"
+                                                                          },
+                                                            "enabled":  {
+                                                                            "booleanValue":  true
+                                                                        },
+                                                            "encodingStatus":  {
+                                                                                   "stringValue":  "encoded"
+                                                                               },
+                                                            "tapCount":  {
+                                                                             "integerValue":  "0"
+                                                                         },
+                                                            "deviceId":  {
+                                                                             "stringValue":  "JMX-VFF5ZFKENQFC6M"
+                                                                         },
+                                                            "deviceNumber":  {
+                                                                                 "integerValue":  "1"
+                                                                             },
+                                                            "deviceType":  {
+                                                                               "stringValue":  "pvc-card"
+                                                                           },
+                                                            "status":  {
+                                                                           "stringValue":  "pending"
+                                                                       },
+                                                            "notes":  {
+                                                                          "stringValue":  ""
+                                                                      },
+                                                            "lifecycleStatus":  {
+                                                                                    "stringValue":  "pending"
+                                                                                },
+                                                            "cardId":  {
+                                                                           "stringValue":  "H49V6PXB"
+                                                                       },
+                                                            "encodedBy":  {
+                                                                              "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                          },
+                                                            "updatedAt":  {
+                                                                              "timestampValue":  "2026-09-05T22:57:47.724Z"
+                                                                          },
+                                                            "batchId":  {
+                                                                            "stringValue":  "BATCH-VFVF9J28"
+                                                                        },
+                                                            "encodedAt":  {
+                                                                              "timestampValue":  "2026-09-05T22:54:31.248Z"
+                                                                          },
+                                                            "plan":  {
+                                                                         "stringValue":  "Business"
+                                                                     }
+                                                        },
+                                             "createTime":  "2026-09-05T22:48:44.999935Z",
+                                             "updateTime":  "2026-09-05T22:57:47.804044Z"
+                                         }
+                                     ],
+                      "nfcDevicePublic":  [
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevicePublic/JMX-2ZSC2YKFPCUL5Y",
+                                                  "fields":  {
+                                                                 "cardId":  {
+                                                                                "stringValue":  "LE9J"
+                                                                            },
+                                                                 "status":  {
+                                                                                "stringValue":  "pending"
+                                                                            },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-2ZSC2YKFPCUL5Y"
+                                                                              },
+                                                                 "updatedAt":  {
+                                                                                   "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                               },
+                                                                 "enabled":  {
+                                                                                 "booleanValue":  true
+                                                                             },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-2G78JX6L"
+                                                                             },
+                                                                 "deviceType":  {
+                                                                                    "stringValue":  "sticker"
+                                                                                }
+                                                             },
+                                                  "createTime":  "2026-09-02T03:06:24.182266Z",
+                                                  "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevicePublic/JMX-43TLREFKSVXTJF",
+                                                  "fields":  {
+                                                                 "cardId":  {
+                                                                                "stringValue":  "LE9J"
+                                                                            },
+                                                                 "updatedAt":  {
+                                                                                   "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                               },
+                                                                 "status":  {
+                                                                                "stringValue":  "pending"
+                                                                            },
+                                                                 "enabled":  {
+                                                                                 "booleanValue":  true
+                                                                             },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-2G78JX6L"
+                                                                             },
+                                                                 "deviceType":  {
+                                                                                    "stringValue":  "sticker"
+                                                                                },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-43TLREFKSVXTJF"
+                                                                              }
+                                                             },
+                                                  "createTime":  "2026-09-02T03:06:24.182266Z",
+                                                  "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevicePublic/JMX-8UPU9XYEUSCANP",
+                                                  "fields":  {
+                                                                 "deviceType":  {
+                                                                                    "stringValue":  "sticker"
+                                                                                },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-8UPU9XYEUSCANP"
+                                                                              },
+                                                                 "updatedAt":  {
+                                                                                   "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                               },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-2G78JX6L"
+                                                                             },
+                                                                 "status":  {
+                                                                                "stringValue":  "pending"
+                                                                            },
+                                                                 "cardId":  {
+                                                                                "stringValue":  "LE9J"
+                                                                            },
+                                                                 "enabled":  {
+                                                                                 "booleanValue":  true
+                                                                             }
+                                                             },
+                                                  "createTime":  "2026-09-02T03:06:24.182266Z",
+                                                  "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevicePublic/JMX-H6AJ9QBPW4VHKS",
+                                                  "fields":  {
+                                                                 "status":  {
+                                                                                "stringValue":  "pending"
+                                                                            },
+                                                                 "cardId":  {
+                                                                                "stringValue":  "LE9J"
+                                                                            },
+                                                                 "enabled":  {
+                                                                                 "booleanValue":  true
+                                                                             },
+                                                                 "updatedAt":  {
+                                                                                   "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                               },
+                                                                 "deviceType":  {
+                                                                                    "stringValue":  "sticker"
+                                                                                },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-2G78JX6L"
+                                                                             },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-H6AJ9QBPW4VHKS"
+                                                                              }
+                                                             },
+                                                  "createTime":  "2026-09-02T03:06:24.182266Z",
+                                                  "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevicePublic/JMX-PP3YVCZVC6JN4V",
+                                                  "fields":  {
+                                                                 "updatedAt":  {
+                                                                                   "timestampValue":  "2026-09-02T04:54:59.236Z"
+                                                                               },
+                                                                 "deviceType":  {
+                                                                                    "stringValue":  "sticker"
+                                                                                },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-PP3YVCZVC6JN4V"
+                                                                              },
+                                                                 "status":  {
+                                                                                "stringValue":  "pending"
+                                                                            },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-2G78JX6L"
+                                                                             },
+                                                                 "cardId":  {
+                                                                                "stringValue":  "LE9J"
+                                                                            },
+                                                                 "enabled":  {
+                                                                                 "booleanValue":  true
+                                                                             }
+                                                             },
+                                                  "createTime":  "2026-09-02T03:06:24.182266Z",
+                                                  "updateTime":  "2026-09-02T04:54:59.314397Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDevicePublic/JMX-VFF5ZFKENQFC6M",
+                                                  "fields":  {
+                                                                 "cardId":  {
+                                                                                "stringValue":  "H49V6PXB"
+                                                                            },
+                                                                 "enabled":  {
+                                                                                 "booleanValue":  true
+                                                                             },
+                                                                 "updatedAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:57:47.724Z"
+                                                                               },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-VFF5ZFKENQFC6M"
+                                                                              },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "status":  {
+                                                                                "stringValue":  "pending"
+                                                                            },
+                                                                 "plan":  {
+                                                                              "stringValue":  "Business"
+                                                                          },
+                                                                 "deviceType":  {
+                                                                                    "stringValue":  "pvc-card"
+                                                                                }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:48:44.999935Z",
+                                                  "updateTime":  "2026-09-05T22:57:47.804044Z"
+                                              }
+                                          ],
+                      "nfcBatches":  [
+                                         {
+                                             "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcBatches/BATCH-2G78JX6L",
+                                             "fields":  {
+                                                            "createdBy":  {
+                                                                              "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                          },
+                                                            "batchId":  {
+                                                                            "stringValue":  "BATCH-2G78JX6L"
+                                                                        },
+                                                            "activationCodeStatus":  {
+                                                                                         "stringValue":  "unused"
+                                                                                     },
+                                                            "quantity":  {
+                                                                             "integerValue":  "5"
+                                                                         },
+                                                            "status":  {
+                                                                           "stringValue":  "pending"
+                                                                       },
+                                                            "notes":  {
+                                                                          "stringValue":  "prueba"
+                                                                      },
+                                                            "encodedCount":  {
+                                                                                 "integerValue":  "1"
+                                                                             },
+                                                            "activationCode":  {
+                                                                                   "stringValue":  "ACT-7ZSM6GRA"
+                                                                               },
+                                                            "createdAt":  {
+                                                                              "timestampValue":  "2026-09-02T03:06:23.802Z"
+                                                                          },
+                                                            "deviceType":  {
+                                                                               "stringValue":  "sticker"
+                                                                           },
+                                                            "enabled":  {
+                                                                            "booleanValue":  true
+                                                                        },
+                                                            "updatedAt":  {
+                                                                              "timestampValue":  "2026-09-02T13:29:45.412Z"
+                                                                          },
+                                                            "encodingStatus":  {
+                                                                                   "stringValue":  "in-progress"
+                                                                               },
+                                                            "cardId":  {
+                                                                           "stringValue":  "LE9J"
+                                                                       }
+                                                        },
+                                             "createTime":  "2026-09-02T03:06:24.045781Z",
+                                             "updateTime":  "2026-09-02T13:29:45.484166Z"
+                                         },
+                                         {
+                                             "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcBatches/BATCH-VFVF9J28",
+                                             "fields":  {
+                                                            "deviceType":  {
+                                                                               "stringValue":  "pvc-card"
+                                                                           },
+                                                            "status":  {
+                                                                           "stringValue":  "pending"
+                                                                       },
+                                                            "notes":  {
+                                                                          "stringValue":  "hay que ver"
+                                                                      },
+                                                            "encodingStatus":  {
+                                                                                   "stringValue":  "complete"
+                                                                               },
+                                                            "updatedAt":  {
+                                                                              "timestampValue":  "2026-09-05T22:57:47.609Z"
+                                                                          },
+                                                            "quantity":  {
+                                                                             "integerValue":  "1"
+                                                                         },
+                                                            "encodedCount":  {
+                                                                                 "integerValue":  "1"
+                                                                             },
+                                                            "enabled":  {
+                                                                            "booleanValue":  true
+                                                                        },
+                                                            "createdAt":  {
+                                                                              "timestampValue":  "2026-09-05T22:48:44.839Z"
+                                                                          },
+                                                            "activationCode":  {
+                                                                                   "stringValue":  "ACT-UQTKL9A3"
+                                                                               },
+                                                            "activationCodeStatus":  {
+                                                                                         "stringValue":  "unused"
+                                                                                     },
+                                                            "batchId":  {
+                                                                            "stringValue":  "BATCH-VFVF9J28"
+                                                                        },
+                                                            "cardId":  {
+                                                                           "stringValue":  "H49V6PXB"
+                                                                       },
+                                                            "createdBy":  {
+                                                                              "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                          },
+                                                            "plan":  {
+                                                                         "stringValue":  "Business"
+                                                                     }
+                                                        },
+                                             "createTime":  "2026-09-05T22:48:44.884646Z",
+                                             "updateTime":  "2026-09-05T22:57:47.662136Z"
+                                         }
+                                     ],
+                      "nfcDeviceEvents":  [
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788324899931-BATCH-2G78JX6L",
+                                                  "fields":  {
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-02T04:54:59.370Z"
+                                                                               },
+                                                                 "event":  {
+                                                                               "stringValue":  "Batch Assigned"
+                                                                           },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              },
+                                                                 "cardId":  {
+                                                                                "stringValue":  "LE9J"
+                                                                            },
+                                                                 "previousCardId":  {
+                                                                                        "nullValue":  null
+                                                                                    },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-2G78JX6L"
+                                                                             }
+                                                             },
+                                                  "createTime":  "2026-09-02T04:54:59.432237Z",
+                                                  "updateTime":  "2026-09-02T04:54:59.432237Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788327318357-JMX-2ZSC2YKFPCUL5Y-encoding",
+                                                  "fields":  {
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-2G78JX6L"
+                                                                             },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-2ZSC2YKFPCUL5Y"
+                                                                              },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              },
+                                                                 "event":  {
+                                                                               "stringValue":  "Encoding verified"
+                                                                           },
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-02T05:35:17.731Z"
+                                                                               }
+                                                             },
+                                                  "createTime":  "2026-09-02T05:35:17.749194Z",
+                                                  "updateTime":  "2026-09-02T05:35:17.749194Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788355785236-JMX-2ZSC2YKFPCUL5Y-encoding",
+                                                  "fields":  {
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-02T13:29:45.199Z"
+                                                                               },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-2G78JX6L"
+                                                                             },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              },
+                                                                 "event":  {
+                                                                               "stringValue":  "Encoding encoded"
+                                                                           },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-2ZSC2YKFPCUL5Y"
+                                                                              }
+                                                             },
+                                                  "createTime":  "2026-09-02T13:29:45.329397Z",
+                                                  "updateTime":  "2026-09-02T13:29:45.329397Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788648524948-BATCH-VFVF9J28",
+                                                  "fields":  {
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:48:45.060Z"
+                                                                               },
+                                                                 "quantity":  {
+                                                                                  "integerValue":  "1"
+                                                                              },
+                                                                 "deviceType":  {
+                                                                                    "stringValue":  "pvc-card"
+                                                                                },
+                                                                 "event":  {
+                                                                               "stringValue":  "NFC Batch Created"
+                                                                           },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:48:45.115038Z",
+                                                  "updateTime":  "2026-09-05T22:48:45.115038Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788648640579-JMX-VFF5ZFKENQFC6M-encoding",
+                                                  "fields":  {
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-VFF5ZFKENQFC6M"
+                                                                              },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:50:40.690Z"
+                                                                               },
+                                                                 "event":  {
+                                                                               "stringValue":  "Encoding encoded"
+                                                                           }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:50:40.737495Z",
+                                                  "updateTime":  "2026-09-05T22:50:40.737495Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788648661373-BATCH-VFVF9J28",
+                                                  "fields":  {
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:51:01.484Z"
+                                                                               },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              },
+                                                                 "event":  {
+                                                                               "stringValue":  "Batch Assigned"
+                                                                           },
+                                                                 "previousCardId":  {
+                                                                                        "nullValue":  null
+                                                                                    },
+                                                                 "cardId":  {
+                                                                                "stringValue":  "H49V6PXB"
+                                                                            },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:51:01.501620Z",
+                                                  "updateTime":  "2026-09-05T22:51:01.501620Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788648737954-BATCH-VFVF9J28",
+                                                  "fields":  {
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:52:18.060Z"
+                                                                               },
+                                                                 "cardId":  {
+                                                                                "stringValue":  "H49V6PXB"
+                                                                            },
+                                                                 "event":  {
+                                                                               "stringValue":  "Batch Assigned"
+                                                                           },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              },
+                                                                 "previousCardId":  {
+                                                                                        "stringValue":  "H49V6PXB"
+                                                                                    }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:52:18.133966Z",
+                                                  "updateTime":  "2026-09-05T22:52:18.133966Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788648806740-JMX-VFF5ZFKENQFC6M-encoding",
+                                                  "fields":  {
+                                                                 "event":  {
+                                                                               "stringValue":  "Encoding verified"
+                                                                           },
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:53:26.847Z"
+                                                                               },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-VFF5ZFKENQFC6M"
+                                                                              },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:53:26.918169Z",
+                                                  "updateTime":  "2026-09-05T22:53:26.918169Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788648810156-JMX-VFF5ZFKENQFC6M-encoding",
+                                                  "fields":  {
+                                                                 "event":  {
+                                                                               "stringValue":  "Encoding encoded"
+                                                                           },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:53:30.262Z"
+                                                                               },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-VFF5ZFKENQFC6M"
+                                                                              },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:53:30.310071Z",
+                                                  "updateTime":  "2026-09-05T22:53:30.310071Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788648871201-JMX-VFF5ZFKENQFC6M-encoding",
+                                                  "fields":  {
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:54:31.317Z"
+                                                                               },
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-VFF5ZFKENQFC6M"
+                                                                              },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "event":  {
+                                                                               "stringValue":  "Encoding encoded"
+                                                                           }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:54:31.359713Z",
+                                                  "updateTime":  "2026-09-05T22:54:31.359713Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788648871290-JMX-VFF5ZFKENQFC6M-encoding",
+                                                  "fields":  {
+                                                                 "deviceId":  {
+                                                                                  "stringValue":  "JMX-VFF5ZFKENQFC6M"
+                                                                              },
+                                                                 "event":  {
+                                                                               "stringValue":  "Encoding encoded"
+                                                                           },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:54:31.392Z"
+                                                                               }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:54:31.436726Z",
+                                                  "updateTime":  "2026-09-05T22:54:31.436726Z"
+                                              },
+                                              {
+                                                  "name":  "projects/jmx-digital-card/databases/(default)/documents/nfcDeviceEvents/1788649067771-BATCH-VFVF9J28",
+                                                  "fields":  {
+                                                                 "cardId":  {
+                                                                                "stringValue":  "H49V6PXB"
+                                                                            },
+                                                                 "createdAt":  {
+                                                                                   "timestampValue":  "2026-09-05T22:57:47.877Z"
+                                                                               },
+                                                                 "event":  {
+                                                                               "stringValue":  "Batch Assigned"
+                                                                           },
+                                                                 "batchId":  {
+                                                                                 "stringValue":  "BATCH-VFVF9J28"
+                                                                             },
+                                                                 "previousCardId":  {
+                                                                                        "stringValue":  "H49V6PXB"
+                                                                                    },
+                                                                 "adminUid":  {
+                                                                                  "stringValue":  "RNV9ogInldeWnhQRvkAMaMpEyV02"
+                                                                              }
+                                                             },
+                                                  "createTime":  "2026-09-05T22:57:47.932862Z",
+                                                  "updateTime":  "2026-09-05T22:57:47.932862Z"
+                                              }
+                                          ]
+                  }
+}

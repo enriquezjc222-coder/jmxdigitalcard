@@ -1,0 +1,41 @@
+{
+ "runId": "run-2026-09-24T15-48-22-315Z",
+ "generatedAt": "2026-09-24T15:48:22.331Z",
+ "note": "DRY RUN — nothing was deleted. Review, then run --execute archive --confirm <runId>.",
+ "candidates": [
+  {
+   "id": "ORPH06",
+   "url": "https://jmxdigitalcard.com/c/ORPH06",
+   "category": "ORPHAN_FRAGMENT",
+   "status": null,
+   "inventoryStatus": null,
+   "references": [],
+   "reason": "Only blank profile/cardAdmin stub documents remain (no card, no inventory, no owner, no references). /c/{id} already shows \"not found\".",
+   "confidence": "high",
+   "recommendedAction": "archive, then delete after review",
+   "documents": [
+    "profiles/ORPH06",
+    "cardAdmin/ORPH06"
+   ],
+   "fingerprint": "{\"c\":\"ORPHAN_FRAGMENT\",\"s\":\"YES\",\"refs\":[],\"st\":null,\"inv\":null,\"p\":\"blank\"}"
+  },
+  {
+   "id": "stock7",
+   "url": "https://jmxdigitalcard.com/c/stock7",
+   "category": "UNREACHABLE_ID",
+   "status": "available",
+   "inventoryStatus": "available",
+   "references": [],
+   "reason": "ID \"stock7\" is never reached by a public URL (public ID would be \"STOCK7\"); not programmed; no references.",
+   "confidence": "medium",
+   "recommendedAction": "archive, then delete after review",
+   "documents": [
+    "cards/stock7",
+    "inventory/stock7",
+    "profiles/stock7",
+    "cardAdmin/stock7"
+   ],
+   "fingerprint": "{\"c\":\"UNREACHABLE_ID\",\"s\":\"YES\",\"refs\":[],\"st\":\"available\",\"inv\":\"available\",\"p\":\"blank\"}"
+  }
+ ]
+}

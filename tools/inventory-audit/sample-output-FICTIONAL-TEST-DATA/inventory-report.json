@@ -1,0 +1,807 @@
+{
+ "runId": "run-2026-09-24T15-48-22-315Z",
+ "generatedAt": "2026-09-24T15:48:22.331Z",
+ "summary": {
+  "table": [
+   {
+    "category": "ACTIVE",
+    "count": 13,
+    "safeToDelete": "NO",
+    "reason": "Card has an owner, a used activation code or is activated."
+   },
+   {
+    "category": "ASSIGNED_NFC",
+    "count": 1,
+    "safeToDelete": "NO",
+    "reason": "An NFC device or batch (reserved / pending / active) points to this card."
+   },
+   {
+    "category": "HAS_REFERENCES",
+    "count": 1,
+    "safeToDelete": "NO",
+    "reason": "Referenced by data that must be preserved (history, analytics, identity, wallet, client data or physical tag)."
+   },
+   {
+    "category": "IN_STOCK",
+    "count": 1,
+    "safeToDelete": "NO",
+    "reason": "Valid inventory: available to sell / activate."
+   },
+   {
+    "category": "IN_STOCK_PROGRAMMED",
+    "count": 1,
+    "safeToDelete": "NO",
+    "reason": "Valid inventory: a physical NFC tag already carries this URL."
+   },
+   {
+    "category": "ORPHAN_FRAGMENT",
+    "count": 1,
+    "safeToDelete": "YES",
+    "reason": "Only blank profile/cardAdmin stub documents remain (no card, no inventory, no owner, no references). /c/{id} already shows \"not found\"."
+   },
+   {
+    "category": "ORPHAN_FRAGMENT",
+    "count": 1,
+    "safeToDelete": "REVIEW",
+    "reason": "Only blank profile/cardAdmin stub documents remain (no card, no inventory, no owner, no references). /c/{id} already shows \"not found\"."
+   },
+   {
+    "category": "ORPHANED_INVENTORY",
+    "count": 1,
+    "safeToDelete": "REVIEW",
+    "reason": "Inventory document without a card document (e.g. left after an NFC return). /c/{id} cannot be activated in this state; it may still correspond to physical stock."
+   },
+   {
+    "category": "SOLD_PENDING_ACTIVATION",
+    "count": 1,
+    "safeToDelete": "NO",
+    "reason": "Sold, waiting for the client to activate."
+   },
+   {
+    "category": "UNREACHABLE_ID",
+    "count": 1,
+    "safeToDelete": "YES",
+    "reason": "ID \"stock7\" is never reached by a public URL (public ID would be \"STOCK7\"); not programmed; no references."
+   }
+  ],
+  "integrity": {
+   "activeClients": 13,
+   "activatedCards": 12,
+   "profiles": 20,
+   "accounts": 13,
+   "identityProfiles": 0,
+   "nfcDevices": 2,
+   "usedActivationCodes": 0,
+   "walletObjects": 0,
+   "inventoryInStock": 1,
+   "inventoryPending": 2,
+   "inventoryNotActivated": 9,
+   "profilesWithClientData": 12
+  },
+  "totals": {
+   "records": 22,
+   "yes": 2,
+   "review": 2,
+   "no": 18
+  }
+ },
+ "results": [
+  {
+   "id": "AVAIL9",
+   "url": "https://jmxdigitalcard.com/c/AVAIL9",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/AVAIL9 (ownerUid OWNER_AVAIL9)",
+    "accounts/ACC-AVAIL9",
+    "cards.accountId ACC-AVAIL9",
+    "cards.identityProfileId IDP-AVAIL9",
+    "cards.activatedAt set",
+    "profiles/AVAIL9 contains client data",
+    "cardAdmin.clientName \"Unclaimed\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/AVAIL9 (ownerUid OWNER_AVAIL9)",
+    "accounts/ACC-AVAIL9",
+    "cards.accountId ACC-AVAIL9",
+    "cards.identityProfileId IDP-AVAIL9",
+    "cards.activatedAt set",
+    "profiles/AVAIL9 contains client data",
+    "cardAdmin.clientName \"Unclaimed\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "available",
+   "inventoryStatus": "available",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_AVAIL9",
+   "account": "ACC-AVAIL9",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "INV08",
+   "url": "https://jmxdigitalcard.com/c/INV08",
+   "category": "ORPHANED_INVENTORY",
+   "safeToDelete": "REVIEW",
+   "confidence": "low",
+   "reasons": [
+    "Inventory document without a card document (e.g. left after an NFC return). /c/{id} cannot be activated in this state; it may still correspond to physical stock."
+   ],
+   "references": [],
+   "blockers": [],
+   "recommendedAction": "review with the physical stock",
+   "status": null,
+   "inventoryStatus": "available",
+   "activationCode": "AC…(8)",
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "none",
+   "recordType": "nfc_id"
+  },
+  {
+   "id": "JMXB01",
+   "url": "https://jmxdigitalcard.com/c/JMXB01",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXB01 (ownerUid OWNER_JMXB01)",
+    "nfcDevices/NFC-TEST-0001 (status active)",
+    "accounts/ACC-JMXB01",
+    "cards.accountId ACC-JMXB01",
+    "cards.identityProfileId IDP-JMXB01",
+    "cards.activatedAt set",
+    "profiles/JMXB01 contains client data",
+    "cardAdmin.clientName \"Brenda Basic\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXB01 (ownerUid OWNER_JMXB01)",
+    "nfcDevices/NFC-TEST-0001 (status active)",
+    "accounts/ACC-JMXB01",
+    "cards.accountId ACC-JMXB01",
+    "cards.identityProfileId IDP-JMXB01",
+    "cards.activatedAt set",
+    "profiles/JMXB01 contains client data",
+    "cardAdmin.clientName \"Brenda Basic\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [
+    "NFC-TEST-0001"
+   ],
+   "owner": "OWNER_JMXB01",
+   "account": "ACC-JMXB01",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "JMXB06",
+   "url": "https://jmxdigitalcard.com/c/JMXB06",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXB06 (ownerUid OWNER_JMXB06)",
+    "accounts/ACC-JMXB06",
+    "cards.accountId ACC-JMXB06",
+    "cards.identityProfileId IDP-JMXB06",
+    "cards.activatedAt set",
+    "profiles/JMXB06 contains client data",
+    "cardAdmin.clientName \"Bruno Basic Override\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXB06 (ownerUid OWNER_JMXB06)",
+    "accounts/ACC-JMXB06",
+    "cards.accountId ACC-JMXB06",
+    "cards.identityProfileId IDP-JMXB06",
+    "cards.activatedAt set",
+    "profiles/JMXB06 contains client data",
+    "cardAdmin.clientName \"Bruno Basic Override\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_JMXB06",
+   "account": "ACC-JMXB06",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "JMXC05",
+   "url": "https://jmxdigitalcard.com/c/JMXC05",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXC05 (ownerUid OWNER_JMXC05)",
+    "accounts/ACC-JMXC05",
+    "cards.accountId ACC-JMXC05",
+    "cards.identityProfileId IDP-JMXC05",
+    "cards.activatedAt set",
+    "profiles/JMXC05 contains client data",
+    "cardAdmin.clientName \"Carla Complimentary\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXC05 (ownerUid OWNER_JMXC05)",
+    "accounts/ACC-JMXC05",
+    "cards.accountId ACC-JMXC05",
+    "cards.identityProfileId IDP-JMXC05",
+    "cards.activatedAt set",
+    "profiles/JMXC05 contains client data",
+    "cardAdmin.clientName \"Carla Complimentary\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_JMXC05",
+   "account": "ACC-JMXC05",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+   "url": "https://jmxdigitalcard.com/c/JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789 (ownerUid OWNER_JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789)",
+    "accounts/ACC-JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+    "cards.accountId ACC-JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+    "cards.identityProfileId IDP-JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+    "cards.activatedAt set",
+    "profiles/JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789 contains client data",
+    "cardAdmin.clientName \"Long Identifier\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789 (ownerUid OWNER_JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789)",
+    "accounts/ACC-JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+    "cards.accountId ACC-JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+    "cards.identityProfileId IDP-JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+    "cards.activatedAt set",
+    "profiles/JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789 contains client data",
+    "cardAdmin.clientName \"Long Identifier\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+   "account": "ACC-JMXLONGCARD-2026-IDENTIFIER-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "JMXP02",
+   "url": "https://jmxdigitalcard.com/c/JMXP02",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXP02 (ownerUid OWNER_JMXP02)",
+    "accounts/ACC-JMXP02",
+    "cards.accountId ACC-JMXP02",
+    "cards.identityProfileId IDP-JMXP02",
+    "cards.activatedAt set",
+    "profiles/JMXP02 contains client data",
+    "cardAdmin.clientName \"Paula Premium\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXP02 (ownerUid OWNER_JMXP02)",
+    "accounts/ACC-JMXP02",
+    "cards.accountId ACC-JMXP02",
+    "cards.identityProfileId IDP-JMXP02",
+    "cards.activatedAt set",
+    "profiles/JMXP02 contains client data",
+    "cardAdmin.clientName \"Paula Premium\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_JMXP02",
+   "account": "ACC-JMXP02",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "JMXP07",
+   "url": "https://jmxdigitalcard.com/c/JMXP07",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXP07 (ownerUid OWNER_JMXP07)",
+    "accounts/ACC-JMXP07",
+    "cards.accountId ACC-JMXP07",
+    "cards.identityProfileId IDP-JMXP07",
+    "cards.activatedAt set",
+    "profiles/JMXP07 contains client data",
+    "cardAdmin.clientName \"Pedro Premium\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXP07 (ownerUid OWNER_JMXP07)",
+    "accounts/ACC-JMXP07",
+    "cards.accountId ACC-JMXP07",
+    "cards.identityProfileId IDP-JMXP07",
+    "cards.activatedAt set",
+    "profiles/JMXP07 contains client data",
+    "cardAdmin.clientName \"Pedro Premium\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_JMXP07",
+   "account": "ACC-JMXP07",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "JMXZ03",
+   "url": "https://jmxdigitalcard.com/c/JMXZ03",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXZ03 (ownerUid OWNER_JMXZ03)",
+    "nfcDevices/NFC-TEST-0002 (status active)",
+    "accounts/ACC-JMXZ03",
+    "cards.accountId ACC-JMXZ03",
+    "cards.identityProfileId IDP-JMXZ03",
+    "cards.activatedAt set",
+    "profiles/JMXZ03 contains client data",
+    "cardAdmin.clientName \"Zoe Business\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXZ03 (ownerUid OWNER_JMXZ03)",
+    "nfcDevices/NFC-TEST-0002 (status active)",
+    "accounts/ACC-JMXZ03",
+    "cards.accountId ACC-JMXZ03",
+    "cards.identityProfileId IDP-JMXZ03",
+    "cards.activatedAt set",
+    "profiles/JMXZ03 contains client data",
+    "cardAdmin.clientName \"Zoe Business\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [
+    "NFC-TEST-0002"
+   ],
+   "owner": "OWNER_JMXZ03",
+   "account": "ACC-JMXZ03",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "JMXZ04",
+   "url": "https://jmxdigitalcard.com/c/JMXZ04",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXZ04 (ownerUid OWNER_JMXZ04)",
+    "accounts/ACC-JMXZ04",
+    "cards.accountId ACC-JMXZ04",
+    "cards.identityProfileId IDP-JMXZ04",
+    "cards.activatedAt set",
+    "profiles/JMXZ04 contains client data",
+    "cardAdmin.clientName \"Zack Business\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXZ04 (ownerUid OWNER_JMXZ04)",
+    "accounts/ACC-JMXZ04",
+    "cards.accountId ACC-JMXZ04",
+    "cards.identityProfileId IDP-JMXZ04",
+    "cards.activatedAt set",
+    "profiles/JMXZ04 contains client data",
+    "cardAdmin.clientName \"Zack Business\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_JMXZ04",
+   "account": "ACC-JMXZ04",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "JMXZ08",
+   "url": "https://jmxdigitalcard.com/c/JMXZ08",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/JMXZ08 (ownerUid OWNER_JMXZ08)",
+    "accounts/ACC-JMXZ08",
+    "cards.accountId ACC-JMXZ08",
+    "cards.identityProfileId IDP-JMXZ08",
+    "cards.activatedAt set",
+    "profiles/JMXZ08 contains client data",
+    "cardAdmin.clientName \"Unreadable Colours\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/JMXZ08 (ownerUid OWNER_JMXZ08)",
+    "accounts/ACC-JMXZ08",
+    "cards.accountId ACC-JMXZ08",
+    "cards.identityProfileId IDP-JMXZ08",
+    "cards.activatedAt set",
+    "profiles/JMXZ08 contains client data",
+    "cardAdmin.clientName \"Unreadable Colours\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_JMXZ08",
+   "account": "ACC-JMXZ08",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "LEG09",
+   "url": "https://jmxdigitalcard.com/c/LEG09",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/LEG09 (ownerUid OWNER_LEG09)",
+    "accounts/ACC-LEG09",
+    "cards.accountId ACC-LEG09",
+    "cards.identityProfileId IDP-LEG09",
+    "cards.activatedAt set",
+    "profiles/LEG09 contains client data",
+    "cardAdmin.clientName \"Lena Legacy\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/LEG09 (ownerUid OWNER_LEG09)",
+    "accounts/ACC-LEG09",
+    "cards.accountId ACC-LEG09",
+    "cards.identityProfileId IDP-LEG09",
+    "cards.activatedAt set",
+    "profiles/LEG09 contains client data",
+    "cardAdmin.clientName \"Lena Legacy\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_LEG09",
+   "account": "ACC-LEG09",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "LEG10",
+   "url": "https://jmxdigitalcard.com/c/LEG10",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/LEG10 (ownerUid OWNER_LEG10)",
+    "accounts/ACC-LEG10",
+    "cards.accountId ACC-LEG10",
+    "cards.identityProfileId IDP-LEG10",
+    "cards.activatedAt set",
+    "profiles/LEG10 contains client data",
+    "cardAdmin.clientName \"Gil Gold\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/LEG10 (ownerUid OWNER_LEG10)",
+    "accounts/ACC-LEG10",
+    "cards.accountId ACC-LEG10",
+    "cards.identityProfileId IDP-LEG10",
+    "cards.activatedAt set",
+    "profiles/LEG10 contains client data",
+    "cardAdmin.clientName \"Gil Gold\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_LEG10",
+   "account": "ACC-LEG10",
+   "profile": "client data",
+   "recordType": null
+  },
+  {
+   "id": "NEW777",
+   "url": "https://jmxdigitalcard.com/c/NEW777",
+   "category": "ACTIVE",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Card has an owner, a used activation code or is activated."
+   ],
+   "references": [
+    "cardOwners/NEW777 (ownerUid OWNER_NEW777)",
+    "accounts/ACC-NEW777",
+    "cards.accountId ACC-NEW777",
+    "cards.identityProfileId IDP-NEW777",
+    "cards.activatedAt set",
+    "cardAdmin.clientName \"New Client\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "cardOwners/NEW777 (ownerUid OWNER_NEW777)",
+    "accounts/ACC-NEW777",
+    "cards.accountId ACC-NEW777",
+    "cards.identityProfileId IDP-NEW777",
+    "cards.activatedAt set",
+    "cardAdmin.clientName \"New Client\"",
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "activated",
+   "inventoryStatus": "claimed",
+   "activationCode": "AC…(7)",
+   "deviceIds": [],
+   "owner": "OWNER_NEW777",
+   "account": "ACC-NEW777",
+   "profile": "none",
+   "recordType": null
+  },
+  {
+   "id": "ORPH06",
+   "url": "https://jmxdigitalcard.com/c/ORPH06",
+   "category": "ORPHAN_FRAGMENT",
+   "safeToDelete": "YES",
+   "confidence": "high",
+   "reasons": [
+    "Only blank profile/cardAdmin stub documents remain (no card, no inventory, no owner, no references). /c/{id} already shows \"not found\"."
+   ],
+   "references": [],
+   "blockers": [],
+   "recommendedAction": "archive, then delete after review",
+   "status": null,
+   "inventoryStatus": null,
+   "activationCode": null,
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "blank",
+   "recordType": null
+  },
+  {
+   "id": "ORPH12",
+   "url": "https://jmxdigitalcard.com/c/ORPH12",
+   "category": "ORPHAN_FRAGMENT",
+   "safeToDelete": "REVIEW",
+   "confidence": "low",
+   "reasons": [
+    "Only blank profile/cardAdmin stub documents remain (no card, no inventory, no owner, no references). /c/{id} already shows \"not found\".",
+    "REVIEW: cardAdmin.notes \"box 3 — check\""
+   ],
+   "references": [
+    "cardAdmin.notes \"box 3 — check\""
+   ],
+   "blockers": [],
+   "recommendedAction": "review manually",
+   "status": null,
+   "inventoryStatus": null,
+   "activationCode": null,
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "blank",
+   "recordType": null
+  },
+  {
+   "id": "REL05",
+   "url": "https://jmxdigitalcard.com/c/REL05",
+   "category": "HAS_REFERENCES",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Referenced by data that must be preserved (history, analytics, identity, wallet, client data or physical tag)."
+   ],
+   "references": [
+    "cardHistory releases (previously used card): 1"
+   ],
+   "blockers": [
+    "cardHistory releases (previously used card): 1"
+   ],
+   "recommendedAction": "keep",
+   "status": "available",
+   "inventoryStatus": "available",
+   "activationCode": "AC…(8)",
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "blank",
+   "recordType": "public_url"
+  },
+  {
+   "id": "RESV04",
+   "url": "https://jmxdigitalcard.com/c/RESV04",
+   "category": "ASSIGNED_NFC",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "An NFC device or batch (reserved / pending / active) points to this card."
+   ],
+   "references": [
+    "nfcBatches/BATCH-RESV (status pending, code unused)"
+   ],
+   "blockers": [
+    "nfcBatches/BATCH-RESV (status pending, code unused)"
+   ],
+   "recommendedAction": "keep",
+   "status": "available",
+   "inventoryStatus": "available",
+   "activationCode": "AC…(9)",
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "blank",
+   "recordType": "public_url"
+  },
+  {
+   "id": "SOLD03",
+   "url": "https://jmxdigitalcard.com/c/SOLD03",
+   "category": "SOLD_PENDING_ACTIVATION",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Sold, waiting for the client to activate."
+   ],
+   "references": [],
+   "blockers": [],
+   "recommendedAction": "keep",
+   "status": "sold",
+   "inventoryStatus": "available",
+   "activationCode": "AC…(9)",
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "blank",
+   "recordType": "public_url"
+  },
+  {
+   "id": "STOCK01",
+   "url": "https://jmxdigitalcard.com/c/STOCK01",
+   "category": "IN_STOCK",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Valid inventory: available to sell / activate."
+   ],
+   "references": [],
+   "blockers": [],
+   "recommendedAction": "keep",
+   "status": "available",
+   "inventoryStatus": "available",
+   "activationCode": "AC…(10)",
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "blank",
+   "recordType": "public_url"
+  },
+  {
+   "id": "STOCK02",
+   "url": "https://jmxdigitalcard.com/c/STOCK02",
+   "category": "IN_STOCK_PROGRAMMED",
+   "safeToDelete": "NO",
+   "confidence": "high",
+   "reasons": [
+    "Valid inventory: a physical NFC tag already carries this URL."
+   ],
+   "references": [
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "blockers": [
+    "physical tag programmed (nfcStatus programmed)"
+   ],
+   "recommendedAction": "keep",
+   "status": "available",
+   "inventoryStatus": "available",
+   "activationCode": "AC…(10)",
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "blank",
+   "recordType": "public_url"
+  },
+  {
+   "id": "stock7",
+   "url": "https://jmxdigitalcard.com/c/stock7",
+   "category": "UNREACHABLE_ID",
+   "safeToDelete": "YES",
+   "confidence": "medium",
+   "reasons": [
+    "ID \"stock7\" is never reached by a public URL (public ID would be \"STOCK7\"); not programmed; no references."
+   ],
+   "references": [],
+   "blockers": [],
+   "recommendedAction": "archive, then delete after review",
+   "status": "available",
+   "inventoryStatus": "available",
+   "activationCode": "AC…(9)",
+   "deviceIds": [],
+   "owner": null,
+   "account": null,
+   "profile": "blank",
+   "recordType": "public_url"
+  }
+ ]
+}

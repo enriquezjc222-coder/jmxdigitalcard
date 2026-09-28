@@ -1,0 +1,47 @@
+[
+ {
+  "id": "INV08",
+  "url": "https://jmxdigitalcard.com/c/INV08",
+  "category": "ORPHANED_INVENTORY",
+  "safeToDelete": "REVIEW",
+  "confidence": "low",
+  "reasons": [
+   "Inventory document without a card document (e.g. left after an NFC return). /c/{id} cannot be activated in this state; it may still correspond to physical stock."
+  ],
+  "references": [],
+  "blockers": [],
+  "recommendedAction": "review with the physical stock",
+  "status": null,
+  "inventoryStatus": "available",
+  "activationCode": "AC…(8)",
+  "deviceIds": [],
+  "owner": null,
+  "account": null,
+  "profile": "none",
+  "recordType": "nfc_id"
+ },
+ {
+  "id": "ORPH12",
+  "url": "https://jmxdigitalcard.com/c/ORPH12",
+  "category": "ORPHAN_FRAGMENT",
+  "safeToDelete": "REVIEW",
+  "confidence": "low",
+  "reasons": [
+   "Only blank profile/cardAdmin stub documents remain (no card, no inventory, no owner, no references). /c/{id} already shows \"not found\".",
+   "REVIEW: cardAdmin.notes \"box 3 — check\""
+  ],
+  "references": [
+   "cardAdmin.notes \"box 3 — check\""
+  ],
+  "blockers": [],
+  "recommendedAction": "review manually",
+  "status": null,
+  "inventoryStatus": null,
+  "activationCode": null,
+  "deviceIds": [],
+  "owner": null,
+  "account": null,
+  "profile": "blank",
+  "recordType": null
+ }
+]

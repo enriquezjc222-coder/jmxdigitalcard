@@ -156,8 +156,19 @@
 </section>
 
 <section id="businessNetworkingSection" class="admin-section" hidden>
- <div class="section-title"><i class="fa-solid fa-network-wired"></i><div><small>JMX BUSINESS</small><h2>QR & Networking Settings</h2></div></div>
+ <div class="section-title"><i class="fa-solid fa-network-wired"></i><div><small>JMX QR</small><h2>QR & Networking Settings</h2></div></div>
  <div class="form-grid">
+  <div id="jmxQrEditorPreview" class="form-group full-width jmx-qr-editor-preview" hidden>
+   <span>Card QR preview</span>
+   <div class="jmx-qr-editor-row">
+    <div class="jmx-qr-editor-shell"><div id="jmxQrEditorCanvas" class="jmx-qr-editor-canvas"></div></div>
+    <div class="jmx-qr-editor-meta">
+     <strong id="jmxQrEditorState">Preparing QR…</strong>
+     <small>Opens: <code id="jmxQrEditorUrl"></code></small>
+     <small id="jmxQrEditorNote"></small>
+    </div>
+   </div>
+  </div>
   <label class="form-group"><span>QR Dark Color</span><input id="qrDarkColor" type="color" value="#111111"></label>
   <label class="form-group"><span>QR Light Color</span><input id="qrLightColor" type="color" value="#ffffff"></label>
   <label class="form-group full-width switch-form"><span>Branding</span><label class="switch-row"><input id="removeJmxBranding" type="checkbox"><span class="switch-ui"></span><strong>Remove JMX Branding</strong></label></label>

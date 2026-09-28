@@ -5,6 +5,7 @@ const {initializeApp, getApp} = require("firebase-admin/app");
 const {defineSecret} = require("firebase-functions/params");
 const {GoogleAuth} = require("google-auth-library");
 const jwt = require("jsonwebtoken");
+const {effectivePlanName} = require("./plan-resolver");
 const crypto = require("crypto");
 const {getFirestore, Timestamp, FieldValue} = require("firebase-admin/firestore");
 const {getStorage} = require("firebase-admin/storage");
@@ -30,10 +31,10 @@ const DEFAULT_SCANNER_CONFIG = {
 };
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
+// Plan: one shared resolver (./plan-resolver.js, identical to ../js/plan-resolver.js).
+// Missing/unrecognised plan → "Premium", the plan these cards have always shown publicly.
 function normalizePlan(card = {}) {
-  if (card.complimentaryBusiness === true) return "Business";
-  if (card.complimentaryPremium === true) return "Premium";
-  return ["Basic", "Premium", "Business"].includes(card.plan) ? card.plan : "Basic";
+  return effectivePlanName(card);
 }
 function safeString(value, max = 500) { return String(value ?? "").trim().slice(0, max); }
 function norm(value) { return safeString(value, 300).toLowerCase().replace(/\s+/g, " "); }

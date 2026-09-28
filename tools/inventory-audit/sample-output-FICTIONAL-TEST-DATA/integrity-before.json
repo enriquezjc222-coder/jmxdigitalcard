@@ -1,0 +1,14 @@
+{
+ "activeClients": 13,
+ "activatedCards": 12,
+ "profiles": 20,
+ "accounts": 13,
+ "identityProfiles": 0,
+ "nfcDevices": 2,
+ "usedActivationCodes": 0,
+ "walletObjects": 0,
+ "inventoryInStock": 1,
+ "inventoryPending": 2,
+ "inventoryNotActivated": 9,
+ "profilesWithClientData": 12
+}

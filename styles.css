@@ -2310,15 +2310,16 @@ body:not(.firebase-loading) .digital-card-app {
 .public-share-light-text{color:#fff}.public-share-light-text .public-share-logo-fallback{color:#fff}
 .public-share-dark-text{color:#111827}.public-share-dark-text .public-share-copy{text-shadow:0 1px 5px rgba(255,255,255,.35)}.public-share-dark-text .public-share-logo-fallback{color:#111827}
 .public-share-qr-shell{
-    width:148px;height:148px;flex:0 0 148px;padding:10px;box-sizing:border-box;
+    --jmx-qr-size:176px;
+    width:calc(var(--jmx-qr-size) + 20px);height:calc(var(--jmx-qr-size) + 20px);flex:0 0 calc(var(--jmx-qr-size) + 20px);padding:10px;box-sizing:border-box;
     border-radius:18px;display:grid;place-items:center;position:relative;z-index:2;
     border:1px solid rgba(255,255,255,.65);box-shadow:0 9px 24px rgba(0,0,0,.22)
 }
 .public-share-qr-shell .qr-code{
-    min-width:0;min-height:0;width:128px;height:128px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden
+    min-width:0;min-height:0;width:var(--jmx-qr-size);height:var(--jmx-qr-size);padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden
 }
 .public-share-qr-shell .qr-code canvas{
-    display:block!important;width:128px!important;height:128px!important;max-width:none!important;margin:0!important;image-rendering:pixelated
+    display:block!important;width:var(--jmx-qr-size)!important;height:var(--jmx-qr-size)!important;max-width:none!important;margin:0!important;image-rendering:pixelated
 }
 .public-share-qr-shell .qr-code img{display:none!important}
 .qr-wrapper>p{margin-top:18px}
@@ -2329,9 +2330,7 @@ body:not(.firebase-loading) .digital-card-app {
     .public-share-copy strong{font-size:.67rem}
     .public-share-copy span{font-size:.92rem;margin-top:5px}
     .public-share-copy small{font-size:.62rem;margin-top:5px}
-    .public-share-qr-shell{width:110px;height:110px;flex-basis:110px;padding:8px;border-radius:14px}
-    .public-share-qr-shell .qr-code{width:94px;height:94px}
-    .public-share-qr-shell .qr-code canvas{width:94px!important;height:94px!important}
+    .public-share-qr-shell{--jmx-qr-size:128px;width:calc(var(--jmx-qr-size) + 16px);height:calc(var(--jmx-qr-size) + 16px);flex-basis:calc(var(--jmx-qr-size) + 16px);padding:8px;border-radius:14px}
 }
 @media(max-width:390px){
     .public-share-theme-card{padding:17px 14px;gap:9px;min-height:174px}
@@ -2340,10 +2339,27 @@ body:not(.firebase-loading) .digital-card-app {
     .public-share-copy strong{font-size:.6rem;letter-spacing:.025em}
     .public-share-copy span{font-size:.82rem}
     .public-share-copy small{font-size:.56rem}
-    .public-share-qr-shell{width:100px;height:100px;flex-basis:100px;padding:7px}
-    .public-share-qr-shell .qr-code{width:86px;height:86px}
-    .public-share-qr-shell .qr-code canvas{width:86px!important;height:86px!important}
+    /* Sep 2026 unified QR: the QR never goes below 128 px, so on narrow phones the
+       identity block and the QR stack instead of shrinking the QR. */
+    .public-share-theme-card{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center}
+    .public-share-identity{justify-content:center;width:100%}
+    .public-share-qr-shell{padding:8px}
 }
+
+/* =========================================================
+   UNIFIED JMX CARD QR (SEP 2026) — js/jmx-qr/card-qr.js
+   Canvas is rendered at device-pixel resolution (1:1), so no resampling is needed.
+   The accent ring appears only when QR Visual Customization is enabled.
+   ========================================================= */
+.public-share-qr-shell .qr-code canvas.jmx-card-qr-canvas{image-rendering:auto}
+.public-share-qr-shell.jmx-qr-accent::after{
+    content:"";position:absolute;inset:-3px;border-radius:21px;padding:2px;pointer-events:none;
+    background:var(--jmxqr-accent-gradient);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+    box-shadow:0 0 0 .5px var(--jmxqr-accent-highlight)
+}
+@media(max-width:640px){.public-share-qr-shell.jmx-qr-accent::after{border-radius:17px}}
 
 /* Aug 31 2026 — dynamic theme selector supports extended profile themes */
 .theme-option .theme-circle[style]{box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 4px 12px rgba(0,0,0,.14)}

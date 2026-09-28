@@ -10,6 +10,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getStorage, ref as fbStorageRef, uploadBytes as fbUploadBytes, getDownloadURL as fbGetDownloadURL, deleteObject as fbDeleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
+import { cardQrTargetUrl, resolveCardQrCustomization, renderCardQr, cardThemeHex } from "./js/jmx-qr/card-qr.js";
+import { defaultFeatureControls as fcDefaults, mergeFeatureControls as fcMerge, resolveFeature } from "./js/feature-controls.js";
+import { basePlanName, effectivePlanName } from "./js/plan-resolver.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDf12K0m93K4cWSotDcSg2fIS-s3uaLW_Y",
@@ -86,23 +89,22 @@ let currentProfile = structuredCloneSafe(defaults);
 let currentUser = null;
 let currentCardOwnerUid = null;
 let currentCardPlan = "Premium";
+let loadedBasePlan = null; // base plan shown in #clientPlan when the editor loaded (plan is written only if the admin changes it)
 let currentCardFeatureOverrides = {};
 let currentRole = "none";
 let pendingMedia = new Map();
 let pendingDeletes = new Set();
 const BASIC_FEATURE_DEFAULTS=new Set(["description","saveContact","quickActions","phone","whatsapp","email","location","facebook","qr","profileThemes"]);
-const BUSINESS_ONLY_FEATURES=new Set(["customQR","qrDownload","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);
-const FEATURE_KEYS=[...new Set([...Object.keys(VISIBILITY_LABELS),"customQR","qrDownload","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","profileThemes","brandingRemoval","advancedNetworkingInsights"])];
-function defaultFeatureControls(){const global={},Basic={},Premium={},Business={};FEATURE_KEYS.forEach(k=>{global[k]=true;Basic[k]=BASIC_FEATURE_DEFAULTS.has(k);Premium[k]=!BUSINESS_ONLY_FEATURES.has(k);Business[k]=true});return{enabled:true,global,Basic,Premium,Business}}
-function mergeFeatureControls(raw={}){const d=defaultFeatureControls();return{enabled:raw.enabled!==false,global:{...d.global,...(raw.global||{})},Basic:{...d.Basic,...(raw.Basic||{})},Premium:{...d.Premium,...(raw.Premium||{})},Business:{...d.Business,...(raw.Business||{})}}}
+const BUSINESS_ONLY_FEATURES=new Set(["customQR","qrDownload","businessLogoQr","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","brandingRemoval","advancedNetworkingInsights"]);
+const FEATURE_KEYS=[...new Set([...Object.keys(VISIBILITY_LABELS),"customQR","qrDownload","businessLogoQr","analytics","advancedAnalytics","quickCapture","leads","contactNotes","meetingNotes","followUp","csvExport","vcfDownload","contactMap","aiScanner","autoIntroEmail","appleWallet","googleWallet","googleWalletThemes","qrCardThemes","profileThemes","brandingRemoval","advancedNetworkingInsights"])];
+// Feature permissions: one shared resolver (js/feature-controls.js) — GLOBAL → OVERRIDE → PLAN.
+function defaultFeatureControls(){return fcDefaults(FEATURE_KEYS,{basicDefaults:BASIC_FEATURE_DEFAULTS,businessOnly:BUSINESS_ONLY_FEATURES})}
+function mergeFeatureControls(raw={}){return fcMerge(raw,defaultFeatureControls())}
 let platformFeatureControls=defaultFeatureControls();
 function featureEnabledForPlan(feature){
-  if(platformFeatureControls.global?.[feature]===false)return false;
-  const override=currentCardFeatureOverrides?.[feature];if(override===true)return true;if(override===false)return false;
-  if(platformFeatureControls.enabled===false){return ["premium","business"].includes(currentCardPlan.toLowerCase())||BASIC_FEATURE_DEFAULTS.has(feature)}
-  const group=currentCardPlan.toLowerCase()==="basic"?platformFeatureControls.Basic:currentCardPlan.toLowerCase()==="business"?platformFeatureControls.Business:platformFeatureControls.Premium;
-  return group?.[feature]!==false;
+  return resolveFeature({controls:platformFeatureControls,plan:currentCardPlan,overrides:currentCardFeatureOverrides,key:feature,basicDefaults:BASIC_FEATURE_DEFAULTS});
 }
+let editorBusinessLogo=null; // cards/{id}.qrBusinessLogo (admin-only document), read-only here
 const FEATURE_INPUT_IDS={description:["description"],phone:["phone"],phone2:["phone2"],location:["city","state"],whatsapp:["whatsapp"],email:["email"],website:["website"],facebook:["facebook"],instagram:["instagram"],linkedin:["linkedin"],twitter:["twitter"],tiktok:["tiktok"],youtube:["youtube"],catalog:["catalog","catalogUpload"],customBusiness:["customBusinessLabel","customBusinessSubtitle","customBusinessUrl"],video:["videoUrl"],services:["service1Title","service1Description","service1Icon","service2Title","service2Description","service2Icon","service3Title","service3Description","service3Icon"],gallery:["galleryUpload","clearGallery"],finalCTA:["finalCtaTitle","finalCtaText","finalCtaLabel"],customQR:["qrDarkColor","qrLightColor"],brandingRemoval:["removeJmxBranding"]};
 
 const PROFILE_THEME_DEFS=[{"id":"gold","name":"Gold","css":"linear-gradient(135deg,#745317,#b88a2b,#e7cc84)"},{"id":"blue","name":"Blue","css":"linear-gradient(135deg,#1e3a8a,#2563eb,#93c5fd)"},{"id":"emerald","name":"Emerald","css":"linear-gradient(135deg,#065f46,#059669,#6ee7b7)"},{"id":"purple","name":"Purple","css":"linear-gradient(135deg,#4c1d95,#7c3aed,#c4b5fd)"},{"id":"red","name":"Red","css":"linear-gradient(135deg,#7f1d1d,#dc2626,#fca5a5)"},{"id":"black","name":"Black","css":"linear-gradient(135deg,#050505,#171717,#a3a3a3)"},{"id":"cyan","name":"Electric Cyan","css":"linear-gradient(135deg,#155e75,#06b6d4,#a5f3fc)"},{"id":"midnight_gold","name":"Midnight Gold","css":"linear-gradient(135deg,#050505,#2a2106 55%,#d4af37)"},{"id":"silver_ice","name":"Silver Ice","css":"linear-gradient(135deg,#334155,#e2e8f0 55%,#67e8f9)"},{"id":"electric_violet","name":"Electric Violet","css":"linear-gradient(135deg,#2e1065,#7c3aed 55%,#c084fc)"},{"id":"neon_lime","name":"Neon Lime","css":"linear-gradient(135deg,#1a2e05,#65a30d 56%,#bef264)"},{"id":"ocean_teal","name":"Ocean Teal","css":"linear-gradient(135deg,#042f2e,#0f766e 50%,#2dd4bf)"},{"id":"royal_navy","name":"Royal Navy","css":"linear-gradient(135deg,#020617,#1e3a8a 55%,#3b82f6)"},{"id":"rose_champagne","name":"Rose Champagne","css":"linear-gradient(135deg,#4c1d2f,#be5f76 52%,#f9a8d4)"},{"id":"burnished_copper","name":"Burnished Copper","css":"linear-gradient(135deg,#431407,#c2410c 55%,#fb923c)"},{"id":"burgundy_gold","name":"Burgundy Gold","css":"linear-gradient(135deg,#4c0519,#9f1239 56%,#f59e0b)"},{"id":"graphite_cyan","name":"Graphite Cyan","css":"linear-gradient(135deg,#09090b,#27272a 52%,#22d3ee)"},{"id":"emerald_gold","name":"Emerald Gold","css":"linear-gradient(135deg,#022c22,#047857 52%,#d4af37)"},{"id":"ruby_neon","name":"Ruby Neon","css":"linear-gradient(135deg,#4c0519,#be123c 50%,#fb7185)"},{"id":"arctic_blue","name":"Arctic Blue","css":"linear-gradient(135deg,#082f49,#0284c7 52%,#7dd3fc)"},{"id":"amethyst_rose","name":"Amethyst Rose","css":"linear-gradient(135deg,#3b0764,#9333ea 50%,#f472b6)"},{"id":"titanium","name":"Titanium","css":"linear-gradient(135deg,#0f172a,#64748b 52%,#cbd5e1)"},{"id":"sunset_orange","name":"Sunset Orange","css":"linear-gradient(135deg,#431407,#ea580c 48%,#fbbf24)"},{"id":"aqua_purple","name":"Aqua Purple","css":"linear-gradient(135deg,#164e63,#06b6d4 46%,#7c3aed)"},{"id":"white_gold","name":"White Gold","css":"linear-gradient(135deg,#f8fafc,#fff7d6 55%,#d4af37)"},{"id":"black_chrome","name":"Black Chrome","css":"linear-gradient(135deg,#000,#3f3f46 52%,#a1a1aa)"},{"id":"cosmic_blue","name":"Cosmic Blue","css":"linear-gradient(135deg,#020617,#312e81 45%,#4f46e5 68%,#22d3ee)"}];
@@ -144,7 +146,7 @@ async function loadRemoteProfile(){
   const [cardSnap,profileSnap,ownerSnap]=await Promise.all([getDoc(cardRef),getDoc(profileRef),getDoc(ownerRef)]);
   if(!cardSnap.exists()&&!profileSnap.exists()) return null;
   const meta=cardSnap.exists()?cardSnap.data():{};
-  currentCardPlan=meta.complimentaryBusiness===true?"Business":(meta.complimentaryPremium===true?"Premium":(meta.plan||"Premium"));
+  currentCardPlan=effectivePlanName(meta); // shared resolver (js/plan-resolver.js)
   currentCardFeatureOverrides=(meta.featureOverrides&&typeof meta.featureOverrides==="object")?meta.featureOverrides:{};
   currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:(meta.ownerUid||null);
   const data=profileSnap.exists()?profileSnap.data():meta;
@@ -263,7 +265,7 @@ function collectFormProfile(){
   p.website=normalizeURL(getVal("website")); p.catalog=normalizeURL(getVal("catalog")); p.customBusinessUrl=normalizeURL(getVal("customBusinessUrl"));
   ["facebook","instagram","linkedin","twitter","tiktok","youtube"].forEach(k=>p[k]=normalizeURL(p[k]));
   p.phoneRaw=normalizePhone(p.phone); p.phone2Raw=normalizePhone(p.phone2); p.whatsappRaw=normalizePhone(p.whatsapp);
-  p.visibility=readVisibility(); p.theme=document.querySelector(".admin-theme.active")?.dataset.theme||currentProfile.theme||"gold"; p.qrDarkColor=getVal("qrDarkColor")||"#111111"; p.qrLightColor=getVal("qrLightColor")||"#ffffff"; p.removeJmxBranding=$id("removeJmxBranding")?.checked===true; p.qrCardTheme=selectedQrCardTheme||currentProfile.qrCardTheme||"default";
+  p.visibility=readVisibility(); p.theme=document.querySelector(".admin-theme.active")?.dataset.theme||currentProfile.theme||"gold"; p.qrDarkColor=getVal("qrDarkColor")||"#111111"; p.qrLightColor=getVal("qrLightColor")||"#ffffff"; p.removeJmxBranding=$id("removeJmxBranding")?.checked===true; p.qrCardTheme=selectedQrCardTheme||currentProfile.qrCardTheme||"default"; 
   return p;
 }
 
@@ -271,17 +273,18 @@ async function loadAdminMeta(){
   try{
     const [cardSnap,ownerSnap]=await Promise.all([getDoc(cardRef),getDoc(ownerRef)]);
     const c=cardSnap.exists()?cardSnap.data():{},o=ownerSnap.exists()?ownerSnap.data():{};
+    editorBusinessLogo=(c.qrBusinessLogo&&typeof c.qrBusinessLogo==="object")?c.qrBusinessLogo:null;refreshEditorQr();
     selectedWalletTheme=c.googleWalletTheme||selectedWalletTheme||"wallet_black"; savedWalletTheme=selectedWalletTheme; selectedQrCardTheme=currentProfile.qrCardTheme||selectedQrCardTheme||"default"; savedQrCardTheme=selectedQrCardTheme;
     if(currentRole==="owner"){
       setVal("clientEditorEmail",o.ownerEmail||currentUser?.email||"");
-      if($id("clientPlan"))$id("clientPlan").value=c.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("complimentaryBusiness"))$id("complimentaryBusiness").checked=c.complimentaryBusiness===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=(c.complimentaryBusiness||c.complimentaryPremium)?"complimentary":(c.subscription?.source||"manual");
+      loadedBasePlan=basePlanName(c);if($id("clientPlan"))$id("clientPlan").value=loadedBasePlan; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("complimentaryBusiness"))$id("complimentaryBusiness").checked=c.complimentaryBusiness===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=(c.complimentaryBusiness||c.complimentaryPremium)?"complimentary":(c.subscription?.source||"manual");
       if($id("cardStatus"))$id("cardStatus").value=c.status||"activated";
       if($id("nfcStatus"))$id("nfcStatus").value=c.nfcStatus||"programmed";
       return;
     }
     const snap=await getDoc(adminMetaRef),m=snap.exists()?snap.data():{};
     setVal("clientName",m.clientName||currentProfile.fullName||"");setVal("clientEmail",m.clientEmail||o.ownerEmail||"");setVal("clientPhone",m.clientPhone||"");setVal("renewalDate",m.renewalDate||"");setVal("internalNotes",m.notes||"");
-    if($id("clientPlan"))$id("clientPlan").value=c.plan||m.plan||"Basic"; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("complimentaryBusiness"))$id("complimentaryBusiness").checked=c.complimentaryBusiness===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=(c.complimentaryBusiness||c.complimentaryPremium)?"complimentary":(c.subscription?.source||"manual");
+    loadedBasePlan=basePlanName(c);if($id("clientPlan"))$id("clientPlan").value=loadedBasePlan; if($id("complimentaryPremium"))$id("complimentaryPremium").checked=c.complimentaryPremium===true; if($id("complimentaryBusiness"))$id("complimentaryBusiness").checked=c.complimentaryBusiness===true; if($id("subscriptionStatus"))$id("subscriptionStatus").value=c.subscription?.status||"none"; if($id("subscriptionSource"))$id("subscriptionSource").value=(c.complimentaryBusiness||c.complimentaryPremium)?"complimentary":(c.subscription?.source||"manual");
     if($id("cardStatus"))$id("cardStatus").value=c.status||"activated";
     if($id("nfcStatus"))$id("nfcStatus").value=c.nfcStatus||m.nfcStatus||"programmed";
     setVal("clientEditorEmail",o.ownerEmail||"");
@@ -294,7 +297,7 @@ async function saveAdminMeta(p){
   const data={clientName:getVal("clientName")||p.fullName||CARD_ID,clientEmail:getVal("clientEmail"),clientPhone:getVal("clientPhone"),company:p.company||"",renewalDate:getVal("renewalDate"),nfcStatus:$id("nfcStatus")?.value||"programmed",notes:getVal("internalNotes"),updatedAt:serverTimestamp()};
   if(!existing.exists())data.createdAt=serverTimestamp();
   await setDoc(adminMetaRef,data,{merge:true});
-  const comp=$id("complimentaryPremium")?.checked===true,compBusiness=$id("complimentaryBusiness")?.checked===true; const selectedPlan=$id("clientPlan")?.value||currentCardPlan||"Basic"; const existingSnap=await getDoc(cardRef); const existingMeta=existingSnap.exists()?existingSnap.data():{}; const hadGift=existingMeta.complimentaryPremium===true||existingMeta.complimentaryBusiness===true; const previousStatus=hadGift?(existingMeta.preGiftSubscriptionStatus||"none"):(existingMeta.subscription?.status||$id("subscriptionStatus")?.value||"none"); const previousSource=hadGift?(existingMeta.preGiftSubscriptionSource||"manual"):(existingMeta.subscription?.source||$id("subscriptionSource")?.value||"manual"); const hasGift=comp||compBusiness; await setDoc(cardRef,{plan:selectedPlan,complimentaryPremium:comp&&!compBusiness,complimentaryBusiness:compBusiness,complimentaryBasePlan:hasGift?selectedPlan:deleteField(),preGiftSubscriptionStatus:hasGift?previousStatus:deleteField(),preGiftSubscriptionSource:hasGift?previousSource:deleteField(),subscription:{status:hasGift?"active":($id("subscriptionStatus")?.value||previousStatus||"none"),source:hasGift?"complimentary":($id("subscriptionSource")?.value||previousSource||"manual"),complimentaryTier:hasGift?(compBusiness?"Business":"Premium"):deleteField()},status:$id("cardStatus")?.value||"activated",nfcStatus:$id("nfcStatus")?.value||"programmed",updatedAt:serverTimestamp()},{merge:true}); await setDoc(doc(db,"inventory",CARD_ID),{plan:selectedPlan,updatedAt:serverTimestamp()},{merge:true});
+  const comp=$id("complimentaryPremium")?.checked===true,compBusiness=$id("complimentaryBusiness")?.checked===true; const selectedPlan=$id("clientPlan")?.value||loadedBasePlan||basePlanName({}); const planChanged=loadedBasePlan===null||selectedPlan!==loadedBasePlan; const existingSnap=await getDoc(cardRef); const existingMeta=existingSnap.exists()?existingSnap.data():{}; const hadGift=existingMeta.complimentaryPremium===true||existingMeta.complimentaryBusiness===true; const previousStatus=hadGift?(existingMeta.preGiftSubscriptionStatus||"none"):(existingMeta.subscription?.status||$id("subscriptionStatus")?.value||"none"); const previousSource=hadGift?(existingMeta.preGiftSubscriptionSource||"manual"):(existingMeta.subscription?.source||$id("subscriptionSource")?.value||"manual"); const hasGift=comp||compBusiness; await setDoc(cardRef,{...(planChanged?{plan:selectedPlan}:{}),complimentaryPremium:comp&&!compBusiness,complimentaryBusiness:compBusiness,complimentaryBasePlan:hasGift?selectedPlan:deleteField(),preGiftSubscriptionStatus:hasGift?previousStatus:deleteField(),preGiftSubscriptionSource:hasGift?previousSource:deleteField(),subscription:{status:hasGift?"active":($id("subscriptionStatus")?.value||previousStatus||"none"),source:hasGift?"complimentary":($id("subscriptionSource")?.value||previousSource||"manual"),complimentaryTier:hasGift?(compBusiness?"Business":"Premium"):deleteField()},status:$id("cardStatus")?.value||"activated",nfcStatus:$id("nfcStatus")?.value||"programmed",updatedAt:serverTimestamp()},{merge:true}); if(planChanged){await setDoc(doc(db,"inventory",CARD_ID),{plan:selectedPlan,updatedAt:serverTimestamp()},{merge:true});loadedBasePlan=selectedPlan};
 }
 
 async function saveCardAccess(){ return; }
@@ -469,7 +472,7 @@ async function loadPremiumOwnerStats(){
   const planLower=String(currentCardPlan).toLowerCase();
   const advanced=planLower==="business"&&featureEnabledForPlan("advancedAnalytics");document.querySelectorAll("[data-advanced-analytics]").forEach(el=>el.hidden=!advanced);
   document.querySelectorAll("[data-premium-retired-counter]").forEach(el=>{el.hidden=planLower==="premium"});
-  const net=$id("businessNetworkingSection"); if(net){const networkingAllowed=featureEnabledForPlan("googleWalletThemes")||(String(currentCardPlan).toLowerCase()==="business"&&(featureEnabledForPlan("customQR")||featureEnabledForPlan("brandingRemoval")));net.hidden=!networkingAllowed;} if(!show)return;
+  const net=$id("businessNetworkingSection"); if(net){const networkingAllowed=featureEnabledForPlan("googleWalletThemes")||featureEnabledForPlan("customQR")||featureEnabledForPlan("businessLogoQr")||(String(currentCardPlan).toLowerCase()==="business"&&featureEnabledForPlan("brandingRemoval"));net.hidden=!networkingAllowed;} if(!show)return;
   try{
     const totalSnap=await getDoc(doc(db,"cardStats",CARD_ID));
     const total=totalSnap.exists()?totalSnap.data():{},actions=total.actions||{};
@@ -529,7 +532,7 @@ function applyPlanLocks(){
     const walletColors=$id("qrCardThemesControl");if(walletColors)walletColors.hidden=true;
   }
   let note=$id("planAccessNote");if(!note){note=document.createElement("div");note.id="planAccessNote";note.className="admin-note";document.querySelector(".card-management-section")?.after(note)}
-  const disabled=FEATURE_KEYS.filter(k=>!featureEnabledForPlan(k)).map(k=>VISIBILITY_LABELS[k]||({customQR:"Custom QR",qrDownload:"QR Download",analytics:"Analytics",advancedAnalytics:"Advanced Analytics",quickCapture:"Quick Capture",leads:"Leads",contactNotes:"Contact Notes",meetingNotes:"Meeting Notes",followUp:"Follow-Up",csvExport:"CSV Export",vcfDownload:"VCF Download",contactMap:"Contact Map",aiScanner:"AI Scanner",autoIntroEmail:"Auto-Intro Email",appleWallet:"Apple Wallet",googleWallet:"Google Wallet",googleWalletThemes:"Google Wallet Themes",profileThemes:"Profile Theme Colors",brandingRemoval:"Branding Removal",advancedNetworkingInsights:"Advanced Networking Insights"}[k])).filter(Boolean);
+  const disabled=FEATURE_KEYS.filter(k=>!featureEnabledForPlan(k)).map(k=>VISIBILITY_LABELS[k]||({customQR:"Custom QR",businessLogoQr:"Business Logo QR",qrDownload:"QR Download",analytics:"Analytics",advancedAnalytics:"Advanced Analytics",quickCapture:"Quick Capture",leads:"Leads",contactNotes:"Contact Notes",meetingNotes:"Meeting Notes",followUp:"Follow-Up",csvExport:"CSV Export",vcfDownload:"VCF Download",contactMap:"Contact Map",aiScanner:"AI Scanner",autoIntroEmail:"Auto-Intro Email",appleWallet:"Apple Wallet",googleWallet:"Google Wallet",googleWalletThemes:"Google Wallet Themes",profileThemes:"Profile Theme Colors",brandingRemoval:"Branding Removal",advancedNetworkingInsights:"Advanced Networking Insights"}[k])).filter(Boolean);
   note.innerHTML=`<strong>Plan:</strong> ${currentCardPlan}. ${owner?(disabled.length?`Features disabled by JMX administration are hidden from this editor and from the public card.`:`All available ${currentCardPlan} modules are enabled by JMX administration.`):"Administrator view: all profile fields remain editable; public visibility follows the Feature Control Center."}`;
 }
 
@@ -782,7 +785,33 @@ document.addEventListener("DOMContentLoaded",()=>{
       currentRole=adminUser?"admin":"owner";currentCardOwnerUid=ownerSnap.exists()?ownerSnap.data().ownerUid:null;
       document.body.classList.toggle("client-owner-mode",currentRole==="owner");
       setAuthStatus(`Signed in as ${user.email||currentRole}. ${currentRole==="admin"?"JMX administrator":"Card owner"}.`,"ok");$id("adminUserEmail").textContent=user.email||currentRole;
-      await loadAfterAuth();applyPlanLocks();await loadPremiumOwnerStats();await loadBusinessLeads();await loadAiScannerStatus();await loadScannerHistory();await loadScannerContacts();
+      await loadAfterAuth();applyPlanLocks();await loadPremiumOwnerStats();refreshEditorQr();await loadBusinessLeads();await loadAiScannerStatus();await loadScannerHistory();await loadScannerContacts();
     }catch(e){console.error(e);setAuthStatus(firebaseMessage(e),"error");}
   });
 });
+
+// ---------------------------------------------------------------------------
+// Unified JMX card QR — live preview in the editor (same engine as the public card).
+// ---------------------------------------------------------------------------
+// Business Logo QR is managed only by the platform admin (dashboard) and read from the
+// admin-only card document; this editor shows it but can never change it.
+let editorQrTimer=0;
+function editorQrProfile(){return {...currentProfile,qrDarkColor:getVal("qrDarkColor")||currentProfile.qrDarkColor,qrLightColor:getVal("qrLightColor")||currentProfile.qrLightColor}}
+function refreshEditorQr(){clearTimeout(editorQrTimer);editorQrTimer=setTimeout(renderEditorQr,60)}
+async function renderEditorQr(){
+  const wrap=$id("jmxQrEditorPreview"),host=$id("jmxQrEditorCanvas");if(!wrap||!host)return;
+  const clientEditor=currentRole!=="none"&&CARD_ID!=="main";
+  const visual=featureEnabledForPlan("customQR"),biz=featureEnabledForPlan("businessLogoQr");
+  const profile=editorQrProfile(),custom=resolveCardQrCustomization({profile,allows:featureEnabledForPlan,businessLogo:editorBusinessLogo}),url=cardQrTargetUrl(CARD_ID);
+  wrap.hidden=!(clientEditor&&(visual||(biz&&custom.businessLogoStored)));if(wrap.hidden)return;
+  $id("jmxQrEditorUrl").textContent=url;
+  const state=$id("jmxQrEditorState"),note=$id("jmxQrEditorNote");
+  try{
+    const r=await renderCardQr(host,{targetUrl:url,customization:custom,logoMode:custom.logoMode,businessLogoUrl:custom.businessLogoUrl,themeColors:{primary:cardThemeHex(profile,featureEnabledForPlan)},size:128,accentHost:host.parentElement,label:"Preview of this card's QR code"});
+    if(r.superseded)return;
+    state.textContent=r.usedFallback?"Scan-safe fallback shown":"Verified: decodes to this card's URL";state.className=r.usedFallback?"warn":"ok";
+    const notes=[];if(custom.colorAdjusted)notes.push("Colour adjusted for reliable scanning.");if(r.logo!=="none")notes.push(`${r.logo==="business"?"Business logo":"JMX emblem"} ${Math.round(r.logoScaleOfTotal*100)}% of QR width${r.logoReduced?" (auto-reduced for readability)":""}.`);if(!visual)notes.push("QR colour customization is not enabled for this card (default black & white).");if(biz&&custom.businessLogoStored)notes.push("The business logo in the QR is managed by JMX.");
+    note.textContent=notes.join(" ");
+  }catch(e){console.error("QR preview failed",e);state.textContent="QR preview unavailable";state.className="warn"}
+}
+["qrDarkColor","qrLightColor"].forEach(id=>$id(id)?.addEventListener("input",refreshEditorQr));

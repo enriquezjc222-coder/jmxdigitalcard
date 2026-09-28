@@ -1,0 +1,9 @@
+{
+  "name": "jmx-inventory-audit",
+  "private": true,
+  "type": "module",
+  "description": "Read-only inventory / plan audit for JMX Digital Card, with a two-stage (archive → delete) execute mode. Never deployed.",
+  "engines": { "node": ">=20" },
+  "scripts": { "dry-run": "node audit.mjs" },
+  "dependencies": { "firebase-admin": "^13.4.0" }
+}
